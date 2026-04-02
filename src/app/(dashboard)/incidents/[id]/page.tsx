@@ -152,7 +152,31 @@ export default async function IncidentDetailPage({
 
           {/* Sources */}
           <div className="glass-card p-5">
-            <h2 className="font-semibold text-[#1a1a2e] text-sm mb-3">Sources</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-[#1a1a2e] text-sm">
+                Sources ({incident.sources.length})
+              </h2>
+
+              <div className="flex items-center gap-2">
+                {incident.sources.length === 0 && (
+                  <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                    No sources
+                  </span>
+                )}
+
+                {incident.sources.length === 1 && (
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                    1 source — add more
+                  </span>
+                )}
+
+                {incident.sources.length >= 2 && (
+                  <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    {incident.sources.length} sources corroborated
+                  </span>
+                )}
+              </div>
+            </div>
             {incident.sources.length === 0 ? (
               <p className="text-xs text-zinc-400">No sources attached</p>
             ) : (

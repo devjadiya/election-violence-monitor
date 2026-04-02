@@ -47,6 +47,9 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <Link href="/map" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Live Map</Link>
             <Link href="/reports" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Reports</Link>
+            <Link href="/developers" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">
+              API
+            </Link>
             <Link href="/submit" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Submit Tip</Link>
             <Link href="/login" className="text-sm bg-[#1a1a2e] text-white px-4 py-2 rounded-lg hover:bg-[#16213e] transition-colors font-medium">Sign In</Link>
           </div>
@@ -145,10 +148,11 @@ export default async function HomePage() {
             <span className="text-sm text-zinc-500">Election Violence Monitor</span>
           </div>
           <div className="flex gap-6 text-xs text-zinc-400">
-            <a href="/about" className="hover:text-zinc-600 transition-colors">About</a>
-            <a href="/reports" className="hover:text-zinc-600 transition-colors">Reports</a>
-            <a href="/map" className="hover:text-zinc-600 transition-colors">Map</a>
-            <a href="/submit" className="hover:text-zinc-600 transition-colors">Submit Tip</a>
+            <Link href="/about" className="hover:text-zinc-600 transition-colors">About</Link>
+            <Link href="/reports" className="hover:text-zinc-600 transition-colors">Reports</Link>
+            <Link href="/map" className="hover:text-zinc-600 transition-colors">Map</Link>
+            <Link href="/submit" className="hover:text-zinc-600 transition-colors">Submit Tip</Link>
+            <Link href="/developers" className="hover:text-zinc-600 transition-colors">API Docs</Link>
             <a href="https://github.com/devjadiya/election-violence-monitor" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 transition-colors">GitHub</a>
           </div>
           <p className="text-xs text-zinc-400">
