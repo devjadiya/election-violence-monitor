@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, MapPin, AlertTriangle, CheckSquare,
-  BarChart3, Settings, Users, Database, Download, Globe
+  BarChart3, Settings, Users, Database, Download, Globe, Calendar
 } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/review', label: 'Review Queue', icon: CheckSquare },
+  { href: '/elections', label: 'Elections', icon: Calendar },
   { href: '/livemap', label: 'Live Map', icon: MapPin },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/sources', label: 'Sources', icon: Globe },
