@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { nanoid } from 'nanoid'
+import { notifyReviewers, notifyAdmins } from '@/lib/notifications'
+
 
 export async function GET(req: NextRequest) {
   try {
@@ -116,6 +118,13 @@ export async function POST(req: NextRequest) {
           }
           : undefined,
       },
+    })
+
+    await notifyReviewers({
+      type: 'review_needed',
+      title: 'New incident needs review',
+      message: `${incident.referenceId}: ${incident.title}`,
+      link: `/incidents/${incident.id}`,
     })
     return NextResponse.json({ success: true, id: incident.id, referenceId })
   } catch (error: any) {

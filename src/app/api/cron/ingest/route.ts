@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { fetchGdeltArticles, fetchRssArticles, processArticle, ELECTION_VIOLENCE_KEYWORDS } from '@/lib/ingestion/gdelt'
+import { notifyAdmins } from '@/lib/notifications'
 
 export const maxDuration = 60
 
@@ -95,6 +96,15 @@ export async function GET(req: NextRequest) {
         completedAt: new Date(),
       },
     })
+
+    if (incidentsCreated > 0) {
+      await notifyAdmins({
+        type: 'new_incident',
+        title: `AI detected ${incidentsCreated} new incident${incidentsCreated > 1 ? 's' : ''}`,
+        message: `Ingestion found ${articlesFound} articles, created ${incidentsCreated} incidents for review.`,
+        link: '/review',
+      })
+    }
 
     return NextResponse.json({
       success: true,

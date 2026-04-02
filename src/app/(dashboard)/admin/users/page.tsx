@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/db'
 import { format } from 'date-fns'
+import { UserActions } from '@/components/admin/user-actions'
+import Link from 'next/link'
+import { UserPlus } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,9 +27,15 @@ export default async function UsersPage() {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Users</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">{users.length} registered users</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Users</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">{users.length} registered users</p>
+        </div>
+        <Link href="/admin/users/new"
+          className="flex items-center gap-2 bg-[#1a1a2e] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors">
+          <UserPlus size={15} /> Add User
+        </Link>
       </div>
 
       <div className="glass-card overflow-hidden">
@@ -38,17 +47,16 @@ export default async function UsersPage() {
               <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Incidents</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Joined</th>
               <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-50">
-            {users.map((user) => (
+            {users.map(user => (
               <tr key={user.id} className="hover:bg-zinc-50 transition-colors">
                 <td className="px-5 py-3.5">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
-                      <span className="text-xs font-medium text-zinc-600">
-                        {user.name?.[0] ?? user.email[0]}
-                      </span>
+                      <span className="text-xs font-medium text-zinc-600">{user.name?.[0] ?? user.email[0]}</span>
                     </div>
                     <div>
                       <div className="font-medium text-zinc-800">{user.name ?? '—'}</div>
@@ -67,6 +75,9 @@ export default async function UsersPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
                     {user.isActive ? 'Active' : 'Inactive'}
                   </span>
+                </td>
+                <td className="px-5 py-3.5">
+                  <UserActions user={user} />
                 </td>
               </tr>
             ))}
