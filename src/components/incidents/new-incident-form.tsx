@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORY_LABELS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
+import { toast } from 'sonner'
 
 interface Election {
   id: string
@@ -79,20 +80,17 @@ export function NewIncidentForm({ elections }: Props) {
           longitude: form.longitude ? Number(form.longitude) : null,
           occurredAt: new Date(form.occurredAt).toISOString(),
           electionId: form.electionId || null,
-          victim: {
-            role: form.victimRole,
-            gender: form.victimGender,
-            ageGroup: form.victimAgeGroup,
-            count: Number(form.victimCount),
-          },
+          victim: { role: form.victimRole, gender: form.victimGender, ageGroup: form.victimAgeGroup, count: Number(form.victimCount) },
           actor: form.actorType ? { actorType: form.actorType, partyName: form.partyName || null } : null,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create incident')
+      toast.success('Incident created successfully', { description: 'Pending review by your team.' })
       router.push(`/incidents/${data.id}`)
     } catch (err: any) {
       setError(err.message)
+      toast.error('Failed to create incident', { description: err.message })
       setLoading(false)
     }
   }
@@ -237,7 +235,7 @@ export function NewIncidentForm({ elections }: Props) {
             <div>
               <label className={labelClass}>Victim Role</label>
               <select className={inputClass} value={form.victimRole} onChange={e => update('victimRole', e.target.value)}>
-                {['UNKNOWN','VOTER','CANDIDATE','CAMPAIGN_STAFF','ELECTION_OFFICIAL','ELECTION_OBSERVER','JOURNALIST','PARTY_SUPPORTER','SECURITY_PERSONNEL','COMMUNITY_MEMBER'].map(r => (
+                {['UNKNOWN', 'VOTER', 'CANDIDATE', 'CAMPAIGN_STAFF', 'ELECTION_OFFICIAL', 'ELECTION_OBSERVER', 'JOURNALIST', 'PARTY_SUPPORTER', 'SECURITY_PERSONNEL', 'COMMUNITY_MEMBER'].map(r => (
                   <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
                 ))}
               </select>
@@ -249,13 +247,13 @@ export function NewIncidentForm({ elections }: Props) {
             <div>
               <label className={labelClass}>Gender</label>
               <select className={inputClass} value={form.victimGender} onChange={e => update('victimGender', e.target.value)}>
-                {['UNKNOWN','MALE','FEMALE','NON_BINARY'].map(g => <option key={g} value={g}>{g}</option>)}
+                {['UNKNOWN', 'MALE', 'FEMALE', 'NON_BINARY'].map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
               <label className={labelClass}>Age Group</label>
               <select className={inputClass} value={form.victimAgeGroup} onChange={e => update('victimAgeGroup', e.target.value)}>
-                {['UNKNOWN','UNDER_18','AGE_18_25','AGE_26_40','AGE_41_60','ABOVE_60'].map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+                {['UNKNOWN', 'UNDER_18', 'AGE_18_25', 'AGE_26_40', 'AGE_41_60', 'ABOVE_60'].map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
               </select>
             </div>
           </div>

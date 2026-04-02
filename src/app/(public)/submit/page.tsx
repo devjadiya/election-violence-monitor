@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Submit a Tip',
+  description: 'Confidentially report an election violence incident to our monitoring team.',
+}
+
 'use client'
 
 import { useState } from 'react'
@@ -21,6 +26,7 @@ export default function SubmitTipPage() {
     setForm(f => ({ ...f, [key]: value }))
   }
 
+  // Replace the handleSubmit function:
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -33,12 +39,18 @@ export default function SubmitTipPage() {
           occurredAt: form.occurredAt ? new Date(form.occurredAt).toISOString() : null,
         }),
       })
-      if (res.ok) setSubmitted(true)
+      if (res.ok) {
+        setSubmitted(true)
+      } else {
+        const data = await res.json()
+        alert(data.error ?? 'Submission failed. Please try again.')
+      }
+    } catch {
+      alert('Network error. Please try again.')
     } finally {
       setLoading(false)
     }
   }
-
   const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]/10 focus:border-[#1a1a2e] transition-all bg-white"
   const labelClass = "block text-sm font-medium text-zinc-700 mb-1.5"
 

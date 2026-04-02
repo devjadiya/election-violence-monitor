@@ -1,3 +1,13 @@
+export const metadata = {
+  title: 'Election Violence Monitor — Transparent Documentation Worldwide',
+  description:
+    'Community-based platform documenting election-related violence incidents. Real-time map, verified reports, open data for researchers and NGOs.',
+  openGraph: {
+    title: 'Election Violence Monitor',
+    description: 'Transparent documentation of election violence worldwide.',
+  },
+}
+
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 
@@ -135,13 +145,20 @@ export default async function HomePage() {
             <span className="text-sm text-zinc-500">Election Violence Monitor</span>
           </div>
           <div className="flex gap-6 text-xs text-zinc-400">
-            <Link href="/about" className="hover:text-zinc-600 transition-colors">About</Link>
-            <Link href="/reports" className="hover:text-zinc-600 transition-colors">Reports</Link>
-            <Link href="/map" className="hover:text-zinc-600 transition-colors">Map</Link>
-            <Link href="/submit" className="hover:text-zinc-600 transition-colors">Submit Tip</Link>
-            <a href="https://github.com/devjadiya/election-violence-monitor" className="hover:text-zinc-600 transition-colors">GitHub</a>
+            <a href="/about" className="hover:text-zinc-600 transition-colors">About</a>
+            <a href="/reports" className="hover:text-zinc-600 transition-colors">Reports</a>
+            <a href="/map" className="hover:text-zinc-600 transition-colors">Map</a>
+            <a href="/submit" className="hover:text-zinc-600 transition-colors">Submit Tip</a>
+            <a href="https://github.com/devjadiya/election-violence-monitor" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 transition-colors">GitHub</a>
           </div>
-          <p className="text-xs text-zinc-400">Open source · CC0 License · Built for democracy</p>
+          <p className="text-xs text-zinc-400">
+            Built by{' '}
+            <a href="https://github.com/devjadiya" target="_blank" rel="noopener noreferrer"
+              className="text-zinc-600 hover:text-zinc-900 font-medium transition-colors">
+              Dev Jadiya
+            </a>
+            {' '}· Open source · CC0 License
+          </p>
         </div>
       </footer>
     </main>

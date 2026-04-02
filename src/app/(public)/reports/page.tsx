@@ -1,3 +1,8 @@
+export const metadata = {
+  title: 'Reports — Published Incidents',
+  description: 'Browse verified and published election violence incident reports.',
+}
+
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { format } from 'date-fns'

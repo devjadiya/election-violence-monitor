@@ -40,9 +40,8 @@ export function SidebarNav({ user }: Props) {
       <Link
         href={href}
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
-          active ? 'bg-[#1a1a2e] text-white font-medium' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
-        }`}
+        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active ? 'bg-[#1a1a2e] text-white font-medium' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+          }`}
       >
         <Icon size={15} strokeWidth={active ? 2.5 : 2} />
         {label}
@@ -96,6 +95,19 @@ export function SidebarNav({ user }: Props) {
     </>
   )
 
+  {/* Developer credit */ }
+  <div className="px-4 py-2 border-t border-zinc-50">
+
+    <a
+      href="https://github.com/devjadiya"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[10px] text-zinc-300 hover:text-zinc-500 transition-colors block text-center"
+    >
+      Built by Dev Jadiya
+    </a>
+</div >
+
   return (
     <>
       {/* Desktop sidebar */}
@@ -137,9 +149,8 @@ export function SidebarNav({ user }: Props) {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link key={href} href={href}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                active ? 'text-[#1a1a2e]' : 'text-zinc-400'
-              }`}>
+              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${active ? 'text-[#1a1a2e]' : 'text-zinc-400'
+                }`}>
               <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
             </Link>
           )
