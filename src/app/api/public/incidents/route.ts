@@ -1,7 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { publicApiLimiter, getClientIp, rateLimit } from '@/lib/security/rate-limit'
+import { getCachedPublicStats } from '@/lib/queue/dedup'
 
 export async function GET(req: NextRequest) {
+  // Rate limit
+  const ip = getClientIp(req)
+  const { success, remaining, reset } = await rateLimit(publicApiLimiter, ip)
+
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Max 100 requests/hour.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(reset),
+          'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
+        },
+      }
+    )
+  }
+
   const { searchParams } = new URL(req.url)
   const country = searchParams.get('country')
   const category = searchParams.get('category')
@@ -26,25 +46,13 @@ export async function GET(req: NextRequest) {
       skip: (page - 1) * pageSize,
       orderBy: { occurredAt: 'desc' },
       select: {
-        referenceId: true,
-        title: true,
-        description: true,
-        category: true,
-        electionStage: true,
-        country: true,
-        region: true,
-        district: true,
-        community: true,
-        latitude: true,
-        longitude: true,
-        occurredAt: true,
-        fatalities: true,
-        injured: true,
-        arrested: true,
-        weaponType: true,
-        confidenceScore: true,
-        publishedAt: true,
-        wikidataId: true,
+        referenceId: true, title: true, description: true,
+        category: true, electionStage: true, country: true,
+        region: true, district: true, community: true,
+        latitude: true, longitude: true, occurredAt: true,
+        fatalities: true, injured: true, arrested: true,
+        weaponType: true, confidenceScore: true,
+        publishedAt: true, wikidataId: true,
       },
     }),
     prisma.incident.count({ where }),
@@ -61,6 +69,7 @@ export async function GET(req: NextRequest) {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET',
       'Cache-Control': 'public, s-maxage=300',
+      'X-RateLimit-Remaining': String(remaining),
     },
   })
 }

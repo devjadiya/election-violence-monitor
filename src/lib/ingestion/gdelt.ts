@@ -1,7 +1,7 @@
 import { createHash } from 'crypto'
 import { prisma } from '@/lib/db'
 import { pass1Screen, pass2Extract, geocodeLocation } from '@/lib/ai/classifier'
-import { nanoid } from 'nanoid'
+import { isAlreadyProcessed, markAsProcessed } from '@/lib/queue/dedup'
 
 const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc'
 
@@ -21,15 +21,18 @@ export async function fetchGdeltArticles(keywords: string[], maxRecords = 50): P
     mode: 'artlist',
     maxrecords: String(maxRecords),
     format: 'json',
-    timespan: '1d',
+    timespan: '2d',
     sort: 'DateDesc',
   })
 
-  const res = await fetch(`${GDELT_BASE}?${params}`)
-  if (!res.ok) return []
-
-  const data = await res.json()
-  return data.articles ?? []
+  try {
+    const res = await fetch(`${GDELT_BASE}?${params}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.articles ?? []
+  } catch {
+    return []
+  }
 }
 
 export async function fetchRssArticles(source: {
@@ -39,13 +42,11 @@ export async function fetchRssArticles(source: {
   name: string
 }): Promise<{ url: string; title: string; content: string; publishedAt: Date }[]> {
   if (!source.rssUrl) return []
-
   try {
     const RSSParser = (await import('rss-parser')).default
-    const parser = new RSSParser()
+    const parser = new RSSParser({ timeout: 10000 })
     const feed = await parser.parseURL(source.rssUrl)
-
-    return (feed.items ?? []).slice(0, 20).map((item) => ({
+    return (feed.items ?? []).slice(0, 20).map(item => ({
       url: item.link ?? '',
       title: item.title ?? '',
       content: item.contentSnippet ?? item.content ?? '',
@@ -63,14 +64,21 @@ export async function processArticle(article: {
   publishedAt: Date
   sourceId: string
   language?: string
-}): Promise<{ created: boolean; incidentId?: string }> {
+}): Promise<{ created: boolean; incidentId?: string; reason?: string }> {
 
-  if (!article.url || !article.title) return { created: false }
+  if (!article.url || !article.title) return { created: false, reason: 'missing_fields' }
 
-  // Dedup check
+  // Upstash dedup check — faster than DB
+  const alreadyDone = await isAlreadyProcessed(article.url)
+  if (alreadyDone) return { created: false, reason: 'duplicate_redis' }
+
+  // DB dedup check as fallback
   const urlHash = createHash('sha256').update(article.url).digest('hex')
   const existing = await prisma.rawArticle.findUnique({ where: { urlHash } })
-  if (existing) return { created: false }
+  if (existing) {
+    await markAsProcessed(article.url)
+    return { created: false, reason: 'duplicate_db' }
+  }
 
   const text = `${article.title}. ${article.content}`.trim()
 
@@ -93,9 +101,11 @@ export async function processArticle(article: {
     },
   })
 
-  // Only run Pass 2 if Pass 1 passes
+  // Mark in Redis immediately
+  await markAsProcessed(article.url)
+
   if (!screen.isElectionRelated || !screen.isViolenceRelated || screen.confidence < 50) {
-    return { created: false }
+    return { created: false, reason: 'pass1_failed' }
   }
 
   // Pass 2: Deep extraction
@@ -105,7 +115,7 @@ export async function processArticle(article: {
       where: { id: rawArticle.id },
       data: { isProcessed: true, pass2At: new Date() },
     })
-    return { created: false }
+    return { created: false, reason: 'pass2_low_confidence' }
   }
 
   // Geocode
@@ -161,14 +171,26 @@ export async function processArticle(article: {
 }
 
 export const ELECTION_VIOLENCE_KEYWORDS = [
-  'election violence',
-  'voter intimidation',
-  'ballot box snatching',
-  'polling unit attack',
-  'electoral violence',
-  'campaign violence',
-  'political violence election',
-  'vote rigging attack',
+  'election violence Nigeria',
+  'voter intimidation Nigeria',
+  'ballot box snatching Nigeria',
+  'INEC attack Nigeria',
+  'polling unit disruption Nigeria',
+  'electoral violence Africa',
+  'campaign violence election',
+  'political violence election Africa',
   'election official attacked',
-  'election day shooting',
+  'election shooting Africa',
+  'governorship election violence',
+  'senatorial election violence Nigeria',
+]
+
+export const NIGERIA_SPECIFIC_KEYWORDS = [
+  'INEC election violence',
+  'APC PDP clash',
+  'governorship election attack Nigeria',
+  'ballot snatching Nigeria',
+  'electoral fraud Nigeria violence',
+  'thugs election Nigeria',
+  'election crisis Nigeria',
 ]

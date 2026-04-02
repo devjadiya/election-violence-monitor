@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { tipLimiter, getClientIp, rateLimit } from '@/lib/security/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const { success } = await rateLimit(tipLimiter, ip)
+
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many submissions. Please wait before submitting again.' },
+      { status: 429 }
+    )
+  }
+
   const body = await req.json()
 
   if (!body.description || body.description.length < 20) {
