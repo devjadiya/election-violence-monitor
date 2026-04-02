@@ -113,7 +113,7 @@ export default async function IncidentDetailPage({
               <h2 className="font-semibold text-[#1a1a2e] text-sm mb-3">Sources</h2>
               <div className="space-y-2">
                 {incident.sources.map((source) => (
-                  
+                  <a
                     key={source.id}
                     href={source.sourceUrl}
                     target="_blank"
@@ -121,9 +121,14 @@ export default async function IncidentDetailPage({
                     className="flex items-center gap-3 p-3 rounded-lg border border-zinc-100 hover:border-zinc-200 hover:bg-zinc-50 transition-all"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-700">{source.sourceName}</div>
-                      <div className="text-xs text-zinc-400 truncate">{source.sourceUrl}</div>
+                      <div className="text-sm font-medium text-zinc-700">
+                        {source.sourceName}
+                      </div>
+                      <div className="text-xs text-zinc-400 truncate">
+                        {source.sourceUrl}
+                      </div>
                     </div>
+
                     {source.isVerified && (
                       <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
                         Verified

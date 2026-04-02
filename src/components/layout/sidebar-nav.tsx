@@ -11,7 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/review', label: 'Review Queue', icon: CheckSquare },
-  { href: '/map', label: 'Live Map', icon: MapPin },
+  { href: '/livemap', label: 'Live Map', icon: MapPin },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/sources', label: 'Sources', icon: Globe },
   { href: '/export', label: 'Export', icon: Download },
@@ -52,11 +52,10 @@ export function SidebarNav({ user }: Props) {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
-                active
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active
                   ? 'bg-[#1a1a2e] text-white font-medium'
                   : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
-              }`}
+                }`}
             >
               <Icon size={15} strokeWidth={active ? 2.5 : 2} />
               {label}
@@ -77,11 +76,10 @@ export function SidebarNav({ user }: Props) {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
-                    active
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active
                       ? 'bg-[#1a1a2e] text-white font-medium'
                       : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
-                  }`}
+                    }`}
                 >
                   <Icon size={15} strokeWidth={active ? 2.5 : 2} />
                   {label}
