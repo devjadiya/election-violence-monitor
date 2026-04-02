@@ -144,6 +144,7 @@ model User {
   createdIncidents  Incident[]      @relation("CreatedBy")
   auditLogs         AuditLog[]
   tipSubmissions    TipSubmission[]
+  notifications     Notification[]
 
   @@index([email])
   @@index([role])
@@ -488,4 +489,19 @@ model IngestionLog {
 
   @@index([startedAt])
   @@index([jobType])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

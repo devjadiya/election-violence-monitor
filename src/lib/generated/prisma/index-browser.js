@@ -332,6 +332,17 @@ exports.Prisma.IngestionLogScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  message: 'message',
+  link: 'link',
+  isRead: 'isRead',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -477,7 +488,8 @@ exports.Prisma.ModelName = {
   FollowUp: 'FollowUp',
   AuditLog: 'AuditLog',
   TipSubmission: 'TipSubmission',
-  IngestionLog: 'IngestionLog'
+  IngestionLog: 'IngestionLog',
+  Notification: 'Notification'
 };
 
 /**
