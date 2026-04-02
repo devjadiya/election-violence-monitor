@@ -2,15 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard, MapPin, AlertTriangle, CheckSquare,
-  BarChart3, Settings, Users, Database, Download, Globe, Calendar
-} from 'lucide-react'
+import { LayoutDashboard, MapPin, AlertTriangle, CheckSquare, BarChart3, Settings, Users, Database, Download, Globe, Calendar, MessageSquare } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/review', label: 'Review Queue', icon: CheckSquare },
+  { href: '/tips', label: 'Tips', icon: MessageSquare },
   { href: '/elections', label: 'Elections', icon: Calendar },
   { href: '/livemap', label: 'Live Map', icon: MapPin },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -54,8 +52,8 @@ export function SidebarNav({ user }: Props) {
               key={href}
               href={href}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active
-                  ? 'bg-[#1a1a2e] text-white font-medium'
-                  : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+                ? 'bg-[#1a1a2e] text-white font-medium'
+                : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
                 }`}
             >
               <Icon size={15} strokeWidth={active ? 2.5 : 2} />
@@ -78,8 +76,8 @@ export function SidebarNav({ user }: Props) {
                   key={href}
                   href={href}
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active
-                      ? 'bg-[#1a1a2e] text-white font-medium'
-                      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
+                    ? 'bg-[#1a1a2e] text-white font-medium'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
                     }`}
                 >
                   <Icon size={15} strokeWidth={active ? 2.5 : 2} />

@@ -29,6 +29,13 @@ export default function NewIncidentPage() {
     weaponType: 'UNKNOWN',
     sourceUrl: '',
     sourceName: '',
+    victimRole: 'UNKNOWN',
+    victimGender: 'UNKNOWN',
+    victimAgeGroup: 'UNKNOWN',
+    victimCount: '1',
+    hasDisability: false,
+    actorType: 'unknown',
+    partyName: '',
   })
 
   function update(key: string, value: any) {
@@ -52,6 +59,16 @@ export default function NewIncidentPage() {
           latitude: form.latitude ? Number(form.latitude) : null,
           longitude: form.longitude ? Number(form.longitude) : null,
           occurredAt: new Date(form.occurredAt).toISOString(),
+          victim: {
+            role: form.victimRole,
+            gender: form.victimGender,
+            ageGroup: form.victimAgeGroup,
+            count: Number(form.victimCount),
+          },
+          actor: form.actorType ? {
+            actorType: form.actorType,
+            partyName: form.partyName || null,
+          } : null,
         }),
       })
 
@@ -183,6 +200,53 @@ export default function NewIncidentPage() {
               <input type="checkbox" checked={form.votingDisrupted} onChange={(e) => update('votingDisrupted', e.target.checked)} className="rounded" />
               Voting Disrupted
             </label>
+          </div>
+        </div>
+
+        {/* Victim Demographics */}
+        <div className="glass-card p-5 space-y-4">
+          <h2 className="font-semibold text-[#1a1a2e] text-sm">Victim Information</h2>
+          <p className="text-xs text-zinc-400">No names or identifying details. Aggregate demographics only.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Victim Role</label>
+              <select className={inputClass} value={form.victimRole} onChange={e => update('victimRole', e.target.value)}>
+                {['UNKNOWN', 'VOTER', 'CANDIDATE', 'CAMPAIGN_STAFF', 'ELECTION_OFFICIAL', 'ELECTION_OBSERVER', 'JOURNALIST', 'PARTY_SUPPORTER', 'SECURITY_PERSONNEL', 'COMMUNITY_MEMBER'].map(r => (
+                  <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Victim Count</label>
+              <input type="number" min="1" className={inputClass} value={form.victimCount}
+                onChange={e => update('victimCount', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>Gender</label>
+              <select className={inputClass} value={form.victimGender} onChange={e => update('victimGender', e.target.value)}>
+                {['UNKNOWN', 'MALE', 'FEMALE', 'NON_BINARY'].map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Age Group</label>
+              <select className={inputClass} value={form.victimAgeGroup} onChange={e => update('victimAgeGroup', e.target.value)}>
+                {['UNKNOWN', 'UNDER_18', 'AGE_18_25', 'AGE_26_40', 'AGE_41_60', 'ABOVE_60'].map(a => (
+                  <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Perpetrator / Actor Type</label>
+            <input className={inputClass} value={form.actorType} onChange={e => update('actorType', e.target.value)}
+              placeholder="e.g. political_party, security_force, militia, unknown" />
+          </div>
+          <div>
+            <label className={labelClass}>Party Name (if applicable)</label>
+            <input className={inputClass} value={form.partyName} onChange={e => update('partyName', e.target.value)}
+              placeholder="e.g. APC, PDP" />
           </div>
         </div>
 

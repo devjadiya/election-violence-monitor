@@ -28,6 +28,12 @@ export default function HomePage() {
               Reports
             </Link>
             <Link
+              href="/submit"
+              className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5"
+            >
+              Submit Tip
+            </Link>
+            <Link
               href="/login"
               className="text-sm bg-[#1a1a2e] text-white px-4 py-2 rounded-lg hover:bg-[#16213e] transition-colors font-medium"
             >

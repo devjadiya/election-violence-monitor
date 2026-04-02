@@ -82,28 +82,41 @@ export async function POST(req: NextRequest) {
         isAutoDetected: false,
         confidenceScore: 70,
         createdById: (session.user as any).id,
+        // ✅ NEW: victims
+        victims: body.victim
+          ? {
+            create: {
+              role: body.victim.role,
+              gender: body.victim.gender,
+              ageGroup: body.victim.ageGroup,
+              count: body.victim.count,
+              nameAnonymized: true,
+            },
+          }
+          : undefined,
+
+        // ✅ NEW: actors
+        actors: body.actor
+          ? {
+            create: {
+              actorType: body.actor.actorType,
+              partyName: body.actor.partyName,
+            },
+          }
+          : undefined,
+
+        // existing sources logic
         sources: body.sourceUrl
           ? {
-              create: {
-                sourceUrl: body.sourceUrl,
-                sourceName: body.sourceName ?? 'Manual',
-                sourceType: 'MANUAL',
-              },
-            }
+            create: {
+              sourceUrl: body.sourceUrl,
+              sourceName: body.sourceName ?? 'Manual',
+              sourceType: 'MANUAL',
+            },
+          }
           : undefined,
       },
     })
-
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        incidentId: incident.id,
-        userId: (session.user as any).id,
-        action: 'CREATED',
-        newData: incident as any,
-      },
-    })
-
     return NextResponse.json({ success: true, id: incident.id, referenceId })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
