@@ -1,89 +1,229 @@
-import { PrismaClient } from '../../src/lib/generated/prisma'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from "../../src/lib/generated/prisma"
+import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('admin123456', 12)
+  console.log("Starting full seed...")
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'dev.wikipedia@gmail.com' },
-    update: { password: hashedPassword },
-    create: {
-      email: 'dev.wikipedia@gmail.com',
-      name: 'Admin',
-      password: hashedPassword,
-      role: 'ADMIN',
-      isActive: true,
-    },
-  })
-  console.log('✅ Admin user created with bcrypt password:', admin.email)
+  const password = await bcrypt.hash("password123", 12)
+  const adminPassword = await bcrypt.hash("admin123456", 12)
 
-  // Seed trusted Nigerian news sources
-  const sources = [
-    { name: 'Channels Television', url: 'https://www.channelstv.com', rssUrl: 'https://www.channelstv.com/feed/', country: 'Nigeria', trustScore: 85 },
-    { name: 'Punch Nigeria', url: 'https://punchng.com', rssUrl: 'https://punchng.com/feed/', country: 'Nigeria', trustScore: 80 },
-    { name: 'Vanguard Nigeria', url: 'https://www.vanguardngr.com', rssUrl: 'https://www.vanguardngr.com/feed/', country: 'Nigeria', trustScore: 78 },
-    { name: 'The Nation Nigeria', url: 'https://thenationonline.net', rssUrl: 'https://thenationonline.net/feed/', country: 'Nigeria', trustScore: 75 },
-    { name: 'Premium Times Nigeria', url: 'https://www.premiumtimesng.com', rssUrl: 'https://www.premiumtimesng.com/feed', country: 'Nigeria', trustScore: 88 },
-    { name: 'Daily Trust', url: 'https://dailytrust.com', rssUrl: 'https://dailytrust.com/feed/', country: 'Nigeria', trustScore: 80 },
-    { name: 'Sahara Reporters', url: 'https://saharareporters.com', rssUrl: 'https://saharareporters.com/rss.xml', country: 'Nigeria', trustScore: 72 },
-    { name: 'GDELT Project', url: 'https://api.gdeltproject.org', rssUrl: null, country: null, trustScore: 70 },
-    { name: 'Reuters Africa', url: 'https://www.reuters.com', rssUrl: 'https://feeds.reuters.com/reuters/AFRICANews', country: null, trustScore: 95 },
-    { name: 'BBC Africa', url: 'https://www.bbc.com/africa', rssUrl: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml', country: null, trustScore: 95 },
-    { name: 'Al Jazeera Africa', url: 'https://www.aljazeera.com', rssUrl: 'https://www.aljazeera.com/xml/rss/all.xml', country: null, trustScore: 88 },
-    { name: 'Voice of America Africa', url: 'https://www.voanews.com', rssUrl: 'https://www.voanews.com/api/zktmqeimmv', country: null, trustScore: 85 },
+  const users = await Promise.all([
+    prisma.user.upsert({ where: { email: "dev.wikipedia@gmail.com" }, update: { password: adminPassword }, create: { email: "dev.wikipedia@gmail.com", name: "Admin", password: adminPassword, role: "ADMIN", isActive: true } }),
+    prisma.user.upsert({ where: { email: "editor@evm.org" }, update: {}, create: { email: "editor@evm.org", name: "Sarah Okonkwo", password, role: "EDITOR", isActive: true } }),
+    prisma.user.upsert({ where: { email: "reviewer@evm.org" }, update: {}, create: { email: "reviewer@evm.org", name: "James Adeyemi", password, role: "REVIEWER", isActive: true } }),
+    prisma.user.upsert({ where: { email: "analyst@evm.org" }, update: {}, create: { email: "analyst@evm.org", name: "Amina Bello", password, role: "ANALYST", isActive: true } }),
+    prisma.user.upsert({ where: { email: "observer@evm.org" }, update: {}, create: { email: "observer@evm.org", name: "Chidi Nwosu", password, role: "OBSERVER", isActive: true } }),
+    prisma.user.upsert({ where: { email: "observer2@evm.org" }, update: {}, create: { email: "observer2@evm.org", name: "Grace Mensah", password, role: "OBSERVER", isActive: true } }),
+  ])
+  console.log(users.length + " users seeded")
+
+  const elections = await Promise.all([
+    prisma.election.upsert({ where: { id: "election-nigeria-2027" }, update: {}, create: { id: "election-nigeria-2027", name: "2027 Nigerian General Elections", country: "Nigeria", countryCode: "NGA", electionDate: new Date("2027-02-20"), electionType: "general", wikidataId: "Q110940447", isActive: true } }),
+    prisma.election.upsert({ where: { id: "election-anambra-2025" }, update: {}, create: { id: "election-anambra-2025", name: "2025 Anambra Governorship Election", country: "Nigeria", countryCode: "NGA", electionDate: new Date("2025-11-08"), electionType: "gubernatorial", isActive: true } }),
+    prisma.election.upsert({ where: { id: "election-kenya-2027" }, update: {}, create: { id: "election-kenya-2027", name: "2027 Kenyan General Election", country: "Kenya", countryCode: "KEN", electionDate: new Date("2027-08-09"), electionType: "general", isActive: true } }),
+    prisma.election.upsert({ where: { id: "election-ghana-2024" }, update: {}, create: { id: "election-ghana-2024", name: "2024 Ghanaian General Election", country: "Ghana", countryCode: "GHA", electionDate: new Date("2024-12-07"), electionType: "general", isActive: false } }),
+    prisma.election.upsert({ where: { id: "election-bangladesh-2024" }, update: {}, create: { id: "election-bangladesh-2024", name: "2024 Bangladeshi General Election", country: "Bangladesh", countryCode: "BGD", electionDate: new Date("2024-01-07"), electionType: "general", isActive: false } }),
+    prisma.election.upsert({ where: { id: "election-india-2024" }, update: {}, create: { id: "election-india-2024", name: "2024 Indian General Election", country: "India", countryCode: "IND", electionDate: new Date("2024-04-19"), electionType: "general", wikidataId: "Q6474750", isActive: false } }),
+    prisma.election.upsert({ where: { id: "election-pakistan-2024" }, update: {}, create: { id: "election-pakistan-2024", name: "2024 Pakistani General Election", country: "Pakistan", countryCode: "PAK", electionDate: new Date("2024-02-08"), electionType: "general", isActive: false } }),
+  ])
+  console.log(elections.length + " elections seeded")
+
+  const sourceData = [
+    { name: "Channels Television", url: "https://www.channelstv.com", rssUrl: "https://www.channelstv.com/feed/", country: "Nigeria", trustScore: 85 },
+    { name: "Premium Times Nigeria", url: "https://www.premiumtimesng.com", rssUrl: "https://www.premiumtimesng.com/feed", country: "Nigeria", trustScore: 88 },
+    { name: "Punch Nigeria", url: "https://punchng.com", rssUrl: "https://punchng.com/feed/", country: "Nigeria", trustScore: 80 },
+    { name: "Vanguard Nigeria", url: "https://www.vanguardngr.com", rssUrl: "https://www.vanguardngr.com/feed/", country: "Nigeria", trustScore: 78 },
+    { name: "Daily Trust", url: "https://dailytrust.com", rssUrl: "https://dailytrust.com/feed/", country: "Nigeria", trustScore: 80 },
+    { name: "The Nation Nigeria", url: "https://thenationonline.net", rssUrl: "https://thenationonline.net/feed/", country: "Nigeria", trustScore: 75 },
+    { name: "Sahara Reporters", url: "https://saharareporters.com", rssUrl: "https://saharareporters.com/rss.xml", country: "Nigeria", trustScore: 72 },
+    { name: "Reuters Africa", url: "https://www.reuters.com/africa", rssUrl: "https://feeds.reuters.com/reuters/AFRICANews", country: null, trustScore: 95 },
+    { name: "BBC Africa", url: "https://www.bbc.com/africa", rssUrl: "https://feeds.bbci.co.uk/news/world/africa/rss.xml", country: null, trustScore: 95 },
+    { name: "Al Jazeera Africa", url: "https://www.aljazeera.com", rssUrl: "https://www.aljazeera.com/xml/rss/all.xml", country: null, trustScore: 88 },
+    { name: "GDELT Project", url: "https://api.gdeltproject.org", rssUrl: null, country: null, trustScore: 70 },
+    { name: "The East African", url: "https://www.theeastafrican.co.ke", rssUrl: "https://www.theeastafrican.co.ke/rss/feed", country: "Kenya", trustScore: 82 },
+    { name: "Daily Nation Kenya", url: "https://nation.africa", rssUrl: "https://nation.africa/kenya/rss", country: "Kenya", trustScore: 84 },
+    { name: "MyJoyOnline Ghana", url: "https://www.myjoyonline.com", rssUrl: "https://www.myjoyonline.com/feed/", country: "Ghana", trustScore: 78 },
+    { name: "Dawn Pakistan", url: "https://www.dawn.com", rssUrl: "https://www.dawn.com/feeds/home", country: "Pakistan", trustScore: 86 },
+    { name: "The Daily Star Bangladesh", url: "https://www.thedailystar.net", rssUrl: "https://www.thedailystar.net/rss.xml", country: "Bangladesh", trustScore: 82 },
+    { name: "The Hindu India", url: "https://www.thehindu.com", rssUrl: "https://www.thehindu.com/feeder/default.rss", country: "India", trustScore: 88 },
+    { name: "Voice of America Africa", url: "https://www.voanews.com", rssUrl: null, country: null, trustScore: 85 },
   ]
 
-  for (const source of sources) {
+  for (const s of sourceData) {
     await prisma.monitoredSource.upsert({
-      where: { url: source.url },
-      update: { trustScore: source.trustScore },
-      create: {
-        name: source.name,
-        url: source.url,
-        rssUrl: source.rssUrl,
-        sourceType: source.rssUrl ? 'RSS_FEED' : 'API',
-        country: source.country,
-        language: 'en',
-        trustScore: source.trustScore,
-        isActive: true,
+      where: { url: s.url },
+      update: { trustScore: s.trustScore },
+      create: { ...s, sourceType: s.rssUrl ? "RSS_FEED" : "API", language: "en", isActive: true },
+    })
+  }
+  console.log(sourceData.length + " sources seeded")
+
+  const adminUser = users[0]
+  const reviewerUser = users[2]
+
+  const incidentData: any[] = [
+    { referenceId: "EVM-2025-00001", title: "Ballot boxes snatched at gunpoint in Imo State polling unit", description: "Armed men stormed Umuguma Ward polling unit in Owerri West LGA and seized five ballot boxes at gunpoint during governorship election voting. Electoral officials fled while soldiers were called in to restore order. INEC officials confirmed three ballot boxes were recovered but two remained missing. Voting was suspended for three hours.", category: "POLLING_UNIT_DISRUPTION", electionStage: "ELECTION_DAY", country: "Nigeria", region: "Imo State", district: "Owerri West LGA", community: "Umuguma Ward", latitude: 5.4836, longitude: 7.0498, occurredAt: new Date("2025-11-08T10:30:00Z"), fatalities: 0, injured: 2, arrested: 3, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 92, isAutoDetected: false, electionId: "election-anambra-2025" },
+    { referenceId: "EVM-2025-00002", title: "INEC official kidnapped in Kogi ahead of by-election", description: "A senior INEC official was abducted by unknown gunmen while returning home from a pre-election sensitization meeting in Lokoja. The official was held for 48 hours before being released after intervention by local community leaders. No ransom was confirmed but family members reported receiving threatening calls.", category: "KIDNAPPING", electionStage: "PRE_CAMPAIGN", country: "Nigeria", region: "Kogi State", district: "Lokoja LGA", community: "Lokoja", latitude: 7.8004, longitude: 6.7337, occurredAt: new Date("2025-09-14T19:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "UNKNOWN", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 88, isAutoDetected: true, electionId: "election-nigeria-2027" },
+    { referenceId: "EVM-2025-00003", title: "Campaign rally shooting kills 4 in Rivers State", description: "Gunmen opened fire on a political rally in Port Harcourt killing four supporters and wounding eleven others. The attack occurred as the governorship candidate was addressing thousands of supporters at Isaac Boro Park. Security forces were present but unable to stop the attackers who fled in speedboats.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Nigeria", region: "Rivers State", district: "Port Harcourt LGA", community: "Port Harcourt", latitude: 4.8156, longitude: 7.0498, occurredAt: new Date("2025-10-22T16:45:00Z"), fatalities: 4, injured: 11, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 95, isAutoDetected: false, electionId: "election-anambra-2025" },
+    { referenceId: "EVM-2025-00004", title: "Women voters harassed and turned away in Zamfara polling station", description: "Reports from multiple women voters in Gusau LGA indicate they were blocked from entering polling stations by groups of young men. When female voters attempted to push past, some were physically pushed and had their voter cards torn. At least 200 women were effectively disenfranchised across 5 polling units.", category: "VOTER_INTIMIDATION", electionStage: "ELECTION_DAY", country: "Nigeria", region: "Zamfara State", district: "Gusau LGA", community: "Gusau", latitude: 12.1704, longitude: 6.6610, occurredAt: new Date("2025-11-08T08:00:00Z"), fatalities: 0, injured: 4, arrested: 1, weaponType: "NONE", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 85, isAutoDetected: true, electionId: "election-anambra-2025" },
+    { referenceId: "EVM-2025-00005", title: "APC and PDP supporters clash leaving 12 injured in Lagos", description: "Supporters of the All Progressives Congress and Peoples Democratic Party clashed violently during a campaign day in Mushin, Lagos. The violence started when rival groups met at a junction and exchanged insults before fighting erupted. Motor vehicles were destroyed and twelve people hospitalised with machete wounds.", category: "POLITICAL_PARTY_CLASH", electionStage: "CAMPAIGN", country: "Nigeria", region: "Lagos State", district: "Mushin LGA", community: "Mushin", latitude: 6.5244, longitude: 3.3792, occurredAt: new Date("2025-10-05T14:30:00Z"), fatalities: 0, injured: 12, arrested: 7, weaponType: "KNIVES_MACHETES", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 90, isAutoDetected: false },
+    { referenceId: "EVM-2025-00006", title: "Journalist attacked covering election results in Abuja", description: "A journalist from Channels Television was beaten by thugs while reporting live near the INEC collation centre in Abuja. The camera was smashed and phone stolen. A producer was also assaulted. The attack occurred shortly after unofficial results suggested a close race. Both journalists were hospitalised.", category: "PHYSICAL_ASSAULT", electionStage: "VOTE_COUNTING", country: "Nigeria", region: "FCT Abuja", district: "Municipal Area Council", community: "Central Business District", latitude: 9.0579, longitude: 7.4951, occurredAt: new Date("2025-11-09T23:00:00Z"), fatalities: 0, injured: 2, arrested: 0, weaponType: "BLUNT_OBJECTS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 93, isAutoDetected: false },
+    { referenceId: "EVM-2025-00007", title: "INEC office set ablaze in Anambra State after results announced", description: "Angry protesters set fire to the INEC zonal office in Awka following announcement of governorship results. The fire destroyed vehicles, electoral materials and sensitive equipment. Firefighters arrived 40 minutes after the blaze began due to roadblocks placed by protesters.", category: "INFRASTRUCTURE_ATTACK", electionStage: "POST_ELECTION", country: "Nigeria", region: "Anambra State", district: "Awka South LGA", community: "Awka", latitude: 6.2104, longitude: 7.0770, occurredAt: new Date("2025-11-10T01:30:00Z"), fatalities: 0, injured: 3, arrested: 5, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 91, isAutoDetected: true, electionId: "election-anambra-2025" },
+    { referenceId: "EVM-2025-00008", title: "Security forces fire teargas at post-election protesters in Kano", description: "Police and mobile units deployed teargas and water cannons to disperse hundreds of protesters who blocked the Kano-Kaduna highway after disputed local government election results. Three protesters were arrested and one police officer hospitalised after being struck by a stone.", category: "SECURITY_FORCE_MISCONDUCT", electionStage: "POST_ELECTION", country: "Nigeria", region: "Kano State", district: "Kano Municipal", community: "Kano", latitude: 12.0022, longitude: 8.5920, occurredAt: new Date("2025-08-18T15:00:00Z"), fatalities: 0, injured: 6, arrested: 3, weaponType: "IMPROVISED", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 87, isAutoDetected: true },
+    { referenceId: "EVM-2025-00009", title: "Campaign billboards vandalised across Kaduna ahead of elections", description: "Over 200 campaign billboards belonging to the ruling party were destroyed across Kaduna metropolis overnight. CCTV footage captured groups of men using vehicles to pull down billboards on major roads. Estimated damage runs to 15 million naira.", category: "PROPERTY_DAMAGE", electionStage: "CAMPAIGN", country: "Nigeria", region: "Kaduna State", district: "Kaduna North LGA", community: "Kaduna", latitude: 10.5105, longitude: 7.4165, occurredAt: new Date("2025-09-28T02:00:00Z"), fatalities: 0, injured: 0, arrested: 2, weaponType: "NONE", propertyDamage: true, votingDisrupted: false, status: "VERIFIED", confidenceScore: 79, isAutoDetected: true },
+    { referenceId: "EVM-2025-00010", title: "Candidate attacked during house-to-house campaign in Delta State", description: "A House of Representatives candidate was attacked by machete-wielding men while conducting door-to-door campaigns in Asaba. The candidate sustained cuts to his arm and back. His campaign manager and two aides were also beaten. Witnesses identified the attackers as known political thugs.", category: "PHYSICAL_ASSAULT", electionStage: "CAMPAIGN", country: "Nigeria", region: "Delta State", district: "Oshimili North LGA", community: "Asaba", latitude: 6.1958, longitude: 6.7353, occurredAt: new Date("2025-10-12T11:00:00Z"), fatalities: 0, injured: 4, arrested: 0, weaponType: "KNIVES_MACHETES", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 88, isAutoDetected: false },
+    { referenceId: "EVM-2024-00011", title: "Opposition supporter shot dead at Kisumu rally", description: "A supporter of the opposition Azimio coalition was shot and killed during a political rally at Kisumu International Airport grounds. Dozens of other attendees were injured in the stampede that followed. Police denied firing live rounds and attributed the death to a stray bullet.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Kenya", region: "Nyanza", district: "Kisumu County", community: "Kisumu City", latitude: -0.1022, longitude: 34.7617, occurredAt: new Date("2024-06-25T17:00:00Z"), fatalities: 1, injured: 23, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 89, isAutoDetected: true, electionId: "election-kenya-2027" },
+    { referenceId: "EVM-2024-00012", title: "Kenyan election observer abducted in Mombasa", description: "An election observer from a civil society organisation was abducted from outside a hotel in Mombasa days before by-elections. The observer was held for 19 hours before being released at the roadside outside the city. He reported being blindfolded throughout and interrogated about monitoring plans.", category: "KIDNAPPING", electionStage: "PRE_CAMPAIGN", country: "Kenya", region: "Coast", district: "Mombasa County", community: "Mombasa", latitude: -4.0435, longitude: 39.6682, occurredAt: new Date("2024-09-03T20:30:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "UNKNOWN", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 84, isAutoDetected: true },
+    { referenceId: "EVM-2024-00013", title: "Polling station attacked in Turkana North causing disruption", description: "Armed cattle rustlers attacked a remote polling station in Turkana North sub-county forcing temporary closure. Electoral officials fled leaving ballots unguarded for nearly two hours. The Kenya Defence Forces were deployed by helicopter to restore security.", category: "POLLING_UNIT_DISRUPTION", electionStage: "ELECTION_DAY", country: "Kenya", region: "Rift Valley", district: "Turkana County", community: "Lokichar", latitude: 2.1942, longitude: 35.6625, occurredAt: new Date("2024-08-09T09:15:00Z"), fatalities: 0, injured: 1, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 86, isAutoDetected: true },
+    { referenceId: "EVM-2024-00014", title: "Gunshot injuries reported at Kumasi polling station", description: "Two people were shot and injured near a polling station in Manhyia constituency, Kumasi during voting hours. Witnesses reported altercations between rival party agents that escalated. Police confirmed two individuals received gunshot wounds and were taken to Komfo Anokye Teaching Hospital.", category: "ARMED_ATTACK", electionStage: "ELECTION_DAY", country: "Ghana", region: "Ashanti Region", district: "Kumasi Metropolitan", community: "Manhyia", latitude: 6.6885, longitude: -1.6244, occurredAt: new Date("2024-12-07T14:00:00Z"), fatalities: 0, injured: 2, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 87, isAutoDetected: true, electionId: "election-ghana-2024" },
+    { referenceId: "EVM-2024-00015", title: "NPP and NDC supporters clash in Accra leaving 8 hospitalised", description: "Supporters of the New Patriotic Party and National Democratic Congress clashed violently in Nima, Accra in the evening before election day. Eight people were hospitalised with machete and blunt force injuries. Three vehicles were set on fire. Police imposed a curfew.", category: "POLITICAL_PARTY_CLASH", electionStage: "CAMPAIGN", country: "Ghana", region: "Greater Accra", district: "Ayawaso Central", community: "Nima", latitude: 5.5913, longitude: -0.2021, occurredAt: new Date("2024-12-06T19:30:00Z"), fatalities: 0, injured: 8, arrested: 4, weaponType: "KNIVES_MACHETES", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 91, isAutoDetected: false, electionId: "election-ghana-2024" },
+    { referenceId: "EVM-2024-00016", title: "Opposition activists killed in Dhaka pre-election crackdown", description: "Three opposition Bangladesh Nationalist Party activists were killed in clashes with Awami League supporters and law enforcement in Dhaka Mirpur area days before the general election. Human rights groups documented the deaths as politically motivated.", category: "PHYSICAL_ASSAULT", electionStage: "CAMPAIGN", country: "Bangladesh", region: "Dhaka Division", district: "Dhaka District", community: "Mirpur", latitude: 23.7916, longitude: 90.3508, occurredAt: new Date("2024-01-04T16:00:00Z"), fatalities: 3, injured: 17, arrested: 12, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 88, isAutoDetected: true, electionId: "election-bangladesh-2024" },
+    { referenceId: "EVM-2024-00017", title: "Voter turnout suppressed by intimidation in Chittagong constituency", description: "Widespread reports of voters being turned away from polling stations in Cox Bazar by groups of men blocking entrances. Multiple independent media recorded instances of voters being photographed and warned against casting opposition votes. Official turnout was disputed.", category: "VOTER_INTIMIDATION", electionStage: "ELECTION_DAY", country: "Bangladesh", region: "Chittagong Division", district: "Cox Bazar District", community: "Cox Bazar", latitude: 21.4272, longitude: 92.0058, occurredAt: new Date("2024-01-07T10:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "NONE", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 82, isAutoDetected: true, electionId: "election-bangladesh-2024" },
+    { referenceId: "EVM-2024-00018", title: "BJP and Congress supporters clash in Uttar Pradesh with 2 dead", description: "Two people were killed and eighteen injured in violent clashes between BJP and Congress supporters in Varanasi district during the fourth phase of general elections. Rapid Action Force units were deployed and a curfew imposed in three localities.", category: "POLITICAL_PARTY_CLASH", electionStage: "ELECTION_DAY", country: "India", region: "Uttar Pradesh", district: "Varanasi District", community: "Varanasi", latitude: 25.3176, longitude: 82.9739, occurredAt: new Date("2024-05-13T12:30:00Z"), fatalities: 2, injured: 18, arrested: 9, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 92, isAutoDetected: true, electionId: "election-india-2024" },
+    { referenceId: "EVM-2024-00019", title: "Journalist covering election beaten by political workers in West Bengal", description: "A journalist from NDTV was assaulted by a group of political workers while filming campaign activities in Murshidabad district. Camera equipment was destroyed. The police filed an FIR but no arrests were made within 48 hours.", category: "PHYSICAL_ASSAULT", electionStage: "CAMPAIGN", country: "India", region: "West Bengal", district: "Murshidabad District", community: "Berhampore", latitude: 24.1020, longitude: 88.2506, occurredAt: new Date("2024-04-29T11:00:00Z"), fatalities: 0, injured: 1, arrested: 0, weaponType: "BLUNT_OBJECTS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 85, isAutoDetected: false, electionId: "election-india-2024" },
+    { referenceId: "EVM-2024-00020", title: "Electronic voting machine vandalised in Manipur polling station", description: "A group of armed men broke into a polling station in Churachandpur district and destroyed electronic voting machines before polling began. The incident is believed to be connected to ongoing ethnic tensions. Re-polling was ordered for the affected booths.", category: "INFRASTRUCTURE_ATTACK", electionStage: "ELECTION_DAY", country: "India", region: "Manipur", district: "Churachandpur District", community: "Churachandpur", latitude: 24.3333, longitude: 93.6833, occurredAt: new Date("2024-04-19T06:30:00Z"), fatalities: 0, injured: 0, arrested: 4, weaponType: "BLUNT_OBJECTS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 93, isAutoDetected: true, electionId: "election-india-2024" },
+    { referenceId: "EVM-2024-00021", title: "Suicide bomber kills 28 at election rally in Pishin, Balochistan", description: "A suicide bombing at an election rally in Pishin district killed 28 people and wounded over 50 others. The attack occurred as a candidate was addressing thousands of supporters. A separatist group claimed responsibility.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Pakistan", region: "Balochistan", district: "Pishin District", community: "Pishin", latitude: 30.5833, longitude: 66.9833, occurredAt: new Date("2024-02-05T20:30:00Z"), fatalities: 28, injured: 52, arrested: 0, weaponType: "EXPLOSIVES", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 97, isAutoDetected: true, electionId: "election-pakistan-2024" },
+    { referenceId: "EVM-2024-00022", title: "PTI candidate office bombed in Khyber Pakhtunkhwa", description: "A pipe bomb explosion destroyed the campaign office of a Pakistan Tehreek-e-Insaf candidate in Nowshera. The blast occurred at night when the office was empty. No group claimed responsibility immediately.", category: "INFRASTRUCTURE_ATTACK", electionStage: "CAMPAIGN", country: "Pakistan", region: "Khyber Pakhtunkhwa", district: "Nowshera District", community: "Nowshera", latitude: 34.0150, longitude: 71.9747, occurredAt: new Date("2024-01-30T02:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "EXPLOSIVES", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 91, isAutoDetected: true, electionId: "election-pakistan-2024" },
+    { referenceId: "EVM-2024-00023", title: "Security forces fire on PTI protesters in Lahore post-results", description: "Security forces used live ammunition to disperse supporters of PTI who took to the streets after disputing official election results in Lahore. At least six protesters were confirmed dead and dozens wounded. Human rights groups called for an independent inquiry.", category: "SECURITY_FORCE_MISCONDUCT", electionStage: "POST_ELECTION", country: "Pakistan", region: "Punjab", district: "Lahore District", community: "Lahore", latitude: 31.5497, longitude: 74.3436, occurredAt: new Date("2024-02-09T21:00:00Z"), fatalities: 6, injured: 34, arrested: 89, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 94, isAutoDetected: true, electionId: "election-pakistan-2024" },
+    { referenceId: "EVM-2024-00024", title: "Opposition witnesses forcibly removed from vote-counting centres in Caracas", description: "Witnesses representing the opposition coalition reported being physically ejected from multiple vote-counting centres across Caracas. The National Electoral Council declared a government victory amid widespread allegations of fraud. Several witnesses were detained briefly.", category: "POLLING_UNIT_DISRUPTION", electionStage: "VOTE_COUNTING", country: "Venezuela", region: "Capital District", district: "Libertador Municipality", community: "Caracas", latitude: 10.4806, longitude: -66.9036, occurredAt: new Date("2024-07-28T22:00:00Z"), fatalities: 0, injured: 5, arrested: 8, weaponType: "NONE", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 88, isAutoDetected: true },
+    { referenceId: "EVM-2024-00025", title: "Anti-government protesters shot dead in Maracaibo post-election unrest", description: "At least eleven protesters were shot dead during post-election demonstrations in Maracaibo as security forces and pro-government armed groups opened fire on crowds. The UN High Commissioner for Human Rights called for an investigation.", category: "POST_ELECTION_VIOLENCE", electionStage: "POST_ELECTION", country: "Venezuela", region: "Zulia State", district: "Maracaibo Municipality", community: "Maracaibo", latitude: 10.6544, longitude: -71.6020, occurredAt: new Date("2024-07-30T14:00:00Z"), fatalities: 11, injured: 40, arrested: 135, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 95, isAutoDetected: true },
+    { referenceId: "EVM-2024-00026", title: "Ruling party supporters assault opposition monitors in Tbilisi", description: "Multiple election monitors from the opposition were assaulted outside the Central Election Commission in Tbilisi after raising objections to ballot counting procedures. Five monitors required hospital treatment. Security camera footage appeared to show men in ruling party insignia participating.", category: "PHYSICAL_ASSAULT", electionStage: "VOTE_COUNTING", country: "Georgia", region: "Tbilisi", district: "Mtatsminda District", community: "Tbilisi", latitude: 41.6938, longitude: 44.8015, occurredAt: new Date("2024-10-26T23:30:00Z"), fatalities: 0, injured: 5, arrested: 2, weaponType: "BLUNT_OBJECTS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 86, isAutoDetected: true },
+    { referenceId: "EVM-2024-00027", title: "Armed gunmen kill 7 election officials in Oromia Region", description: "Seven National Electoral Board of Ethiopia officials were killed in an ambush while travelling to a remote polling station in West Hararghe Zone. The vehicle was intercepted on a rural road and occupants shot. OLA rebels were suspected but denied responsibility.", category: "ARMED_ATTACK", electionStage: "ELECTION_DAY", country: "Ethiopia", region: "Oromia Region", district: "West Hararghe Zone", community: "Chiro", latitude: 9.0900, longitude: 40.8700, occurredAt: new Date("2024-09-04T08:00:00Z"), fatalities: 7, injured: 2, arrested: 0, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 90, isAutoDetected: true },
+    { referenceId: "EVM-2023-00028", title: "Explosion at CENI office kills 3 in Bukavu ahead of DRC elections", description: "A bomb explosion at an electoral commission office in Bukavu killed three staff members and wounded eight others weeks before the presidential election. The blast destroyed ballot preparation facilities and voter registration equipment.", category: "INFRASTRUCTURE_ATTACK", electionStage: "PRE_CAMPAIGN", country: "Democratic Republic of Congo", region: "South Kivu", district: "Bukavu Territory", community: "Bukavu", latitude: -2.4914, longitude: 28.8450, occurredAt: new Date("2023-11-10T11:30:00Z"), fatalities: 3, injured: 8, arrested: 0, weaponType: "EXPLOSIVES", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 92, isAutoDetected: true },
+    { referenceId: "EVM-2025-00029", title: "Clan-based gunfight kills 4 near Maguindanao polling station", description: "Four people were killed in a gunfight between armed supporters of rival political clans outside a school serving as a polling station in Sultan Kudarat province. The violence is consistent with the pattern of election-related clan violence known as rido in the region. COMELEC suspended voting.", category: "ARMED_ATTACK", electionStage: "ELECTION_DAY", country: "Philippines", region: "Bangsamoro Autonomous Region", district: "Maguindanao del Norte", community: "Datu Odin Sinsuat", latitude: 7.1804, longitude: 124.2333, occurredAt: new Date("2025-05-12T08:45:00Z"), fatalities: 4, injured: 6, arrested: 3, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 91, isAutoDetected: true },
+    { referenceId: "EVM-2025-00030", title: "Cebu gubernatorial candidate survives assassination attempt", description: "A gubernatorial candidate in Cebu survived an assassination attempt when gunmen opened fire on his motorcade in Carcar City. Two of his bodyguards were killed and three others wounded. Police identified the suspected mastermind as a political rival.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Philippines", region: "Central Visayas", district: "Cebu Province", community: "Carcar City", latitude: 10.1000, longitude: 123.6333, occurredAt: new Date("2025-03-18T17:30:00Z"), fatalities: 2, injured: 3, arrested: 1, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 93, isAutoDetected: false },
+    { referenceId: "EVM-2025-00031", title: "Junta forces destroy voter registration materials in Sagaing Region", description: "Myanmar military junta forces raided and burned voter registration offices operated by the opposition National Unity Government in Sagaing Region. Five civilian election workers were arrested and the fate of two others remains unknown.", category: "INFRASTRUCTURE_ATTACK", electionStage: "PRE_CAMPAIGN", country: "Myanmar", region: "Sagaing Region", district: "Monywa District", community: "Monywa", latitude: 22.1089, longitude: 95.1410, occurredAt: new Date("2025-01-15T14:00:00Z"), fatalities: 0, injured: 2, arrested: 5, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 83, isAutoDetected: true },
+    { referenceId: "EVM-2024-00032", title: "Mayoral candidate assassinated in Guerrero State", description: "A mayoral candidate from Morena party was shot dead by cartel gunmen while leaving a campaign event in Chilpancingo, Guerrero. The candidate had publicly spoken about confronting organised crime. It was the 37th political killing in Mexico during the 2024 election campaign season.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Mexico", region: "Guerrero", district: "Chilpancingo de los Bravo Municipality", community: "Chilpancingo", latitude: 17.5506, longitude: -99.5027, occurredAt: new Date("2024-05-20T20:00:00Z"), fatalities: 1, injured: 0, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 94, isAutoDetected: true },
+    { referenceId: "EVM-2024-00033", title: "SLPP and NPP supporters clash in Colombo day before presidential vote", description: "Supporters of the Sri Lanka Podujana Peramuna and National People Power clashed in Nugegoda, Colombo suburb the day before the presidential election. Six people were injured and three vehicles damaged. Police used water cannons to disperse the crowd.", category: "POLITICAL_PARTY_CLASH", electionStage: "CAMPAIGN", country: "Sri Lanka", region: "Western Province", district: "Colombo District", community: "Nugegoda", latitude: 6.8693, longitude: 79.9011, occurredAt: new Date("2024-09-20T18:30:00Z"), fatalities: 0, injured: 6, arrested: 2, weaponType: "BLUNT_OBJECTS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 85, isAutoDetected: true },
+    { referenceId: "EVM-2024-00034", title: "Three killed in protests against Senegal election postponement", description: "Three people were killed and scores injured in clashes between security forces and protesters in Dakar after the president announced a controversial postponement of the presidential election. Tear gas and rubber bullets were used to disperse crowds.", category: "POST_ELECTION_VIOLENCE", electionStage: "PRE_CAMPAIGN", country: "Senegal", region: "Dakar Region", district: "Dakar Department", community: "Dakar", latitude: 14.7167, longitude: -17.4677, occurredAt: new Date("2024-02-04T15:00:00Z"), fatalities: 3, injured: 27, arrested: 31, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 90, isAutoDetected: true },
+    { referenceId: "EVM-2024-00035", title: "FRELIMO victory protests turn deadly in Maputo", description: "At least 12 people were killed as police fired on crowds protesting the announced election victory of FRELIMO in Maputo. The opposition party alleged massive fraud citing discrepancies in results. Demonstrators set fire to ruling party offices and police vehicles.", category: "POST_ELECTION_VIOLENCE", electionStage: "POST_ELECTION", country: "Mozambique", region: "Maputo Province", district: "Maputo City", community: "Maputo", latitude: -25.9692, longitude: 32.5732, occurredAt: new Date("2024-10-25T16:00:00Z"), fatalities: 12, injured: 58, arrested: 67, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 93, isAutoDetected: true },
+    { referenceId: "EVM-2023-00036", title: "CCC opposition agent detained and beaten at Harare results centre", description: "A Citizens Coalition for Change party agent was detained by ZANU-PF supporters and beaten at a Harare results collation centre during the August general election. The agent suffered broken ribs and a concussion. ZEC officials present were accused of looking on without intervening.", category: "PHYSICAL_ASSAULT", electionStage: "VOTE_COUNTING", country: "Zimbabwe", region: "Harare Province", district: "Harare", community: "Harare CBD", latitude: -17.8252, longitude: 31.0335, occurredAt: new Date("2023-08-23T22:00:00Z"), fatalities: 0, injured: 1, arrested: 0, weaponType: "BLUNT_OBJECTS", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 87, isAutoDetected: false },
+    { referenceId: "EVM-2024-00037", title: "Jihadist attack kills 5 election workers in Mopti Region", description: "Jihadist fighters affiliated with JNIM attacked a convoy carrying election registration materials in Mopti Region, killing five CENI workers and burning the vehicles. ECOWAS condemned the attack and called for protection of election workers.", category: "ARMED_ATTACK", electionStage: "PRE_CAMPAIGN", country: "Mali", region: "Mopti Region", district: "Bandiagara Circle", community: "Bandiagara", latitude: 14.3500, longitude: -3.6000, occurredAt: new Date("2024-03-15T10:00:00Z"), fatalities: 5, injured: 3, arrested: 0, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 89, isAutoDetected: true },
+    { referenceId: "EVM-2024-00038", title: "Golkar and PDI-P supporters clash in East Java village", description: "Supporters of Golkar and PDI-P clashed in Jombang, East Java during local election campaign activities. Three people required hospital treatment after the altercation which began over the placement of campaign banners. Local police mediated.", category: "POLITICAL_PARTY_CLASH", electionStage: "CAMPAIGN", country: "Indonesia", region: "East Java", district: "Jombang Regency", community: "Jombang", latitude: -7.5458, longitude: 112.2335, occurredAt: new Date("2024-01-28T15:00:00Z"), fatalities: 0, injured: 3, arrested: 0, weaponType: "BLUNT_OBJECTS", propertyDamage: false, votingDisrupted: false, status: "VERIFIED", confidenceScore: 80, isAutoDetected: true },
+    { referenceId: "EVM-2025-00039", title: "Anglophone separatists attack polling station in Southwest Region", description: "Ambazonia separatist fighters attacked a polling station in Buea during local council elections, destroying election materials and firing into the air to drive voters away. Separatist leaders had declared a voting boycott.", category: "POLLING_UNIT_DISRUPTION", electionStage: "ELECTION_DAY", country: "Cameroon", region: "Southwest Region", district: "Fako Division", community: "Buea", latitude: 4.1548, longitude: 9.2461, occurredAt: new Date("2025-02-09T07:30:00Z"), fatalities: 0, injured: 2, arrested: 4, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 88, isAutoDetected: true },
+    { referenceId: "EVM-2025-00040", title: "Gang violence disrupts voter registration in Port-au-Prince", description: "Gang violence in the Cite Soleil neighbourhood of Port-au-Prince forced closure of the only voter registration centre in the area for three consecutive days. Electoral officials estimated over 15,000 eligible voters unable to register.", category: "VOTER_INTIMIDATION", electionStage: "PRE_CAMPAIGN", country: "Haiti", region: "Ouest Department", district: "Port-au-Prince Arrondissement", community: "Cite Soleil", latitude: 18.5944, longitude: -72.3074, occurredAt: new Date("2025-02-20T09:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 81, isAutoDetected: true },
+    { referenceId: "EVM-2024-00041", title: "Security forces kill 5 in Conakry anti-referendum protests", description: "Five people were killed when security forces opened fire on crowds protesting against a constitutional referendum in Conakry. Witnesses filmed soldiers firing directly into crowds in the Ratoma commune. The UN called for restraint and an independent investigation.", category: "SECURITY_FORCE_MISCONDUCT", electionStage: "PRE_CAMPAIGN", country: "Guinea", region: "Conakry", district: "Ratoma Prefecture", community: "Ratoma", latitude: 9.6412, longitude: -13.5784, occurredAt: new Date("2024-03-20T14:30:00Z"), fatalities: 5, injured: 22, arrested: 18, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 91, isAutoDetected: true },
+    { referenceId: "EVM-2025-00042", title: "ELN guerrillas threaten candidates in Choco ahead of regional elections", description: "National Liberation Army guerrillas distributed pamphlets in Quibdo threatening to kill candidates who did not withdraw from the regional elections. Three mayoral candidates subsequently withdrew citing safety concerns.", category: "VOTER_INTIMIDATION", electionStage: "CAMPAIGN", country: "Colombia", region: "Choco", district: "Quibdo Municipality", community: "Quibdo", latitude: 5.6919, longitude: -76.6583, occurredAt: new Date("2025-09-10T00:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "NONE", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 82, isAutoDetected: true },
+    { referenceId: "EVM-2024-00043", title: "Armed groups block roads to prevent voting in Diyala Province", description: "Supporters of militia-linked political parties set up checkpoints on roads leading to polling stations in Diyala Province, effectively preventing residents from reaching their polling sites. IHEC documented over 30 cases of access obstruction.", category: "VOTER_INTIMIDATION", electionStage: "ELECTION_DAY", country: "Iraq", region: "Diyala Governorate", district: "Baquba District", community: "Baquba", latitude: 33.7450, longitude: 44.6427, occurredAt: new Date("2024-12-18T08:00:00Z"), fatalities: 0, injured: 3, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: true, status: "PUBLISHED", confidenceScore: 84, isAutoDetected: true },
+    { referenceId: "EVM-2025-00044", title: "Junta forces detain opposition figures ahead of transition elections", description: "Security forces loyal to Niger military junta arrested seven opposition political figures in Niamey who had called for free elections and a return to civilian rule. Amnesty International classified them as political prisoners.", category: "KIDNAPPING", electionStage: "PRE_CAMPAIGN", country: "Niger", region: "Niamey Urban Community", district: "Niamey", community: "Niamey", latitude: 13.5137, longitude: 2.1098, occurredAt: new Date("2025-01-28T06:00:00Z"), fatalities: 0, injured: 0, arrested: 7, weaponType: "NONE", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 85, isAutoDetected: true },
+    { referenceId: "EVM-2024-00045", title: "Opposition march violently dispersed in Lome", description: "Police dispersed an opposition march in Lome with tear gas and batons, injuring at least 14 demonstrators. The march was organised to protest a new constitutional change extending presidential term limits.", category: "SECURITY_FORCE_MISCONDUCT", electionStage: "PRE_CAMPAIGN", country: "Togo", region: "Maritime Region", district: "Golfe Prefecture", community: "Lome", latitude: 6.1375, longitude: 1.2123, occurredAt: new Date("2024-05-02T10:30:00Z"), fatalities: 0, injured: 14, arrested: 3, weaponType: "BLUNT_OBJECTS", propertyDamage: false, votingDisrupted: false, status: "VERIFIED", confidenceScore: 83, isAutoDetected: true },
+    { referenceId: "EVM-2025-00046", title: "Suspected electoral violence in Bayelsa polling unit", description: "Unconfirmed reports indicate ballot box stuffing and intimidation of voters at Sagbama Ward 5 polling unit in Bayelsa State. Two observers claim armed men were seen around the polling station. INEC has not yet confirmed the report.", category: "POLLING_UNIT_DISRUPTION", electionStage: "ELECTION_DAY", country: "Nigeria", region: "Bayelsa State", district: "Sagbama LGA", community: "Sagbama", latitude: 5.1833, longitude: 6.0833, occurredAt: new Date("2025-11-25T11:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "UNKNOWN", propertyDamage: false, votingDisrupted: true, status: "UNDER_REVIEW", confidenceScore: 45, isAutoDetected: true },
+    { referenceId: "EVM-2025-00047", title: "Armed attack at Enugu polling station during LGA elections", description: "Emerging reports from Enugu East LGA indicate an armed attack at a polling station in Abakpa Nike. Social media posts show damaged voting equipment. Premium Times is investigating.", category: "ARMED_ATTACK", electionStage: "ELECTION_DAY", country: "Nigeria", region: "Enugu State", district: "Enugu East LGA", community: "Abakpa Nike", latitude: 6.4484, longitude: 7.5564, occurredAt: new Date("2025-11-25T09:30:00Z"), fatalities: 1, injured: 3, arrested: 0, weaponType: "FIREARMS", propertyDamage: true, votingDisrupted: true, status: "FLAGGED", confidenceScore: 55, isAutoDetected: true },
+    { referenceId: "EVM-2025-00048", title: "Voter intimidation alleged at Cross River State polling units", description: "A tip submitted to our monitoring team alleges systematic voter intimidation in Calabar South by party operatives. The tip cites three specific polling units. We are awaiting corroboration from credible media sources.", category: "VOTER_INTIMIDATION", electionStage: "ELECTION_DAY", country: "Nigeria", region: "Cross River State", district: "Calabar South LGA", community: "Calabar", latitude: 4.9741, longitude: 8.3592, occurredAt: new Date("2025-11-25T10:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "NONE", propertyDamage: false, votingDisrupted: true, status: "RAW", confidenceScore: 30, isAutoDetected: true },
+    { referenceId: "EVM-2024-00049", title: "Al-Shabaab kills election delegate in Mogadishu", description: "Al-Shabaab militants assassinated a clan delegate participating in Somalia indirect election process in Mogadishu. The delegate was shot outside his home by a gunman on a motorbike. Al-Shabaab confirmed responsibility.", category: "ARMED_ATTACK", electionStage: "CAMPAIGN", country: "Somalia", region: "Banadir Region", district: "Mogadishu", community: "Mogadishu", latitude: 2.0469, longitude: 45.3182, occurredAt: new Date("2024-11-08T07:30:00Z"), fatalities: 1, injured: 0, arrested: 0, weaponType: "FIREARMS", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 95, isAutoDetected: true },
+    { referenceId: "EVM-2024-00050", title: "Independent candidate campaign posters systematically destroyed in Oran", description: "Campaign materials for independent candidates running against FLN-backed candidates were systematically destroyed across Oran overnight. CCTV footage showed groups of men in a coordinated effort visiting multiple locations.", category: "PROPERTY_DAMAGE", electionStage: "CAMPAIGN", country: "Algeria", region: "Oran Province", district: "Oran District", community: "Oran", latitude: 35.6969, longitude: -0.6331, occurredAt: new Date("2024-06-05T02:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "NONE", propertyDamage: true, votingDisrupted: false, status: "VERIFIED", confidenceScore: 77, isAutoDetected: true },
+    { referenceId: "EVM-2024-00051", title: "ANC and MK Party supporters clash in KwaZulu-Natal leaving 3 dead", description: "Three people were killed in violent clashes between ANC and uMkhonto we Sizwe Party supporters in Durban townships ahead of the May general election. Police deployed rubber bullets and stun grenades.", category: "POLITICAL_PARTY_CLASH", electionStage: "CAMPAIGN", country: "South Africa", region: "KwaZulu-Natal", district: "eThekwini Metropolitan", community: "Durban", latitude: -29.8587, longitude: 31.0218, occurredAt: new Date("2024-05-08T18:00:00Z"), fatalities: 3, injured: 11, arrested: 5, weaponType: "IMPROVISED", propertyDamage: true, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 92, isAutoDetected: true },
+    { referenceId: "EVM-2026-00052", title: "Shining Path remnants threaten candidates in VRAEM region", description: "The Militarized Communist Party of Peru distributed threatening leaflets in Valle de los Rios Apurimac warning candidates not to participate in regional elections. Four candidates withdrew citing personal safety.", category: "VOTER_INTIMIDATION", electionStage: "CAMPAIGN", country: "Peru", region: "Ayacucho Region", district: "Huanta Province", community: "Llochegua", latitude: -12.4750, longitude: -73.9167, occurredAt: new Date("2026-02-15T00:00:00Z"), fatalities: 0, injured: 0, arrested: 0, weaponType: "NONE", propertyDamage: false, votingDisrupted: false, status: "PUBLISHED", confidenceScore: 80, isAutoDetected: true },
+  ]
+
+  await prisma.incidentSource.deleteMany({})
+  await prisma.victim.deleteMany({})
+  await prisma.actor.deleteMany({})
+  await prisma.auditLog.deleteMany({})
+  await prisma.followUp.deleteMany({})
+  await prisma.incident.deleteMany({})
+  console.log("Cleared old incidents")
+
+  let created = 0
+  for (const inc of incidentData) {
+    const { electionId, ...data } = inc
+    await prisma.incident.create({
+      data: {
+        ...data,
+        createdById: adminUser.id,
+        reviewedById: ["PUBLISHED", "VERIFIED"].includes(data.status) ? reviewerUser.id : undefined,
+        publishedAt: data.status === "PUBLISHED" ? new Date(data.occurredAt.getTime() + 86400000) : undefined,
+        electionId: electionId ?? undefined,
+        sources: {
+          create: {
+            sourceUrl: "https://premiumtimesng.com/elections/" + data.referenceId.toLowerCase(),
+            sourceName: data.country === "Nigeria" ? "Premium Times Nigeria" : "Reuters Africa",
+            sourceType: "RSS_FEED",
+            isVerified: ["PUBLISHED", "VERIFIED"].includes(data.status),
+            publishedAt: data.occurredAt,
+          },
+        },
+      },
+    })
+    created++
+  }
+  console.log(created + " incidents seeded")
+
+  const publishedIncidents = await prisma.incident.findMany({ where: { status: "PUBLISHED" }, take: 20 })
+  for (const incident of publishedIncidents) {
+    await prisma.victim.create({
+      data: {
+        incidentId: incident.id,
+        role: (["VOTER", "CANDIDATE", "ELECTION_OFFICIAL", "JOURNALIST", "PARTY_SUPPORTER"] as any[])[Math.floor(Math.random() * 5)],
+        gender: (["MALE", "FEMALE", "UNKNOWN"] as any[])[Math.floor(Math.random() * 3)],
+        ageGroup: (["AGE_18_25", "AGE_26_40", "AGE_41_60"] as any[])[Math.floor(Math.random() * 3)],
+        count: Math.max(1, incident.injured + incident.fatalities),
+        nameAnonymized: true,
       },
     })
   }
-  console.log('✅ Seeded', sources.length, 'trusted news sources')
+  console.log("Victim records created")
 
-  // Seed upcoming elections
-  const elections = [
-    {
-      name: '2027 Nigerian General Elections',
-      country: 'Nigeria',
-      countryCode: 'NGA',
-      electionDate: new Date('2027-02-20'),
-      electionType: 'general',
-      wikidataId: null,
-      isActive: true,
-    },
-    {
-      name: '2025 Anambra Governorship Election',
-      country: 'Nigeria',
-      countryCode: 'NGA',
-      electionDate: new Date('2025-11-08'),
-      electionType: 'gubernatorial',
-      wikidataId: null,
-      isActive: true,
-    },
-  ]
-
-  for (const election of elections) {
-    const existing = await prisma.election.findFirst({
-      where: { name: election.name },
+  const actorIncidents = await prisma.incident.findMany({ where: { status: "PUBLISHED", fatalities: { gt: 0 } } })
+  for (const incident of actorIncidents) {
+    await prisma.actor.create({
+      data: {
+        incidentId: incident.id,
+        actorType: ["political_party", "militia", "security_force", "unknown"][Math.floor(Math.random() * 4)],
+        name: null,
+        partyName: incident.country === "Nigeria" ? ["APC", "PDP", "LP", "NNPP"][Math.floor(Math.random() * 4)] : null,
+        isPerpetratorSuspected: true,
+      },
     })
-    if (!existing) {
-      await prisma.election.create({ data: election })
+  }
+  console.log("Actor records created")
+
+  const followUpOptions = [
+    { actionType: "investigation", description: "Police opened investigation, three suspects identified from CCTV footage." },
+    { actionType: "arrest", description: "Two suspects arrested in connection with the incident." },
+    { actionType: "legal_proceedings", description: "Case filed at magistrate court, hearing scheduled." },
+    { actionType: "official_response", description: "INEC issued statement condemning the attack and ordered rerun." },
+    { actionType: "investigation", description: "State government set up fact-finding committee to investigate incident." },
+  ]
+  const incidentsForFollowUp = await prisma.incident.findMany({ where: { status: "PUBLISHED", fatalities: { gt: 2 } }, take: 10 })
+  for (const incident of incidentsForFollowUp) {
+    const fu = followUpOptions[Math.floor(Math.random() * followUpOptions.length)]
+    await prisma.followUp.create({
+      data: {
+        incidentId: incident.id,
+        actionType: fu.actionType,
+        description: fu.description,
+        isConfirmed: Math.random() > 0.4,
+        date: new Date(incident.occurredAt.getTime() + 3 * 86400000),
+      },
+    })
+  }
+  console.log("Follow-up actions created")
+
+  const allIncidents = await prisma.incident.findMany({ take: 15 })
+  for (const incident of allIncidents) {
+    await prisma.auditLog.create({ data: { incidentId: incident.id, userId: adminUser.id, action: "CREATED", newData: { status: "FLAGGED" } as any } })
+    if (incident.status === "PUBLISHED") {
+      await prisma.auditLog.create({ data: { incidentId: incident.id, userId: reviewerUser.id, action: "PUBLISHED", previousData: { status: "VERIFIED" } as any, newData: { status: "PUBLISHED" } as any, notes: "Corroborated by multiple credible sources" } })
     }
   }
-  console.log('✅ Seeded', elections.length, 'elections')
+  console.log("Audit logs created")
+
+  await prisma.tipSubmission.createMany({
+    data: [
+      { description: "There was fighting near the polling station in my area. I saw men with machetes chasing voters away. This happened at about 9am on election morning.", location: "Ibadan, Oyo State, Nigeria", occurredAt: new Date("2025-11-08T09:00:00Z"), category: "VOTER_INTIMIDATION", isAnonymous: true, isReviewed: false },
+      { description: "Ballot boxes were brought already stuffed to our polling unit. The INEC officer refused to speak up. About 400 pre-marked ballots found inside.", location: "Eket, Akwa Ibom, Nigeria", occurredAt: new Date("2025-11-08T11:30:00Z"), category: "POLLING_UNIT_DISRUPTION", isAnonymous: true, isReviewed: false },
+      { description: "Campaign posters for opposition candidates are being torn down every night in our ward. This has happened for five consecutive nights.", location: "Abeokuta, Ogun State, Nigeria", occurredAt: new Date("2025-10-20T00:00:00Z"), category: "PROPERTY_DAMAGE", isAnonymous: true, isReviewed: true, reviewNotes: "Unable to corroborate from credible sources. Monitoring." },
+    ],
+    skipDuplicates: true,
+  })
+  console.log("Sample tips created")
+
+  console.log("\nFull seed complete!")
+  console.log("Users: dev.wikipedia@gmail.com/admin123456 | editor@evm.org/password123 | reviewer@evm.org/password123 | analyst@evm.org/password123 | observer@evm.org/password123")
+  console.log("Incidents: " + created + " across 20+ countries | Elections: 7 | Sources: 18")
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect())
