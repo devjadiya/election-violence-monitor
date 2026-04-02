@@ -1,13 +1,490 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ============================================================
+// ELECTION VIOLENCE MONITOR ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â PRISMA SCHEMA
+// ============================================================
 
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
+  output   = "../src/lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  PUBLIC
+  OBSERVER
+  ANALYST
+  REVIEWER
+  EDITOR
+  ADMIN
+}
+
+enum IncidentStatus {
+  RAW
+  FLAGGED
+  UNDER_REVIEW
+  VERIFIED
+  PUBLISHED
+  REJECTED
+}
+
+enum IncidentCategory {
+  PHYSICAL_ASSAULT
+  ARMED_ATTACK
+  VOTER_INTIMIDATION
+  POLITICAL_PARTY_CLASH
+  POLLING_UNIT_DISRUPTION
+  INFRASTRUCTURE_ATTACK
+  PROPERTY_DAMAGE
+  SECURITY_FORCE_MISCONDUCT
+  KIDNAPPING
+  POST_ELECTION_VIOLENCE
+  OTHER
+}
+
+enum ElectionStage {
+  PRE_CAMPAIGN
+  CAMPAIGN
+  ELECTION_DAY
+  VOTE_COUNTING
+  POST_ELECTION
+  UNKNOWN
+}
+
+enum WeaponType {
+  FIREARMS
+  KNIVES_MACHETES
+  BLUNT_OBJECTS
+  EXPLOSIVES
+  IMPROVISED
+  NONE
+  UNKNOWN
+}
+
+enum VictimRole {
+  VOTER
+  CANDIDATE
+  CAMPAIGN_STAFF
+  ELECTION_OFFICIAL
+  ELECTION_OBSERVER
+  JOURNALIST
+  PARTY_SUPPORTER
+  SECURITY_PERSONNEL
+  COMMUNITY_MEMBER
+  UNKNOWN
+}
+
+enum VictimGender {
+  MALE
+  FEMALE
+  NON_BINARY
+  UNKNOWN
+}
+
+enum AgeGroup {
+  UNDER_18
+  AGE_18_25
+  AGE_26_40
+  AGE_41_60
+  ABOVE_60
+  UNKNOWN
+}
+
+enum VerificationStatus {
+  CONFIRMED
+  UNCONFIRMED
+  UNDER_VERIFICATION
+}
+
+enum SourceType {
+  RSS_FEED
+  API
+  MANUAL
+  WEB_SCRAPE
+  OBSERVER_REPORT
+  NGO_REPORT
+}
+
+enum AuditAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  VERIFIED
+  PUBLISHED
+  REJECTED
+  DELETED
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(ANALYST)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  reviewedIncidents Incident[] @relation("ReviewedBy")
+  createdIncidents  Incident[] @relation("CreatedBy")
+  auditLogs     AuditLog[]
+  tipSubmissions TipSubmission[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// ELECTIONS
+// ============================================================
+
+model Election {
+  id          String   @id @default(cuid())
+  name        String
+  country     String
+  countryCode String   @db.VarChar(3)
+  electionDate DateTime
+  electionType String  // presidential, parliamentary, gubernatorial, etc.
+  wikidataId  String?  // Q-number from Wikidata
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  incidents   Incident[]
+  sources     MonitoredSource[]
+
+  @@index([country])
+  @@index([isActive])
+  @@index([electionDate])
+}
+
+// ============================================================
+// INCIDENT CORE
+// ============================================================
+
+model Incident {
+  id              String           @id @default(cuid())
+  referenceId     String           @unique // human-readable e.g. EVM-2024-00001
+  title           String
+  description     String           @db.Text
+  category        IncidentCategory
+  status          IncidentStatus   @default(RAW)
+  verificationStatus VerificationStatus @default(UNCONFIRMED)
+  electionStage   ElectionStage    @default(UNKNOWN)
+  confidenceScore Float            @default(0) // 0-100, from AI + corroboration
+  isAutoDetected  Boolean          @default(true)
+
+  // Location
+  country         String
+  countryCode     String?          @db.VarChar(3)
+  region          String?
+  district        String?
+  community       String?
+  specificLocation String?
+  latitude        Float?
+  longitude       Float?
+
+  // Timing
+  occurredAt      DateTime
+  reportedAt      DateTime         @default(now())
+
+  // Impact
+  injured         Int              @default(0)
+  fatalities      Int              @default(0)
+  arrested        Int              @default(0)
+  propertyDamage  Boolean          @default(false)
+  votingDisrupted Boolean          @default(false)
+
+  // Weapon
+  weaponType      WeaponType       @default(UNKNOWN)
+  weaponDetails   String?
+
+  // Wikidata
+  wikidataId      String?
+
+  // Relations
+  electionId      String?
+  election        Election?        @relation(fields: [electionId], references: [id])
+  createdById     String?
+  createdBy       User?            @relation("CreatedBy", fields: [createdById], references: [id])
+  reviewedById    String?
+  reviewedBy      User?            @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  // Timestamps
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  publishedAt     DateTime?
+  rejectedAt      DateTime?
+
+  // Child relations
+  victims         Victim[]
+  actors          Actor[]
+  sources         IncidentSource[]
+  followUps       FollowUp[]
+  auditLogs       AuditLog[]
+  rawArticles     RawArticle[]     @relation("IncidentArticles")
+
+  @@index([status])
+  @@index([category])
+  @@index([country])
+  @@index([occurredAt])
+  @@index([electionStage])
+  @@index([confidenceScore])
+  @@index([latitude, longitude])
+}
+
+// ============================================================
+// VICTIMS
+// ============================================================
+
+model Victim {
+  id             String       @id @default(cuid())
+  incidentId     String
+  incident       Incident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  role           VictimRole   @default(UNKNOWN)
+  gender         VictimGender @default(UNKNOWN)
+  ageGroup       AgeGroup     @default(UNKNOWN)
+  count          Int          @default(1)
+
+  // Sensitive ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â never exposed publicly
+  nameAnonymized Boolean      @default(true)
+  hasDisability  Boolean?
+  ethnicGroup    String?
+  religiousGroup String?
+
+  createdAt      DateTime     @default(now())
+
+  @@index([incidentId])
+}
+
+// ============================================================
+// ACTORS (perpetrators / groups)
+// ============================================================
+
+model Actor {
+  id           String   @id @default(cuid())
+  incidentId   String
+  incident     Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  actorType    String   // political_party, security_force, militia, unknown
+  name         String?
+  partyName    String?
+  isPerpetratorSuspected Boolean @default(true)
+
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+// ============================================================
+// SOURCES & ARTICLES
+// ============================================================
+
+model MonitoredSource {
+  id           String     @id @default(cuid())
+  name         String
+  url          String     @unique
+  rssUrl       String?
+  apiEndpoint  String?
+  sourceType   SourceType @default(RSS_FEED)
+  country      String?
+  language     String     @default("en")
+  isActive     Boolean    @default(true)
+  trustScore   Float      @default(50) // 0-100
+  lastFetchedAt DateTime?
+  electionId   String?
+  election     Election?  @relation(fields: [electionId], references: [id])
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  rawArticles  RawArticle[]
+
+  @@index([isActive])
+  @@index([country])
+}
+
+model RawArticle {
+  id           String    @id @default(cuid())
+  urlHash      String    @unique // SHA256 of URL for dedup
+  url          String    @db.Text
+  title        String
+  content      String?   @db.Text
+  publishedAt  DateTime?
+  fetchedAt    DateTime  @default(now())
+  language     String    @default("en")
+
+  // AI Pass 1 result
+  isElectionRelated Boolean @default(false)
+  isViolenceRelated Boolean @default(false)
+  pass1Score    Float?    // confidence from pass 1
+  pass1At       DateTime?
+
+  // AI Pass 2 result
+  isProcessed   Boolean   @default(false)
+  pass2At       DateTime?
+
+  sourceId      String
+  source        MonitoredSource @relation(fields: [sourceId], references: [id])
+
+  incidents     Incident[] @relation("IncidentArticles")
+
+  @@index([isElectionRelated, isViolenceRelated])
+  @@index([isProcessed])
+  @@index([fetchedAt])
+  @@index([sourceId])
+}
+
+model IncidentSource {
+  id           String   @id @default(cuid())
+  incidentId   String
+  incident     Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  sourceUrl    String   @db.Text
+  sourceName   String
+  sourceType   String
+  publishedAt  DateTime?
+  isVerified   Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+// ============================================================
+// FOLLOW-UP ACTIONS
+// ============================================================
+
+model FollowUp {
+  id           String   @id @default(cuid())
+  incidentId   String
+  incident     Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  actionType   String   // investigation, arrest, legal_proceedings, official_response
+  description  String   @db.Text
+  date         DateTime?
+  isConfirmed  Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  incidentId   String?
+  incident     Incident?   @relation(fields: [incidentId], references: [id])
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+
+  action       AuditAction
+  previousData Json?
+  newData      Json?
+  notes        String?     @db.Text
+  ipAddress    String?
+
+  createdAt    DateTime    @default(now())
+
+  @@index([incidentId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================================
+// TIP SUBMISSIONS (public can submit)
+// ============================================================
+
+model TipSubmission {
+  id           String   @id @default(cuid())
+  description  String   @db.Text
+  location     String?
+  occurredAt   DateTime?
+  category     String?
+  isAnonymous  Boolean  @default(true)
+  submitterId  String?
+  submitter    User?    @relation(fields: [submitterId], references: [id])
+  isReviewed   Boolean  @default(false)
+  reviewNotes  String?  @db.Text
+
+  createdAt    DateTime @default(now())
+
+  @@index([isReviewed])
+}
+
+// ============================================================
+// INGESTION JOB LOG
+// ============================================================
+
+model IngestionLog {
+  id             String   @id @default(cuid())
+  sourceId       String?
+  jobType        String   // rss, gdelt, newsapi, manual
+  articlesFound  Int      @default(0)
+  articlesNew    Int      @default(0)
+  incidentsCreated Int    @default(0)
+  errors         String?  @db.Text
+  durationMs     Int?
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+
+  @@index([startedAt])
+  @@index([jobType])
 }

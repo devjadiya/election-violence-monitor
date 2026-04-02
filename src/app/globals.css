@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@source "../../";
+
+
+
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: rgba(255, 255, 255, 0.85);
+  --card-foreground: #0a0a0a;
+  --popover: rgba(255, 255, 255, 0.95);
+  --popover-foreground: #0a0a0a;
+  --primary: #1a1a2e;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #1a1a2e;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #e8f4fd;
+  --accent-foreground: #1a1a2e;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.06);
+  --ring: #1a1a2e;
+  --radius: 0.75rem;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --brand-blue: #1a1a2e;
+  --brand-accent: #16213e;
+  --brand-highlight: #0f3460;
+  --sidebar: rgba(255,255,255,0.92);
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #1a1a2e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #1a1a2e;
+  --sidebar-border: rgba(0,0,0,0.08);
+  --sidebar-ring: #1a1a2e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border-radius: var(--radius);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 8px 40px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+}
+
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+
+.bg-mesh {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(at 20% 50%, rgba(59,130,246,0.05) 0px, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(139,92,246,0.04) 0px, transparent 50%),
+    radial-gradient(at 40% 80%, rgba(16,185,129,0.03) 0px, transparent 50%);
+  min-height: 100vh;
+}
+
+.status-raw          { background: #f4f4f5; color: #71717a; }
+.status-flagged      { background: #fff7ed; color: #ea580c; }
+.status-under_review { background: #eff6ff; color: #2563eb; }
+.status-verified     { background: #f0fdf4; color: #16a34a; }
+.status-published    { background: #ecfdf5; color: #059669; }
+.status-rejected     { background: #fef2f2; color: #dc2626; }
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+
+.map-marker-pulse { animation: pulse-ring 2s cubic-bezier(0.215,0.61,0.355,1) infinite; }
+
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+.heading-display { font-size: clamp(2rem,5vw,3.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.heading-xl      { font-size: clamp(1.5rem,3vw,2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.heading-lg      { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+.stat-number     { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.transition-smooth { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+
+*:focus-visible { outline: 2px solid var(--brand-highlight); outline-offset: 2px; border-radius: 4px; }
