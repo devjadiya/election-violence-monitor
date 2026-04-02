@@ -6,7 +6,7 @@ import { Download, FileJson, FileText } from 'lucide-react'
 export default function ExportPage() {
   const [loading, setLoading] = useState<string | null>(null)
 
-  async function exportData(format: 'csv' | 'json') {
+  async function exportData(format: 'csv' | 'json' | 'wikidata') {
     setLoading(format)
     try {
       const res = await fetch(`/api/export?format=${format}`)
@@ -14,7 +14,8 @@ export default function ExportPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `evm-incidents-${new Date().toISOString().slice(0, 10)}.${format}`
+      const ext = format === 'wikidata' ? 'jsonld' : format
+      a.download = `evm-incidents-${new Date().toISOString().slice(0, 10)}.${ext}`
       a.click()
       URL.revokeObjectURL(url)
     } finally {
@@ -76,11 +77,11 @@ export default function ExportPage() {
           Export structured data linked to Wikidata entities for research and knowledge graph integration.
         </p>
         <button
-          onClick={() => exportData('json')}
+          onClick={() => exportData('wikidata')}
           disabled={!!loading}
           className="text-sm text-blue-600 hover:underline font-medium disabled:opacity-50"
         >
-          Download Wikidata JSON →
+          {loading === 'wikidata' ? 'Downloading...' : 'Download Wikidata JSON-LD →'}
         </button>
       </div>
 
