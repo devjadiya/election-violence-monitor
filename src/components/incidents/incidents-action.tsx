@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, XCircle, Eye, ArrowRight } from 'lucide-react'
+import { CheckCircle, XCircle, Eye, ArrowRight, Edit } from 'lucide-react'
 
 interface Props {
   incident: {
@@ -31,6 +31,13 @@ export function IncidentActions({ incident }: Props) {
 
   return (
     <div className="flex items-center gap-2 shrink-0">
+      <button
+        onClick={() => router.push(`/incidents/${incident.id}/edit`)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-zinc-50 text-zinc-700 hover:bg-zinc-100 transition-colors border border-zinc-200"
+      >
+        <Edit size={13} /> Edit
+      </button>
+
       {incident.status === 'FLAGGED' && (
         <button
           onClick={() => updateStatus('UNDER_REVIEW')}

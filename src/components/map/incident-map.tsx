@@ -131,6 +131,24 @@ export function IncidentMap({ incidents }: Props) {
         renderMarkers(map, maplibregl, filtered)
       })
 
+      // Inside map.on('load') callback, after renderMarkers call:
+      map.on('load', () => {
+        setMapLoaded(true)
+        renderMarkers(map, maplibregl, filtered)
+
+        // Auto-fit to markers
+        const withCoords = filtered.filter(i => i.latitude && i.longitude)
+        if (withCoords.length > 0) {
+          const lngs = withCoords.map(i => i.longitude!)
+          const lats = withCoords.map(i => i.latitude!)
+          const bounds: [[number, number], [number, number]] = [
+            [Math.min(...lngs) - 1, Math.min(...lats) - 1],
+            [Math.max(...lngs) + 1, Math.max(...lats) + 1],
+          ]
+          map.fitBounds(bounds, { padding: 60, maxZoom: 8, duration: 1000 })
+        }
+      })
+
       map.on('click', () => setSelected(null))
       mapInstance.current = map
     })
@@ -163,18 +181,16 @@ export function IncidentMap({ incidents }: Props) {
         <div className="flex flex-wrap gap-1.5 max-w-lg">
           {categories.slice(0, 5).map(cat => (
             <button key={cat} onClick={() => setCategoryFilter(cat)}
-              className={`text-[11px] px-2.5 py-1 rounded-full font-medium shadow-sm transition-all ${
-                categoryFilter === cat
+              className={`text-[11px] px-2.5 py-1 rounded-full font-medium shadow-sm transition-all ${categoryFilter === cat
                   ? 'bg-[#1a1a2e] text-white shadow-md'
                   : 'bg-white/90 backdrop-blur-sm text-zinc-700 hover:bg-white border border-zinc-200'
-              }`}>
+                }`}>
               {cat === 'ALL' ? 'All Incidents' : CATEGORY_LABELS[cat as IncidentCategory]}
             </button>
           ))}
           <button onClick={() => setShowFilters(!showFilters)}
-            className={`text-[11px] px-2.5 py-1 rounded-full font-medium shadow-sm transition-all flex items-center gap-1 ${
-              showFilters ? 'bg-zinc-800 text-white' : 'bg-white/90 backdrop-blur-sm text-zinc-700 border border-zinc-200'
-            }`}>
+            className={`text-[11px] px-2.5 py-1 rounded-full font-medium shadow-sm transition-all flex items-center gap-1 ${showFilters ? 'bg-zinc-800 text-white' : 'bg-white/90 backdrop-blur-sm text-zinc-700 border border-zinc-200'
+              }`}>
             <Filter size={10} /> More
           </button>
         </div>

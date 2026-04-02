@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { notifyUser } from '@/lib/notifications'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
@@ -51,6 +52,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         rejectedAt: body.status === 'REJECTED' ? new Date() : existing.rejectedAt,
       },
     })
+
+    if (body.status === 'PUBLISHED' && existing.createdById) {
+      await notifyUser({
+        userId: existing.createdById,
+        type: 'incident_published',
+        title: 'Incident published',
+        message: `${existing.referenceId}: ${existing.title}`,
+        link: `/incidents/${id}`,
+      })
+    }
+
+    if (body.status === 'REJECTED' && existing.createdById) {
+      await notifyUser({
+        userId: existing.createdById,
+        type: 'incident_rejected',
+        title: 'Incident rejected',
+        message: `${existing.referenceId} was rejected. Check the audit log for notes.`,
+        link: `/incidents/${id}`,
+      })
+    }
 
     await prisma.auditLog.create({
       data: {

@@ -4,6 +4,8 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
 import type { IncidentCategory, ElectionStage, WeaponType } from '@/lib/generated/prisma'
 import { IncidentActions } from '@/components/incidents/incidents-action'
+import { FollowUpActions } from '@/components/incidents/follow-up-actions'
+import { WikidataLink } from '@/components/incidents/wikidata-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -140,6 +142,11 @@ export default async function IncidentDetailPage({
             </div>
           )}
 
+          <FollowUpActions
+            incidentId={incident.id}
+            followUps={incident.followUps}
+          />
+
           {/* Audit Log */}
           {incident.auditLogs.length > 0 && (
             <div className="glass-card p-5">
@@ -185,6 +192,11 @@ export default async function IncidentDetailPage({
               <div className="text-xs text-zinc-400">{incident.election.country}</div>
             </div>
           )}
+
+          <WikidataLink
+            incidentId={incident.id}
+            currentWikidataId={incident.wikidataId}
+          />
 
           <div className="glass-card p-5 space-y-2">
             <h2 className="font-semibold text-[#1a1a2e] text-sm">Created By</h2>
