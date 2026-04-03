@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { tipLimiter, getClientIp, rateLimit } from '@/lib/security/rate-limit'
+import { notifyAdmins } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Description too short' }, { status: 400 })
   }
 
-  await prisma.tipSubmission.create({
+  const tip = await prisma.tipSubmission.create({
     data: {
       description: body.description,
       location: body.location || null,
@@ -30,7 +31,20 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return NextResponse.json({ success: true })
+  // Notify all admins and editors — this is what was missing
+  try {
+    await notifyAdmins({
+      type: 'new_tip',
+      title: 'New tip submitted',
+      message: body.description.slice(0, 120) + (body.description.length > 120 ? '...' : ''),
+      link: '/tips',
+    })
+  } catch (err) {
+    // Don't fail the tip submission if notification fails
+    console.error('Notification error:', err)
+  }
+
+  return NextResponse.json({ success: true, id: tip.id })
 }
 
 export async function GET() {

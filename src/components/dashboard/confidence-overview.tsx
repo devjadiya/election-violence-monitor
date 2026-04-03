@@ -1,33 +1,62 @@
 import { prisma } from '@/lib/db'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
+
+async function getConfidenceData() {
+  try {
+    return await prisma.incident.findMany({
+      where: { status: { in: ['FLAGGED', 'UNDER_REVIEW', 'VERIFIED', 'PUBLISHED'] } },
+      select: { confidenceScore: true, isAutoDetected: true, status: true },
+      take: 500,
+    })
+  } catch {
+    return []
+  }
+}
 
 export async function ConfidenceOverview() {
-  const incidents = await prisma.incident.findMany({
-    where: { status: { in: ['FLAGGED', 'UNDER_REVIEW', 'VERIFIED', 'PUBLISHED'] } },
-    select: { confidenceScore: true, isAutoDetected: true, status: true, category: true },
-    take: 500,
-  })
+  const incidents = await getConfidenceData()
 
   if (incidents.length === 0) {
     return (
       <div className="glass-card p-5">
-        <h2 className="font-semibold text-[#1a1a2e] mb-2">Confidence Scoring</h2>
+        <h2 className="font-semibold text-[#1a1a2e] mb-2 flex items-center gap-2">
+          <TrendingUp size={15} className="text-zinc-400" />
+          AI Confidence
+        </h2>
         <div className="text-center py-6 text-zinc-400 text-xs">No data yet</div>
       </div>
     )
   }
 
-  const avgConfidence = incidents.reduce((s, i) => s + i.confidenceScore, 0) / incidents.length
+  const avgConfidence =
+    incidents.reduce((s, i) => s + i.confidenceScore, 0) / incidents.length
   const high = incidents.filter(i => i.confidenceScore >= 75).length
-  const medium = incidents.filter(i => i.confidenceScore >= 50 && i.confidenceScore < 75).length
+  const medium = incidents.filter(
+    i => i.confidenceScore >= 50 && i.confidenceScore < 75
+  ).length
   const low = incidents.filter(i => i.confidenceScore < 50).length
   const aiDetected = incidents.filter(i => i.isAutoDetected).length
   const manualEntry = incidents.filter(i => !i.isAutoDetected).length
 
   const bands = [
-    { label: '75–100%', count: high, color: 'bg-green-500', pct: (high / incidents.length) * 100 },
-    { label: '50–74%', count: medium, color: 'bg-yellow-500', pct: (medium / incidents.length) * 100 },
-    { label: '0–49%', count: low, color: 'bg-red-400', pct: (low / incidents.length) * 100 },
+    {
+      label: '75–100%',
+      count: high,
+      color: 'bg-green-500',
+      pct: (high / incidents.length) * 100,
+    },
+    {
+      label: '50–74%',
+      count: medium,
+      color: 'bg-yellow-500',
+      pct: (medium / incidents.length) * 100,
+    },
+    {
+      label: '0–49%',
+      count: low,
+      color: 'bg-red-400',
+      pct: (low / incidents.length) * 100,
+    },
   ]
 
   return (
@@ -38,7 +67,9 @@ export async function ConfidenceOverview() {
           AI Confidence
         </h2>
         <div className="text-right">
-          <div className="text-xl font-bold text-[#1a1a2e]">{Math.round(avgConfidence)}%</div>
+          <div className="text-xl font-bold text-[#1a1a2e]">
+            {Math.round(avgConfidence)}%
+          </div>
           <div className="text-[10px] text-zinc-400">avg score</div>
         </div>
       </div>
@@ -46,7 +77,11 @@ export async function ConfidenceOverview() {
       {/* Distribution bar */}
       <div className="flex rounded-full overflow-hidden h-2.5 mb-3 gap-0.5">
         {bands.map(b => (
-          <div key={b.label} className={`${b.color} transition-all`} style={{ width: `${b.pct}%` }} />
+          <div
+            key={b.label}
+            className={`${b.color} transition-all`}
+            style={{ width: `${b.pct}%` }}
+          />
         ))}
       </div>
 
