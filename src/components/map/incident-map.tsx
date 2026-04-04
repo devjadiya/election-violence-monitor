@@ -114,12 +114,40 @@ export function IncidentMap({ incidents }: Props) {
     document.head.appendChild(style)
 
     import('maplibre-gl').then(({ default: maplibregl }) => {
+      // NO glyphs property — raster tile basemap needs no font PBFs
+      // glyphs URL was blocking map.on('load') from ever firing
+      const RASTER_STYLE = {
+        version: 8 as const,
+        sources: {
+          basemap: {
+            type: 'raster' as const,
+            tiles: [
+              'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+              'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+              'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            ],
+            tileSize: 256,
+            attribution: '&copy; <a href="https://carto.com">CartoDB</a> &copy; <a href="https://openstreetmap.org">OpenStreetMap</a>',
+            maxzoom: 19,
+          },
+        },
+        layers: [{
+          id: 'basemap-layer',
+          type: 'raster' as const,
+          source: 'basemap',
+          paint: { 'raster-fade-duration': 100 },
+        }],
+      }
+
       const map = new maplibregl.Map({
         container: mapRef.current!,
-        style: 'https://tiles.openfreemap.org/styles/liberty',
+        style: RASTER_STYLE,
         center: [20, 5],
         zoom: 3,
         attributionControl: false,
+        fadeDuration: 0,
+        renderWorldCopies: false,
+        maxPitch: 0,
       })
 
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
