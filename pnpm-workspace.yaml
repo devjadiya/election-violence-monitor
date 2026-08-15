@@ -1,9 +1,0 @@
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
-onlyBuiltDependencies:
-  - '@prisma/engines'
-  - '@sentry/cli'
-  - esbuild
-  - msw
-  - prisma
