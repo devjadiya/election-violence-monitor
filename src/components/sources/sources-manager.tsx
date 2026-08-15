@@ -43,7 +43,7 @@ export function SourcesManager({ sources }: Props) {
 
   async function addSource(e: React.FormEvent) {
     e.preventDefault()
-    await fetch('/api/sources', {
+    await fetch('/api/manage/sources', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, sourceType: form.rssUrl ? 'RSS_FEED' : 'API' }),

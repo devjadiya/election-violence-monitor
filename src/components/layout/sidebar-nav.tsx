@@ -11,13 +11,13 @@ import { useState } from 'react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
+  { href: '/manage/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/review', label: 'Review Queue', icon: CheckSquare },
   { href: '/tips', label: 'Tips', icon: MessageSquare },
   { href: '/elections', label: 'Elections', icon: Calendar },
   { href: '/livemap', label: 'Live Map', icon: MapPin },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/sources', label: 'Sources', icon: Globe },
+  { href: '/manage/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/manage/sources', label: 'Sources', icon: Globe },
   { href: '/export', label: 'Export', icon: Download },
 ]
 
@@ -141,10 +141,10 @@ export function SidebarNav({ user }: Props) {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-zinc-200 flex items-center justify-around px-2 py-2">
         {[
           { href: '/dashboard', icon: LayoutDashboard },
-          { href: '/incidents', icon: AlertTriangle },
+          { href: '/manage/incidents', icon: AlertTriangle },
           { href: '/review', icon: CheckSquare },
           { href: '/livemap', icon: MapPin },
-          { href: '/analytics', icon: BarChart3 },
+          { href: '/manage/analytics', icon: BarChart3 },
         ].map(({ href, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/')
           return (

@@ -43,7 +43,7 @@ export function FollowUpActions({ incidentId, followUps }: Props) {
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch(`/api/incidents/${incidentId}/followup`, {
+      await fetch(`/api/manage/incidents/${incidentId}/followup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

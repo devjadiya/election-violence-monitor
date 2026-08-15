@@ -13,7 +13,7 @@ export function RecentIncidents({ incidents }: Props) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-[#1a1a2e]">Recent Incidents</h2>
         <Link
-          href="/incidents"
+          href="/manage/incidents"
           className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
         >
           View all →
@@ -29,7 +29,7 @@ export function RecentIncidents({ incidents }: Props) {
           {incidents.map((incident) => (
             <Link
               key={incident.id}
-              href={`/incidents/${incident.id}`}
+              href={`/manage/incidents/${incident.id}`}
               className="flex items-start gap-3 p-3 rounded-lg hover:bg-zinc-50 transition-colors group"
             >
               <div

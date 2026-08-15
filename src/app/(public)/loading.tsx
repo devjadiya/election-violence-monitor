@@ -1,10 +1,16 @@
-export default function PublicLoading() {
+/**
+ * Route-level loading state.
+ *
+ * A plain, non-animated placeholder. A skeleton that mimics rows of incidents
+ * would imply the page is about to fill with records, which on an empty archive
+ * would be misleading before the real content even arrives.
+ */
+export default function Loading() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-10 h-10 border-2 border-[#1a1a2e] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-zinc-400">Loading...</p>
-      </div>
+    <div className="mx-auto max-w-6xl px-5 py-16">
+      <p className="text-[0.875rem] text-[var(--ink-3)]" role="status" aria-live="polite">
+        Loading…
+      </p>
     </div>
   )
 }

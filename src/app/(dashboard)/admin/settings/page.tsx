@@ -197,8 +197,8 @@ export default function SettingsPage() {
               <p className="text-sm text-zinc-500">External researchers can access published incidents via the public API.</p>
               <div className="space-y-3">
                 {[
-                  { method: 'GET', endpoint: '/api/public/incidents', desc: 'List published incidents' },
-                  { method: 'GET', endpoint: '/api/public/incidents/:id', desc: 'Get single incident' },
+                  { method: 'GET', endpoint: '/api/public/manage/incidents', desc: 'List published incidents' },
+                  { method: 'GET', endpoint: '/api/public/manage/incidents/:id', desc: 'Get single incident' },
                   { method: 'GET', endpoint: '/api/public/stats', desc: 'Aggregate statistics' },
                   { method: 'GET', endpoint: '/api/export?format=csv', desc: 'Export as CSV' },
                   { method: 'GET', endpoint: '/api/export?format=json', desc: 'Export as JSON' },

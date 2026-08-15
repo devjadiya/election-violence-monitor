@@ -71,7 +71,7 @@ export function NewIncidentForm({ elections }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/incidents', {
+      const res = await fetch('/api/manage/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +102,7 @@ export function NewIncidentForm({ elections }: Props) {
       toast.success('Incident created successfully', {
         description: 'Flagged for review by your team.',
       })
-      router.push(`/incidents/${data.id}`)
+      router.push(`/manage/incidents/${data.id}`)
     } catch (err: any) {
       setError(err.message)
       toast.error('Failed to create incident', { description: err.message })

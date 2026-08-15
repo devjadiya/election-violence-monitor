@@ -47,7 +47,7 @@ export default async function IncidentsPage({
           <p className="text-sm text-zinc-500 mt-0.5">{total} total incidents</p>
         </div>
         <Link
-          href="/incidents/new"
+          href="/manage/incidents/new"
           className="flex items-center gap-2 bg-[#1a1a2e] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors"
         >
           <Plus size={15} />
@@ -60,7 +60,7 @@ export default async function IncidentsPage({
         <Filter size={14} className="text-zinc-400" />
         <span className="text-xs text-zinc-500 font-medium mr-1">Status:</span>
         <Link
-          href="/incidents"
+          href="/manage/incidents"
           className={`text-xs px-3 py-1.5 rounded-full border transition-all ${!params.status ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}
         >
           All
@@ -68,7 +68,7 @@ export default async function IncidentsPage({
         {statuses.map((s) => (
           <Link
             key={s}
-            href={`/incidents?status=${s}${params.category ? `&category=${params.category}` : ''}`}
+            href={`/manage/incidents?status=${s}${params.category ? `&category=${params.category}` : ''}`}
             className={`text-xs px-3 py-1.5 rounded-full border transition-all ${params.status === s ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}
           >
             {s}
@@ -82,7 +82,7 @@ export default async function IncidentsPage({
           <div className="text-center py-16 text-zinc-400">
             <div className="text-4xl mb-3">📋</div>
             <div className="text-sm">No incidents found</div>
-            <Link href="/incidents/new" className="text-xs text-blue-500 hover:underline mt-2 inline-block">
+            <Link href="/manage/incidents/new" className="text-xs text-blue-500 hover:underline mt-2 inline-block">
               Add the first incident
             </Link>
           </div>
@@ -107,7 +107,7 @@ export default async function IncidentsPage({
                   </td>
                   <td className="px-5 py-3.5 max-w-xs">
                     <Link
-                      href={`/incidents/${incident.id}`}
+                      href={`/manage/incidents/${incident.id}`}
                       className="font-medium text-zinc-800 group-hover:text-[#1a1a2e] truncate block"
                     >
                       {incident.title}
@@ -163,7 +163,7 @@ export default async function IncidentsPage({
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`/incidents?page=${page - 1}${params.status ? `&status=${params.status}` : ''}`}
+                href={`/manage/incidents?page=${page - 1}${params.status ? `&status=${params.status}` : ''}`}
                 className="text-xs px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
               >
                 Previous
@@ -171,7 +171,7 @@ export default async function IncidentsPage({
             )}
             {page < totalPages && (
               <Link
-                href={`/incidents?page=${page + 1}${params.status ? `&status=${params.status}` : ''}`}
+                href={`/manage/incidents?page=${page + 1}${params.status ? `&status=${params.status}` : ''}`}
                 className="text-xs px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
               >
                 Next

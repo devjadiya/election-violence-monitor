@@ -1,172 +1,235 @@
-export const metadata = {
-  title: 'Election Violence Monitor — Transparent Documentation Worldwide',
-  description:
-    'Community-based platform documenting election-related violence incidents. Real-time map, verified reports, open data for researchers and NGOs.',
-  openGraph: {
-    title: 'Election Violence Monitor',
-    description: 'Transparent documentation of election violence worldwide.',
-  },
-}
-
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { SiteHeader, SiteFooter, Figure, EmptyState } from '@/components/public/site-shell'
+import { IncidentRow, type IncidentSummary } from '@/components/public/incident-row'
+import { formatDateTime, relativeDays } from '@/lib/incidents/format'
 
-async function getPublicStats() {
-  try {
-    const where = publicIncidentFilter()
-    const [incidents, fatalities, injured, countries] = await Promise.all([
+export const metadata: Metadata = {
+  title: 'Election Violence Monitor',
+  description:
+    'Structured, source-linked records of election-related violence in Nigeria. Every published record is checked by a person and cites the reporting it came from.',
+}
+
+export const dynamic = 'force-dynamic'
+
+/**
+ * The homepage states what the archive currently holds.
+ *
+ * It previously opened with a pulsing "Live Monitoring Active" badge, a
+ * six-item feature grid with emoji, and headline statistics computed without
+ * the visibility filter — so the numbers came from fabricated seed records.
+ * Ingestion runs once a day, so nothing here claims to be live, and every
+ * figure is a real count from the database or is absent.
+ */
+async function getState() {
+  const where = publicIncidentFilter()
+
+  const [published, totals, places, recent, lastRun, sources, healthySources, backlog] =
+    await Promise.all([
       prisma.incident.count({ where }),
-      prisma.incident.aggregate({ where, _sum: { fatalities: true } }),
-      prisma.incident.aggregate({ where, _sum: { injured: true } }),
-      prisma.incident.groupBy({ by: ['country'], where }),
+      prisma.incident.aggregate({ where, _sum: { fatalities: true, injured: true } }),
+      prisma.incident.groupBy({ by: ['region'], where, _count: true }),
+      prisma.incident.findMany({
+        where,
+        orderBy: { occurredAt: 'desc' },
+        take: 6,
+        select: {
+          id: true, referenceId: true, title: true, description: true, category: true,
+          country: true, region: true, district: true, community: true, occurredAt: true,
+          fatalities: true, injured: true, arrested: true, confidenceScore: true,
+          sources: { select: { sourceUrl: true, sourceName: true } },
+        },
+      }),
+      prisma.ingestionLog.findFirst({
+        where: { jobType: { in: ['discover', 'classify', 'cron'] } },
+        orderBy: { startedAt: 'desc' },
+      }),
+      prisma.monitoredSource.count({ where: { isActive: true } }),
+      prisma.monitoredSource.count({ where: { isActive: true, lastSuccessAt: { not: null } } }),
+      prisma.rawArticle.count(),
     ])
-    return {
-      incidents,
-      fatalities: fatalities._sum.fatalities ?? 0,
-      injured: injured._sum.injured ?? 0,
-      countries: countries.length,
-    }
-  } catch {
-    return { incidents: 0, fatalities: 0, injured: 0, countries: 0 }
+
+  return {
+    published,
+    fatalities: totals._sum.fatalities ?? 0,
+    injured: totals._sum.injured ?? 0,
+    places: places.filter((p) => p.region).length,
+    recent: recent as IncidentSummary[],
+    lastRun,
+    sources,
+    healthySources,
+    articles: backlog,
   }
 }
 
 export default async function HomePage() {
-  const stats = await getPublicStats()
+  const s = await getState()
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Nav */}
-      <nav className="glass-nav fixed top-0 left-0 right-0 z-50 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-              <span className="text-white text-xs font-bold">EV</span>
+    <>
+      <SiteHeader />
+
+      <main id="main">
+        {/* Statement of purpose. No hero image, no gradient, no badge. */}
+        <section className="mx-auto max-w-6xl px-5 pb-10 pt-12">
+          <div className="prose-measure">
+            <h1 className="display">
+              A public record of election-related violence in Nigeria.
+            </h1>
+            <p className="mt-4 text-[1.0625rem] leading-relaxed text-[var(--ink-2)]">
+              Each entry is a single incident, assembled from published reporting, checked
+              by a person, and linked back to the articles it came from. The data is free
+              to reuse.
+            </p>
+          </div>
+
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link
+              href="/incidents"
+              className="rounded bg-[var(--ink)] px-4 py-2 text-[0.875rem] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              Browse incidents
+            </Link>
+            <Link
+              href="/methodology"
+              className="rounded border border-[var(--rule-2)] px-4 py-2 text-[0.875rem] text-[var(--ink-2)] transition-colors hover:border-[var(--ink-3)] hover:text-[var(--ink)]"
+            >
+              How records are made
+            </Link>
+          </div>
+        </section>
+
+        {/* What the archive holds. Real counts only. */}
+        <section className="rule-t rule-b bg-[var(--paper-2)]">
+          <div className="mx-auto max-w-6xl px-5 py-8">
+            <h2 className="eyebrow mb-5">Currently published</h2>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4">
+              <Figure value={s.published} label="Incidents published" />
+              <Figure
+                value={s.fatalities}
+                label="Deaths recorded"
+                note={s.published === 0 ? undefined : 'Only where a source stated a number'}
+              />
+              <Figure
+                value={s.injured}
+                label="Injuries recorded"
+                note={s.published === 0 ? undefined : 'Only where a source stated a number'}
+              />
+              <Figure value={s.places} label="States represented" />
             </div>
-            <span className="font-semibold text-[#1a1a2e] tracking-tight">Election Violence Monitor</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/map" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Live Map</Link>
-            <Link href="/reports" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Reports</Link>
-            <Link href="/developers" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">
-              API
-            </Link>
-            <Link href="/submit" className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-1.5">Submit Tip</Link>
-            <Link href="/login" className="text-sm bg-[#1a1a2e] text-white px-4 py-2 rounded-lg hover:bg-[#16213e] transition-colors font-medium">Sign In</Link>
-          </div>
-        </div>
-      </nav>
+        </section>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full mb-6 border border-blue-100">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            Live Monitoring Active
+        {/* Recent incidents, or an honest account of why there are none. */}
+        <section className="mx-auto max-w-6xl px-5 py-10">
+          <div className="mb-1 flex items-baseline justify-between gap-4">
+            <h2 className="headline">Most recent</h2>
+            {s.published > 0 ? (
+              <Link href="/incidents" className="link-underline text-[0.8125rem]">
+                All {s.published.toLocaleString()} incidents
+              </Link>
+            ) : null}
           </div>
-          <h1 className="heading-display text-[#1a1a2e] mb-6">
-            Transparent Documentation of{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">
-              Election Violence
-            </span>
-          </h1>
-          <p className="text-lg text-zinc-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-            A community-based platform for structured, ethical documentation of election-related violence incidents — supporting democracy, accountability, and research worldwide.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/map" className="bg-[#1a1a2e] text-white px-8 py-3.5 rounded-xl font-medium hover:bg-[#16213e] transition-all hover:shadow-lg hover:shadow-blue-900/10 hover:-translate-y-0.5">
-              View Live Map
-            </Link>
-            <Link href="/reports" className="bg-white border border-zinc-200 text-zinc-700 px-8 py-3.5 rounded-xl font-medium hover:border-zinc-300 hover:shadow-sm transition-all">
-              Browse Reports
-            </Link>
-          </div>
-        </div>
-      </section>
 
-      {/* Live Stats */}
-      <section className="py-16 px-6 bg-zinc-50/50">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { label: 'Incidents Documented', value: stats.incidents.toLocaleString(), sub: 'Verified & published', color: 'text-[#1a1a2e]' },
-              { label: 'Countries Monitored', value: stats.countries.toLocaleString(), sub: 'Active coverage', color: 'text-blue-600' },
-              { label: 'Fatalities Recorded', value: stats.fatalities.toLocaleString(), sub: 'Confirmed deaths', color: 'text-red-600' },
-              { label: 'People Injured', value: stats.injured.toLocaleString(), sub: 'Reported injuries', color: 'text-orange-500' },
-            ].map(stat => (
-              <div key={stat.label} className="glass-card p-6 text-center">
-                <div className={`stat-number ${stat.color} mb-1`}>{stat.value}</div>
-                <div className="text-sm font-medium text-zinc-700 mb-0.5">{stat.label}</div>
-                <div className="text-xs text-zinc-400">{stat.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="heading-xl text-[#1a1a2e] text-center mb-4">Built for Accountability</h2>
-          <p className="text-zinc-500 text-center mb-12 max-w-xl mx-auto">Every feature designed with ethical documentation and public safety in mind.</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { icon: '🗺️', title: 'Interactive Map', desc: 'Real-time geographic visualization of incidents with filtering by type, date, and election stage.' },
-              { icon: '🤖', title: 'AI Classification', desc: 'Gemini-powered two-pass detection — first screening for relevance, then deep structured extraction.' },
-              { icon: '🔍', title: 'Human Verification', desc: 'Every incident reviewed by trained analysts before publication. Confidence scores shown.' },
-              { icon: '📊', title: 'Analytics Dashboard', desc: 'Trend charts, category breakdowns, geographic heatmaps, and exportable datasets.' },
-              { icon: '🔒', title: 'Privacy First', desc: 'Victim names anonymized by default. Public view shows only aggregate data. RBAC access control.' },
-              { icon: '🌍', title: 'Wikidata Integration', desc: 'Incidents linked to Wikidata entities — elections, locations, political parties — for research use.' },
-            ].map(f => (
-              <div key={f.title} className="glass-card p-6">
-                <div className="text-2xl mb-3">{f.icon}</div>
-                <h3 className="heading-lg mb-2 text-[#1a1a2e]">{f.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 px-6 bg-[#1a1a2e]">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Witnessed election violence?</h2>
-          <p className="text-white/60 mb-6 text-sm">Submit an anonymous, confidential tip. Our team will verify and document it ethically.</p>
-          <Link href="/submit" className="inline-block bg-white text-[#1a1a2e] px-8 py-3 rounded-xl font-medium hover:bg-zinc-100 transition-colors">
-            Submit a Tip →
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-100 py-10 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-[#1a1a2e] flex items-center justify-center">
-              <span className="text-white text-[10px] font-bold">EV</span>
+          {s.recent.length > 0 ? (
+            <div className="mt-4">
+              {s.recent.map((i) => (
+                <IncidentRow key={i.id} incident={i} />
+              ))}
             </div>
-            <span className="text-sm text-zinc-500">Election Violence Monitor</span>
+          ) : (
+            <div className="mt-5">
+              <EmptyState title="No incidents have been published yet.">
+                <p>
+                  Nothing is published until a person has checked it against the source
+                  reporting. Records produced by the pipeline are awaiting that review.
+                </p>
+                <p className="mt-2">
+                  The monitor is currently reading {s.sources} sources and holds{' '}
+                  {s.articles.toLocaleString()} collected articles. Publishing an empty
+                  archive is the accurate thing to do — we would rather show nothing than
+                  show something unverified.
+                </p>
+              </EmptyState>
+            </div>
+          )}
+        </section>
+
+        {/* Operational transparency: state of the collection, on the front page. */}
+        <section className="rule-t bg-[var(--paper-2)]">
+          <div className="mx-auto max-w-6xl px-5 py-8">
+            <h2 className="eyebrow mb-5">System status</h2>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="figure-value">{s.healthySources}/{s.sources}</div>
+                <div className="figure-label mt-0.5">Sources returning articles</div>
+                <Link href="/sources/health" className="link-underline mt-1 inline-block text-[0.75rem]">
+                  Source health
+                </Link>
+              </div>
+              <Figure value={s.articles} label="Articles collected" note="Screened for relevance" />
+              <div>
+                <div className="figure-value">
+                  {s.lastRun ? relativeDays(s.lastRun.startedAt) : 'never'}
+                </div>
+                <div className="figure-label mt-0.5">Last collection run</div>
+                {s.lastRun ? (
+                  <div className="mt-0.5 text-[0.75rem] text-[var(--ink-4)]">
+                    {formatDateTime(s.lastRun.startedAt)}
+                  </div>
+                ) : null}
+              </div>
+              <div>
+                <div className="figure-value">Daily</div>
+                <div className="figure-label mt-0.5">Collection frequency</div>
+                <div className="mt-0.5 text-[0.75rem] text-[var(--ink-4)]">
+                  09:00 UTC. Not continuous.
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-6 text-xs text-zinc-400">
-            <Link href="/about" className="hover:text-zinc-600 transition-colors">About</Link>
-            <Link href="/reports" className="hover:text-zinc-600 transition-colors">Reports</Link>
-            <Link href="/map" className="hover:text-zinc-600 transition-colors">Map</Link>
-            <Link href="/submit" className="hover:text-zinc-600 transition-colors">Submit Tip</Link>
-            <Link href="/developers" className="hover:text-zinc-600 transition-colors">API Docs</Link>
-            <a href="https://github.com/devjadiya/election-violence-monitor" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 transition-colors">GitHub</a>
+        </section>
+
+        {/* Reuse. Stated plainly, without a marketing section. */}
+        <section className="mx-auto max-w-6xl px-5 py-10">
+          <div className="grid gap-8 md:grid-cols-2">
+            <div>
+              <h2 className="headline">Using this data</h2>
+              <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
+                Incident records are released under CC0 1.0 and available as CSV, JSON and
+                through a public API. Source articles remain the property of their
+                publishers; we link to them rather than reproducing them.
+              </p>
+              <div className="mt-3.5 flex flex-wrap gap-3 text-[0.875rem]">
+                <Link href="/data" className="link-underline">Download</Link>
+                <Link href="/developers" className="link-underline">API reference</Link>
+                <Link href="/methodology" className="link-underline">Methodology</Link>
+              </div>
+            </div>
+            <div>
+              <h2 className="headline">What this is not</h2>
+              <ul className="prose-measure mt-2.5 space-y-2 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
+                <li>
+                  Not real-time. Sources are read once a day, and review takes longer than
+                  that.
+                </li>
+                <li>
+                  Not complete. It records what published reporting covered, which is not
+                  everything that happened.
+                </li>
+                <li>
+                  Not automated judgement. Nothing reaches this site without a person
+                  confirming it against the source.
+                </li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-zinc-400">
-            Built by{' '}
-            <a href="https://github.com/devjadiya" target="_blank" rel="noopener noreferrer"
-              className="text-zinc-600 hover:text-zinc-900 font-medium transition-colors">
-              Dev Jadiya
-            </a>
-            {' '}· Open source · CC0 License
-          </p>
-        </div>
-      </footer>
-    </main>
+        </section>
+      </main>
+
+      <SiteFooter />
+    </>
   )
 }

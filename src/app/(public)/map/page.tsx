@@ -1,24 +1,33 @@
 import type { Metadata } from 'next'
-import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { MapLoader } from '@/components/public/map-loader'
+import { prisma } from '@/lib/db'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { MapLoader } from '@/components/public/map-loader'
+import { SiteHeader, EmptyState } from '@/components/public/site-shell'
 
 export const metadata: Metadata = {
-  title: 'Live Incident Map',
-  description: 'Interactive map of documented election violence incidents worldwide.',
+  title: 'Map',
+  description:
+    'Geographic view of published election violence records. Positions are approximate, geocoded from place names.',
 }
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * The map.
+ *
+ * Previously carried an animated green "Live" indicator. Collection runs once a
+ * day and review is manual, so nothing on this page is live; the indicator is
+ * replaced with the actual coverage figures. A map is also the easiest surface
+ * on which to imply precision we do not have, so it states plainly that
+ * positions are geocoded from place names and that unmapped records exist.
+ */
 export default async function PublicMapPage() {
-  const [incidents, stats] = await Promise.all([
+  const where = publicIncidentFilter()
+
+  const [incidents, total] = await Promise.all([
     prisma.incident.findMany({
-      where: {
-        ...publicIncidentFilter(),
-        latitude:  { not: null },
-        longitude: { not: null },
-      },
+      where: { ...where, latitude: { not: null }, longitude: { not: null } },
       select: {
         id: true, referenceId: true, title: true, category: true,
         latitude: true, longitude: true, country: true,
@@ -28,89 +37,63 @@ export default async function PublicMapPage() {
       orderBy: { occurredAt: 'desc' },
       take: 500,
     }),
-    prisma.incident.aggregate({
-      where: publicIncidentFilter(),
-      _count: true,
-      _sum: { fatalities: true, injured: true },
-    }),
+    prisma.incident.count({ where }),
   ])
 
+  const unmapped = total - incidents.length
+
   return (
-    /**
-     * h-dvh = dynamic viewport height (accounts for mobile browser chrome)
-     * overflow-hidden = hard cap — nothing can push beyond the viewport
-     * flex flex-col = stack nav → statsbar → map vertically
-     *
-     * This replaces the broken:
-     *   min-h-screen + fixed-nav + pt-16 + calc(100vh-105px)
-     * which created a scrollbar because min-height never caps height.
-     */
-    <div className="h-dvh overflow-hidden flex flex-col bg-white">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
+      <SiteHeader current="/map" />
 
-      {/* Nav — in normal flow (not fixed), no padding hacks needed */}
-      <nav className="shrink-0 glass-nav z-50 px-4 md:px-6 py-3.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#1a1a2e] flex items-center justify-center">
-              <span className="text-white text-[10px] font-bold">EV</span>
+      {incidents.length > 0 ? (
+        <>
+          <div className="rule-b shrink-0 bg-[var(--paper-2)] px-5 py-2">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem] text-[var(--ink-3)]">
+              <span>
+                <strong className="tnum font-medium text-[var(--ink)]">
+                  {incidents.length.toLocaleString()}
+                </strong>{' '}
+                mapped
+              </span>
+              {unmapped > 0 ? (
+                <span>
+                  <strong className="tnum font-medium text-[var(--ink)]">{unmapped}</strong>{' '}
+                  published but not geocoded
+                </span>
+              ) : null}
+              <span className="ml-auto">
+                Positions approximate — geocoded from place names, not surveyed
+              </span>
             </div>
-            <span className="font-semibold text-[#1a1a2e] text-sm hidden sm:block">
-              Election Violence Monitor
-            </span>
-            <span className="font-semibold text-[#1a1a2e] text-sm sm:hidden">EVM</span>
-          </Link>
+          </div>
 
-          <div className="flex items-center gap-3 md:gap-4">
-            <Link href="/reports"
-              className="text-sm text-zinc-500 hover:text-zinc-800 transition-colors hidden md:block">
-              Reports
-            </Link>
-            <Link href="/submit"
-              className="text-sm text-zinc-500 hover:text-zinc-800 transition-colors hidden md:block">
-              Submit Tip
-            </Link>
-            <Link href="/about"
-              className="text-sm text-zinc-500 hover:text-zinc-800 transition-colors hidden md:block">
-              About
-            </Link>
-            <Link href="/login"
-              className="text-sm bg-[#1a1a2e] text-white px-3 py-1.5 rounded-lg
-                         hover:bg-[#16213e] transition-colors font-medium">
-              Sign In
-            </Link>
+          <div className="min-h-0 flex-1">
+            <MapLoader incidents={incidents} />
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 overflow-auto">
+          <div className="mx-auto max-w-6xl px-5 py-12">
+            <EmptyState title="There is nothing to map yet.">
+              <p>
+                No published record currently has coordinates. Drawing an empty map, or one
+                populated with placeholder markers, would misrepresent the dataset.
+              </p>
+              <p className="mt-2">
+                <Link href="/incidents" className="link-underline">
+                  Browse incidents
+                </Link>{' '}
+                or{' '}
+                <Link href="/sources/health" className="link-underline">
+                  see what the pipeline is doing
+                </Link>
+                .
+              </p>
+            </EmptyState>
           </div>
         </div>
-      </nav>
-
-      {/* Stats bar */}
-      <div className="shrink-0 bg-zinc-50 border-b border-zinc-100 px-4 md:px-6 py-2">
-        <div className="max-w-7xl mx-auto flex items-center gap-4 md:gap-6 text-xs text-zinc-500 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="font-medium text-green-700">Live</span>
-          </div>
-          <span><strong className="text-zinc-700">{stats._count}</strong> incidents</span>
-          <span><strong className="text-zinc-700">{stats._sum.fatalities ?? 0}</strong> fatalities</span>
-          <span className="hidden sm:inline">
-            <strong className="text-zinc-700">{stats._sum.injured ?? 0}</strong> injured
-          </span>
-          <span className="hidden sm:inline">
-            <strong className="text-zinc-700">{incidents.length}</strong> mapped
-          </span>
-          <span className="ml-auto text-zinc-400 hidden lg:block">
-            Verified incidents only
-          </span>
-        </div>
-      </div>
-
-      {/*
-        Map container — flex-1 fills ALL remaining space.
-        min-h-0 is critical: without it flex children won't shrink below
-        their content's natural height, causing overflow and the scrollbar.
-      */}
-      <div className="flex-1 min-h-0">
-        <MapLoader incidents={incidents} />
-      </div>
+      )}
     </div>
   )
 }

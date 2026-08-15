@@ -1,87 +1,183 @@
-import { prisma } from '@/lib/db'
-import { auth } from '@/lib/auth'
 import Link from 'next/link'
-import { formatDistanceToNow } from 'date-fns'
-import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/constants'
-import type { IncidentCategory } from '@/lib/generated/prisma'
+import { prisma } from '@/lib/db'
+import {
+  CATEGORY_LABEL,
+  casualtySummary,
+  confidenceBand,
+  formatDate,
+  formatPlace,
+  publisherHost,
+  relativeDays,
+} from '@/lib/incidents/format'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * The review queue.
+ *
+ * This is the step that turns a model's proposal into a published claim, so the
+ * screen is built for checking rather than for browsing. Each item shows the
+ * quotations the extraction was based on and a direct link to the source
+ * article, because the reviewer's actual job is comparing those two things.
+ *
+ * Fabricated seed records are excluded. Asking a person to verify data we
+ * invented would waste their time and corrupt the review history.
+ */
 export default async function ReviewPage() {
-  const incidents = await prisma.incident.findMany({
-    where: { status: { in: ['FLAGGED', 'UNDER_REVIEW'] } },
-    orderBy: { createdAt: 'asc' },
-    include: {
-      sources: true,
-      createdBy: { select: { name: true } },
-    },
-    take: 50,
-  })
+  const [incidents, publishedCount, oldest] = await Promise.all([
+    prisma.incident.findMany({
+      where: { status: { in: ['FLAGGED', 'UNDER_REVIEW'] }, isDemo: false },
+      orderBy: { createdAt: 'asc' },
+      take: 50,
+      include: {
+        sources: true,
+        rawArticles: { select: { bodyMethod: true, content: true } },
+      },
+    }),
+    prisma.incident.count({ where: { status: 'PUBLISHED', isDemo: false } }),
+    prisma.incident.findFirst({
+      where: { status: { in: ['FLAGGED', 'UNDER_REVIEW'] }, isDemo: false },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    }),
+  ])
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Review Queue</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">
-          {incidents.length} incident{incidents.length !== 1 ? 's' : ''} awaiting review
+    <div className="mx-auto max-w-5xl">
+      <header className="rule-b pb-5">
+        <h1 className="headline">Review queue</h1>
+        <p className="mt-1 text-[0.875rem] text-[var(--ink-3)]">
+          {incidents.length === 0
+            ? 'Nothing is waiting.'
+            : `${incidents.length} record${incidents.length === 1 ? '' : 's'} awaiting a human check`}
+          {oldest ? ` · oldest ${relativeDays(oldest.createdAt)}` : ''}
+          {' · '}
+          {publishedCount} published so far
         </p>
-      </div>
+      </header>
 
       {incidents.length === 0 ? (
-        <div className="glass-card p-16 text-center">
-          <div className="text-4xl mb-3">✅</div>
-          <div className="text-sm font-medium text-zinc-700">Queue is empty</div>
-          <div className="text-xs text-zinc-400 mt-1">All incidents have been reviewed</div>
+        <div className="rule-b bg-[var(--paper-2)] px-5 py-12 text-center">
+          <p className="text-[0.9375rem] font-medium text-[var(--ink)]">
+            The queue is empty.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-[0.875rem] leading-relaxed text-[var(--ink-3)]">
+            Either everything the pipeline produced has been reviewed, or the
+            classifier has not produced anything since the last run. If that seems
+            wrong, check collection health before assuming the queue is genuinely clear.
+          </p>
+          <Link href="/sources/health" className="link-underline mt-3 inline-block text-[0.875rem]">
+            Collection health
+          </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {incidents.map((incident) => (
-            <Link
-              key={incident.id}
-              href={`/incidents/${incident.id}`}
-              className="glass-card p-5 block hover:shadow-md transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-zinc-400">{incident.referenceId}</span>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{
-                        backgroundColor: CATEGORY_COLORS[incident.category as IncidentCategory] + '15',
-                        color: CATEGORY_COLORS[incident.category as IncidentCategory],
-                      }}
-                    >
-                      {CATEGORY_LABELS[incident.category as IncidentCategory]}
-                    </span>
-                    {incident.isAutoDetected && (
-                      <span className="text-[10px] px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full font-medium">
-                        AI Detected
-                      </span>
-                    )}
-                  </div>
-                  <div className="font-semibold text-zinc-800 mb-1">{incident.title}</div>
-                  <div className="text-sm text-zinc-500 line-clamp-2">{incident.description}</div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-zinc-400">
-                    <span>📍 {incident.country}</span>
-                    {incident.fatalities > 0 && <span>💀 {incident.fatalities} fatalities</span>}
-                    {incident.injured > 0 && <span>🤕 {incident.injured} injured</span>}
-                    <span>🕐 {formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true })}</span>
-                    {incident.sources.length > 0 && <span>🔗 {incident.sources.length} source{incident.sources.length !== 1 ? 's' : ''}</span>}
-                  </div>
+        <div>
+          {incidents.map((incident) => {
+            const evidence =
+              (incident.evidence as { field: string; quote: string }[] | null) ?? []
+            const band = confidenceBand(incident.confidenceScore)
+            const article = incident.rawArticles[0]
+            const thin = !article?.bodyMethod
+
+            return (
+              <article key={incident.id} className="rule-b py-5">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.75rem] text-[var(--ink-3)]">
+                  <span className="chip chip-mono">{incident.referenceId}</span>
+                  <span>{CATEGORY_LABEL[incident.category]}</span>
+                  <span aria-hidden>·</span>
+                  <span>{formatPlace(incident)}</span>
+                  <span aria-hidden>·</span>
+                  <span>{formatDate(incident.occurredAt)}</span>
+                  <span aria-hidden>·</span>
+                  <span>flagged {relativeDays(incident.createdAt)}</span>
                 </div>
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium status-${incident.status.toLowerCase()}`}>
-                    {incident.status.replace('_', ' ')}
+
+                <h2 className="mt-1.5 text-[1.0625rem] font-medium leading-snug">
+                  <Link
+                    href={`/manage/incidents/${incident.id}`}
+                    className="text-[var(--ink)] hover:underline"
+                  >
+                    {incident.title}
+                  </Link>
+                </h2>
+
+                <p className="prose-measure mt-1.5 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+                  {incident.description}
+                </p>
+
+                {/* What a reviewer needs first: the claim's support and its
+                    weaknesses, not a status badge. */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.75rem]">
+                  <span
+                    className={
+                      band.tone === 'ok'
+                        ? 'text-[var(--ok)]'
+                        : band.tone === 'caution'
+                          ? 'text-[var(--caution)]'
+                          : 'text-[var(--severity)]'
+                    }
+                  >
+                    {band.label} ({Math.round(incident.confidenceScore)})
                   </span>
-                  <div className="text-xs text-zinc-400">
-                    Score: {Math.round(incident.confidenceScore)}%
-                  </div>
-                  <span className="text-xs text-blue-600 font-medium">Review →</span>
+                  <span className="text-[var(--ink-4)]" aria-hidden>·</span>
+                  <span className="text-[var(--ink-3)]">{casualtySummary(incident)}</span>
+                  {thin ? (
+                    <>
+                      <span className="text-[var(--ink-4)]" aria-hidden>·</span>
+                      <span className="text-[var(--caution)]">
+                        Feed summary only — read the source before trusting any field
+                      </span>
+                    </>
+                  ) : null}
+                  {evidence.length === 0 ? (
+                    <>
+                      <span className="text-[var(--ink-4)]" aria-hidden>·</span>
+                      <span className="text-[var(--caution)]">No supporting quotations</span>
+                    </>
+                  ) : null}
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                {evidence.length > 0 ? (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-[0.8125rem] text-[var(--ink-2)]">
+                      {evidence.length} supporting quotation
+                      {evidence.length === 1 ? '' : 's'}
+                    </summary>
+                    <ul className="mt-2.5 space-y-2.5">
+                      {evidence.map((e, i) => (
+                        <li key={i}>
+                          <p className="text-[0.6875rem] uppercase tracking-wide text-[var(--ink-4)]">
+                            {e.field}
+                          </p>
+                          <blockquote className="evidence mt-0.5">“{e.quote}”</blockquote>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-[0.8125rem]">
+                  <Link
+                    href={`/manage/incidents/${incident.id}`}
+                    className="rounded bg-[var(--ink)] px-3 py-1.5 font-medium text-white transition-opacity hover:opacity-90"
+                  >
+                    Review
+                  </Link>
+                  {incident.sources.map((s) => (
+                    <a
+                      key={s.id}
+                      href={s.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="link-underline"
+                    >
+                      Open source: {publisherHost(s.sourceUrl)} ↗
+                    </a>
+                  ))}
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     </div>

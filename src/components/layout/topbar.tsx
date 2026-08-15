@@ -76,7 +76,7 @@ export function TopBar({ user }: Props) {
     const timer = setTimeout(async () => {
       setSearchLoading(true)
       try {
-        const res = await fetch(`/api/incidents/search?q=${encodeURIComponent(search)}`)
+        const res = await fetch(`/api/manage/incidents/search?q=${encodeURIComponent(search)}`)
         const data = await res.json()
         setSearchResults(data.data ?? [])
         setSearchOpen(true)
@@ -127,7 +127,7 @@ export function TopBar({ user }: Props) {
             {searchLoading && <div className="px-4 py-3 text-xs text-zinc-400">Searching...</div>}
             {!searchLoading && searchResults.length === 0 && <div className="px-4 py-3 text-xs text-zinc-400">No results for "{search}"</div>}
             {!searchLoading && searchResults.map(r => (
-              <button key={r.id} onClick={() => { router.push(`/incidents/${r.id}`); setSearchOpen(false); setSearch('') }}
+              <button key={r.id} onClick={() => { router.push(`/manage/incidents/${r.id}`); setSearchOpen(false); setSearch('') }}
                 className="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[10px] font-mono text-zinc-400">{r.referenceId}</span>

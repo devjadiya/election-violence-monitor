@@ -62,7 +62,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/incidents/${incident.id}`, {
+      const res = await fetch(`/api/manage/incidents/${incident.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +96,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
       toast.success('Incident updated', {
         description: `${incident.referenceId} saved successfully.`,
       })
-      router.push(`/incidents/${incident.id}`)
+      router.push(`/manage/incidents/${incident.id}`)
       router.refresh()
     } catch (err: any) {
       setError(err.message)

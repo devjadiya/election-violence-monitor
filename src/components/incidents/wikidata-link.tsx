@@ -33,7 +33,7 @@ export function WikidataLink({ incidentId, currentWikidataId }: Props) {
   async function save() {
     setLoading(true)
     try {
-      await fetch(`/api/incidents/${incidentId}`, {
+      await fetch(`/api/manage/incidents/${incidentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wikidataId: qid || null }),

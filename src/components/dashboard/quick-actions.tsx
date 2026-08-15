@@ -12,7 +12,7 @@ export function QuickActions({ pendingCount }: Props) {
 
       <div className="space-y-2">
         <Link
-          href="/incidents/new"
+          href="/manage/incidents/new"
           className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 hover:border-[#1a1a2e] hover:bg-zinc-50 transition-all group"
         >
           <div className="w-8 h-8 rounded-lg bg-[#1a1a2e] flex items-center justify-center shrink-0">
@@ -58,7 +58,7 @@ export function QuickActions({ pendingCount }: Props) {
         </Link>
 
         <Link
-          href="/sources"
+          href="/manage/sources"
           className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 hover:border-violet-300 hover:bg-violet-50 transition-all"
         >
           <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">

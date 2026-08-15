@@ -42,7 +42,7 @@ export function IncidentActions({ incident, userRole }: Props) {
   async function updateStatus(next: string) {
     setLoadingAction(next)
     try {
-      const res = await fetch(`/api/incidents/${incident.id}`, {
+      const res = await fetch(`/api/manage/incidents/${incident.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: next }),
@@ -77,7 +77,7 @@ export function IncidentActions({ incident, userRole }: Props) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button
-        onClick={() => router.push(`/incidents/${incident.id}/edit`)}
+        onClick={() => router.push(`/manage/incidents/${incident.id}/edit`)}
         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-zinc-50 text-zinc-700 hover:bg-zinc-100 transition-colors border border-zinc-200"
       >
         <Edit size={13} />
