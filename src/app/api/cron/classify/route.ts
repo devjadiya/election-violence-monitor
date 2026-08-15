@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { isAuthorisedCron } from '@/lib/auth/cron'
-import { backlogSize, drainBacklog } from '@/lib/ingestion/backlog'
+import { backlogSize, drainBacklog, enrichPending } from '@/lib/ingestion/backlog'
 import { notifyAdmins } from '@/lib/notifications'
 
 export const maxDuration = 300
@@ -30,8 +30,13 @@ export async function GET(req: NextRequest) {
   const before = await backlogSize()
   const startedAt = new Date()
 
+  // Enrichment first: records already flagged but missing their article body
+  // are closer to publishable than an unscreened article is, so they get the
+  // first slice of the budget.
+  const enriched = await enrichPending({ limit: 25, deadlineMs: 90_000 })
+
   // Leave headroom inside the 300s budget for the closing writes.
-  const report = await drainBacklog({ limit, deadlineMs: 235_000, pauseMs: 150 })
+  const report = await drainBacklog({ limit, deadlineMs: 145_000, pauseMs: 150 })
   const durationMs = Date.now() - startedAt.getTime()
 
   await prisma.ingestionLog.create({
@@ -83,6 +88,7 @@ export async function GET(req: NextRequest) {
     skipped: report.skipped,
     stoppedEarly: report.stoppedEarly,
     failures: report.failures.slice(0, 10),
+    enrichment: enriched,
     durationMs,
     healthy: !allErrored,
   })

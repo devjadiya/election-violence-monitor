@@ -168,9 +168,22 @@ exports.Prisma.ElectionScalarFieldEnum = {
   name: 'name',
   country: 'country',
   countryCode: 'countryCode',
+  region: 'region',
   electionDate: 'electionDate',
+  startDate: 'startDate',
+  endDate: 'endDate',
   electionType: 'electionType',
   wikidataId: 'wikidataId',
+  status: 'status',
+  monitoringStatus: 'monitoringStatus',
+  currentStage: 'currentStage',
+  registeredVoters: 'registeredVoters',
+  pollingUnits: 'pollingUnits',
+  administrativeAreas: 'administrativeAreas',
+  administrativeAreaLabel: 'administrativeAreaLabel',
+  description: 'description',
+  coverageNote: 'coverageNote',
+  referenceUrl: 'referenceUrl',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -188,6 +201,8 @@ exports.Prisma.IncidentScalarFieldEnum = {
   confidenceScore: 'confidenceScore',
   isAutoDetected: 'isAutoDetected',
   isDemo: 'isDemo',
+  verificationPathway: 'verificationPathway',
+  corroboratingSources: 'corroboratingSources',
   evidence: 'evidence',
   extractionModel: 'extractionModel',
   promptVersion: 'promptVersion',
@@ -257,6 +272,9 @@ exports.Prisma.MonitoredSourceScalarFieldEnum = {
   lastSuccessAt: 'lastSuccessAt',
   lastError: 'lastError',
   consecutiveFailures: 'consecutiveFailures',
+  coverageScope: 'coverageScope',
+  reliabilityTier: 'reliabilityTier',
+  coverageArea: 'coverageArea',
   electionId: 'electionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -386,6 +404,29 @@ exports.UserRole = exports.$Enums.UserRole = {
   ADMIN: 'ADMIN'
 };
 
+exports.ElectionStatus = exports.$Enums.ElectionStatus = {
+  UPCOMING: 'UPCOMING',
+  ONGOING: 'ONGOING',
+  RECENTLY_COMPLETED: 'RECENTLY_COMPLETED',
+  HISTORICAL: 'HISTORICAL'
+};
+
+exports.MonitoringStatus = exports.$Enums.MonitoringStatus = {
+  ACTIVE: 'ACTIVE',
+  SCHEDULED: 'SCHEDULED',
+  NOT_ACTIVE: 'NOT_ACTIVE',
+  CONCLUDED: 'CONCLUDED'
+};
+
+exports.ElectionStage = exports.$Enums.ElectionStage = {
+  PRE_CAMPAIGN: 'PRE_CAMPAIGN',
+  CAMPAIGN: 'CAMPAIGN',
+  ELECTION_DAY: 'ELECTION_DAY',
+  VOTE_COUNTING: 'VOTE_COUNTING',
+  POST_ELECTION: 'POST_ELECTION',
+  UNKNOWN: 'UNKNOWN'
+};
+
 exports.IncidentCategory = exports.$Enums.IncidentCategory = {
   PHYSICAL_ASSAULT: 'PHYSICAL_ASSAULT',
   ARMED_ATTACK: 'ARMED_ATTACK',
@@ -415,13 +456,10 @@ exports.VerificationStatus = exports.$Enums.VerificationStatus = {
   UNDER_VERIFICATION: 'UNDER_VERIFICATION'
 };
 
-exports.ElectionStage = exports.$Enums.ElectionStage = {
-  PRE_CAMPAIGN: 'PRE_CAMPAIGN',
-  CAMPAIGN: 'CAMPAIGN',
-  ELECTION_DAY: 'ELECTION_DAY',
-  VOTE_COUNTING: 'VOTE_COUNTING',
-  POST_ELECTION: 'POST_ELECTION',
-  UNKNOWN: 'UNKNOWN'
+exports.VerificationPathway = exports.$Enums.VerificationPathway = {
+  PENDING: 'PENDING',
+  AUTOMATED_CORROBORATION: 'AUTOMATED_CORROBORATION',
+  EDITORIAL_REVIEW: 'EDITORIAL_REVIEW'
 };
 
 exports.WeaponType = exports.$Enums.WeaponType = {

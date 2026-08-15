@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import type { IncidentCategory } from '@/lib/generated/prisma'
+import type { IncidentCategory, VerificationPathway } from '@/lib/generated/prisma'
+import { pathwayLabel } from '@/lib/incidents/publication'
 import {
   CATEGORY_LABEL,
   casualtySummary,
@@ -24,6 +25,8 @@ export interface IncidentSummary {
   injured: number
   arrested: number
   confidenceScore: number
+  verificationPathway?: VerificationPathway | null
+  corroboratingSources?: number | null
   sources: { sourceUrl: string; sourceName: string }[]
 }
 
@@ -108,6 +111,23 @@ export function IncidentRow({ incident }: { incident: IncidentSummary }) {
         >
           {band.label}
         </span>
+
+        {/* How the record reached the site. Shown in the list, not buried on the
+            detail page, because it changes how much weight the entry carries. */}
+        {incident.verificationPathway ? (
+          <>
+            <span className="text-[var(--ink-4)]" aria-hidden>·</span>
+            <span
+              className={
+                incident.verificationPathway === 'EDITORIAL_REVIEW'
+                  ? 'text-[var(--ok)]'
+                  : 'text-[var(--ink-3)]'
+              }
+            >
+              {pathwayLabel(incident.verificationPathway, incident.corroboratingSources ?? 0)}
+            </span>
+          </>
+        ) : null}
       </div>
     </article>
   )

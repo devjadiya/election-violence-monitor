@@ -14,7 +14,7 @@ const navItems = [
   { href: '/manage/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/review', label: 'Review Queue', icon: CheckSquare },
   { href: '/tips', label: 'Tips', icon: MessageSquare },
-  { href: '/elections', label: 'Elections', icon: Calendar },
+  { href: '/manage/elections', label: 'Elections', icon: Calendar },
   { href: '/livemap', label: 'Live Map', icon: MapPin },
   { href: '/manage/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/manage/sources', label: 'Sources', icon: Globe },

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { pathwayLabel, AUTOMATED_PUBLICATION_NOTICE } from '@/lib/incidents/publication'
 import { SiteHeader, SiteFooter } from '@/components/public/site-shell'
 import {
   CATEGORY_LABEL,
@@ -277,10 +278,25 @@ export default async function IncidentDetailPage({
                   ? 'Detected by automated screening of published reporting'
                   : 'Entered manually'}
               </Fact>
-              <Fact label="Human review">
-                {incident.reviewedBy?.name
-                  ? `Checked by ${incident.reviewedBy.name}`
-                  : 'Checked before publication'}
+              <Fact label="How it was published">
+                <span
+                  className={
+                    incident.verificationPathway === 'EDITORIAL_REVIEW'
+                      ? 'text-[var(--ok)]'
+                      : 'text-[var(--ink)]'
+                  }
+                >
+                  {pathwayLabel(incident.verificationPathway, incident.corroboratingSources)}
+                </span>
+                {incident.verificationPathway === 'AUTOMATED_CORROBORATION' ? (
+                  <div className="mt-1 text-[0.75rem] leading-relaxed text-[var(--ink-4)]">
+                    {AUTOMATED_PUBLICATION_NOTICE}
+                  </div>
+                ) : incident.reviewedBy?.name ? (
+                  <div className="mt-0.5 text-[0.75rem] text-[var(--ink-4)]">
+                    Reviewed by {incident.reviewedBy.name}
+                  </div>
+                ) : null}
               </Fact>
               <Fact label="Source support">
                 <span

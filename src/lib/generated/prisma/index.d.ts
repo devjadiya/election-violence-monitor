@@ -110,6 +110,38 @@ export namespace $Enums {
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 
+export const ElectionStatus: {
+  UPCOMING: 'UPCOMING',
+  ONGOING: 'ONGOING',
+  RECENTLY_COMPLETED: 'RECENTLY_COMPLETED',
+  HISTORICAL: 'HISTORICAL'
+};
+
+export type ElectionStatus = (typeof ElectionStatus)[keyof typeof ElectionStatus]
+
+
+export const MonitoringStatus: {
+  ACTIVE: 'ACTIVE',
+  SCHEDULED: 'SCHEDULED',
+  NOT_ACTIVE: 'NOT_ACTIVE',
+  CONCLUDED: 'CONCLUDED'
+};
+
+export type MonitoringStatus = (typeof MonitoringStatus)[keyof typeof MonitoringStatus]
+
+
+export const ElectionStage: {
+  PRE_CAMPAIGN: 'PRE_CAMPAIGN',
+  CAMPAIGN: 'CAMPAIGN',
+  ELECTION_DAY: 'ELECTION_DAY',
+  VOTE_COUNTING: 'VOTE_COUNTING',
+  POST_ELECTION: 'POST_ELECTION',
+  UNKNOWN: 'UNKNOWN'
+};
+
+export type ElectionStage = (typeof ElectionStage)[keyof typeof ElectionStage]
+
+
 export const IncidentCategory: {
   PHYSICAL_ASSAULT: 'PHYSICAL_ASSAULT',
   ARMED_ATTACK: 'ARMED_ATTACK',
@@ -148,16 +180,13 @@ export const VerificationStatus: {
 export type VerificationStatus = (typeof VerificationStatus)[keyof typeof VerificationStatus]
 
 
-export const ElectionStage: {
-  PRE_CAMPAIGN: 'PRE_CAMPAIGN',
-  CAMPAIGN: 'CAMPAIGN',
-  ELECTION_DAY: 'ELECTION_DAY',
-  VOTE_COUNTING: 'VOTE_COUNTING',
-  POST_ELECTION: 'POST_ELECTION',
-  UNKNOWN: 'UNKNOWN'
+export const VerificationPathway: {
+  PENDING: 'PENDING',
+  AUTOMATED_CORROBORATION: 'AUTOMATED_CORROBORATION',
+  EDITORIAL_REVIEW: 'EDITORIAL_REVIEW'
 };
 
-export type ElectionStage = (typeof ElectionStage)[keyof typeof ElectionStage]
+export type VerificationPathway = (typeof VerificationPathway)[keyof typeof VerificationPathway]
 
 
 export const WeaponType: {
@@ -241,6 +270,18 @@ export type UserRole = $Enums.UserRole
 
 export const UserRole: typeof $Enums.UserRole
 
+export type ElectionStatus = $Enums.ElectionStatus
+
+export const ElectionStatus: typeof $Enums.ElectionStatus
+
+export type MonitoringStatus = $Enums.MonitoringStatus
+
+export const MonitoringStatus: typeof $Enums.MonitoringStatus
+
+export type ElectionStage = $Enums.ElectionStage
+
+export const ElectionStage: typeof $Enums.ElectionStage
+
 export type IncidentCategory = $Enums.IncidentCategory
 
 export const IncidentCategory: typeof $Enums.IncidentCategory
@@ -253,9 +294,9 @@ export type VerificationStatus = $Enums.VerificationStatus
 
 export const VerificationStatus: typeof $Enums.VerificationStatus
 
-export type ElectionStage = $Enums.ElectionStage
+export type VerificationPathway = $Enums.VerificationPathway
 
-export const ElectionStage: typeof $Enums.ElectionStage
+export const VerificationPathway: typeof $Enums.VerificationPathway
 
 export type WeaponType = $Enums.WeaponType
 
@@ -6566,8 +6607,22 @@ export namespace Prisma {
 
   export type AggregateElection = {
     _count: ElectionCountAggregateOutputType | null
+    _avg: ElectionAvgAggregateOutputType | null
+    _sum: ElectionSumAggregateOutputType | null
     _min: ElectionMinAggregateOutputType | null
     _max: ElectionMaxAggregateOutputType | null
+  }
+
+  export type ElectionAvgAggregateOutputType = {
+    registeredVoters: number | null
+    pollingUnits: number | null
+    administrativeAreas: number | null
+  }
+
+  export type ElectionSumAggregateOutputType = {
+    registeredVoters: number | null
+    pollingUnits: number | null
+    administrativeAreas: number | null
   }
 
   export type ElectionMinAggregateOutputType = {
@@ -6575,9 +6630,22 @@ export namespace Prisma {
     name: string | null
     country: string | null
     countryCode: string | null
+    region: string | null
     electionDate: Date | null
+    startDate: Date | null
+    endDate: Date | null
     electionType: string | null
     wikidataId: string | null
+    status: $Enums.ElectionStatus | null
+    monitoringStatus: $Enums.MonitoringStatus | null
+    currentStage: $Enums.ElectionStage | null
+    registeredVoters: number | null
+    pollingUnits: number | null
+    administrativeAreas: number | null
+    administrativeAreaLabel: string | null
+    description: string | null
+    coverageNote: string | null
+    referenceUrl: string | null
     isActive: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6588,9 +6656,22 @@ export namespace Prisma {
     name: string | null
     country: string | null
     countryCode: string | null
+    region: string | null
     electionDate: Date | null
+    startDate: Date | null
+    endDate: Date | null
     electionType: string | null
     wikidataId: string | null
+    status: $Enums.ElectionStatus | null
+    monitoringStatus: $Enums.MonitoringStatus | null
+    currentStage: $Enums.ElectionStage | null
+    registeredVoters: number | null
+    pollingUnits: number | null
+    administrativeAreas: number | null
+    administrativeAreaLabel: string | null
+    description: string | null
+    coverageNote: string | null
+    referenceUrl: string | null
     isActive: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6601,9 +6682,22 @@ export namespace Prisma {
     name: number
     country: number
     countryCode: number
+    region: number
     electionDate: number
+    startDate: number
+    endDate: number
     electionType: number
     wikidataId: number
+    status: number
+    monitoringStatus: number
+    currentStage: number
+    registeredVoters: number
+    pollingUnits: number
+    administrativeAreas: number
+    administrativeAreaLabel: number
+    description: number
+    coverageNote: number
+    referenceUrl: number
     isActive: number
     createdAt: number
     updatedAt: number
@@ -6611,14 +6705,39 @@ export namespace Prisma {
   }
 
 
+  export type ElectionAvgAggregateInputType = {
+    registeredVoters?: true
+    pollingUnits?: true
+    administrativeAreas?: true
+  }
+
+  export type ElectionSumAggregateInputType = {
+    registeredVoters?: true
+    pollingUnits?: true
+    administrativeAreas?: true
+  }
+
   export type ElectionMinAggregateInputType = {
     id?: true
     name?: true
     country?: true
     countryCode?: true
+    region?: true
     electionDate?: true
+    startDate?: true
+    endDate?: true
     electionType?: true
     wikidataId?: true
+    status?: true
+    monitoringStatus?: true
+    currentStage?: true
+    registeredVoters?: true
+    pollingUnits?: true
+    administrativeAreas?: true
+    administrativeAreaLabel?: true
+    description?: true
+    coverageNote?: true
+    referenceUrl?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -6629,9 +6748,22 @@ export namespace Prisma {
     name?: true
     country?: true
     countryCode?: true
+    region?: true
     electionDate?: true
+    startDate?: true
+    endDate?: true
     electionType?: true
     wikidataId?: true
+    status?: true
+    monitoringStatus?: true
+    currentStage?: true
+    registeredVoters?: true
+    pollingUnits?: true
+    administrativeAreas?: true
+    administrativeAreaLabel?: true
+    description?: true
+    coverageNote?: true
+    referenceUrl?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -6642,9 +6774,22 @@ export namespace Prisma {
     name?: true
     country?: true
     countryCode?: true
+    region?: true
     electionDate?: true
+    startDate?: true
+    endDate?: true
     electionType?: true
     wikidataId?: true
+    status?: true
+    monitoringStatus?: true
+    currentStage?: true
+    registeredVoters?: true
+    pollingUnits?: true
+    administrativeAreas?: true
+    administrativeAreaLabel?: true
+    description?: true
+    coverageNote?: true
+    referenceUrl?: true
     isActive?: true
     createdAt?: true
     updatedAt?: true
@@ -6689,6 +6834,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: ElectionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ElectionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: ElectionMinAggregateInputType
@@ -6719,6 +6876,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: ElectionCountAggregateInputType | true
+    _avg?: ElectionAvgAggregateInputType
+    _sum?: ElectionSumAggregateInputType
     _min?: ElectionMinAggregateInputType
     _max?: ElectionMaxAggregateInputType
   }
@@ -6728,13 +6887,28 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region: string | null
     electionDate: Date
+    startDate: Date | null
+    endDate: Date | null
     electionType: string
     wikidataId: string | null
+    status: $Enums.ElectionStatus
+    monitoringStatus: $Enums.MonitoringStatus
+    currentStage: $Enums.ElectionStage
+    registeredVoters: number | null
+    pollingUnits: number | null
+    administrativeAreas: number | null
+    administrativeAreaLabel: string | null
+    description: string | null
+    coverageNote: string | null
+    referenceUrl: string | null
     isActive: boolean
     createdAt: Date
     updatedAt: Date
     _count: ElectionCountAggregateOutputType | null
+    _avg: ElectionAvgAggregateOutputType | null
+    _sum: ElectionSumAggregateOutputType | null
     _min: ElectionMinAggregateOutputType | null
     _max: ElectionMaxAggregateOutputType | null
   }
@@ -6758,9 +6932,22 @@ export namespace Prisma {
     name?: boolean
     country?: boolean
     countryCode?: boolean
+    region?: boolean
     electionDate?: boolean
+    startDate?: boolean
+    endDate?: boolean
     electionType?: boolean
     wikidataId?: boolean
+    status?: boolean
+    monitoringStatus?: boolean
+    currentStage?: boolean
+    registeredVoters?: boolean
+    pollingUnits?: boolean
+    administrativeAreas?: boolean
+    administrativeAreaLabel?: boolean
+    description?: boolean
+    coverageNote?: boolean
+    referenceUrl?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6774,9 +6961,22 @@ export namespace Prisma {
     name?: boolean
     country?: boolean
     countryCode?: boolean
+    region?: boolean
     electionDate?: boolean
+    startDate?: boolean
+    endDate?: boolean
     electionType?: boolean
     wikidataId?: boolean
+    status?: boolean
+    monitoringStatus?: boolean
+    currentStage?: boolean
+    registeredVoters?: boolean
+    pollingUnits?: boolean
+    administrativeAreas?: boolean
+    administrativeAreaLabel?: boolean
+    description?: boolean
+    coverageNote?: boolean
+    referenceUrl?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6787,9 +6987,22 @@ export namespace Prisma {
     name?: boolean
     country?: boolean
     countryCode?: boolean
+    region?: boolean
     electionDate?: boolean
+    startDate?: boolean
+    endDate?: boolean
     electionType?: boolean
     wikidataId?: boolean
+    status?: boolean
+    monitoringStatus?: boolean
+    currentStage?: boolean
+    registeredVoters?: boolean
+    pollingUnits?: boolean
+    administrativeAreas?: boolean
+    administrativeAreaLabel?: boolean
+    description?: boolean
+    coverageNote?: boolean
+    referenceUrl?: boolean
     isActive?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6813,9 +7026,41 @@ export namespace Prisma {
       name: string
       country: string
       countryCode: string
+      /**
+       * Subnational unit for state/provincial elections. Null for national ones.
+       */
+      region: string | null
       electionDate: Date
+      /**
+       * Elections are not always single-day events (multi-phase national polls,
+       * staggered regional rounds). electionDate stays the principal date.
+       */
+      startDate: Date | null
+      endDate: Date | null
       electionType: string
       wikidataId: string | null
+      status: $Enums.ElectionStatus
+      monitoringStatus: $Enums.MonitoringStatus
+      currentStage: $Enums.ElectionStage
+      /**
+       * Official scale figures, cited to `referenceUrl`. Never inferred.
+       */
+      registeredVoters: number | null
+      pollingUnits: number | null
+      administrativeAreas: number | null
+      /**
+       * What the administrative unit is called locally — "local government areas",
+       * "counties", "constituencies". Keeps the UI from imposing one country's
+       * vocabulary on every other.
+       */
+      administrativeAreaLabel: string | null
+      description: string | null
+      /**
+       * Honest statement of what this platform can and cannot see for this
+       * election. Shown wherever coverage is claimed.
+       */
+      coverageNote: string | null
+      referenceUrl: string | null
       isActive: boolean
       createdAt: Date
       updatedAt: Date
@@ -7218,9 +7463,22 @@ export namespace Prisma {
     readonly name: FieldRef<"Election", 'String'>
     readonly country: FieldRef<"Election", 'String'>
     readonly countryCode: FieldRef<"Election", 'String'>
+    readonly region: FieldRef<"Election", 'String'>
     readonly electionDate: FieldRef<"Election", 'DateTime'>
+    readonly startDate: FieldRef<"Election", 'DateTime'>
+    readonly endDate: FieldRef<"Election", 'DateTime'>
     readonly electionType: FieldRef<"Election", 'String'>
     readonly wikidataId: FieldRef<"Election", 'String'>
+    readonly status: FieldRef<"Election", 'ElectionStatus'>
+    readonly monitoringStatus: FieldRef<"Election", 'MonitoringStatus'>
+    readonly currentStage: FieldRef<"Election", 'ElectionStage'>
+    readonly registeredVoters: FieldRef<"Election", 'Int'>
+    readonly pollingUnits: FieldRef<"Election", 'Int'>
+    readonly administrativeAreas: FieldRef<"Election", 'Int'>
+    readonly administrativeAreaLabel: FieldRef<"Election", 'String'>
+    readonly description: FieldRef<"Election", 'String'>
+    readonly coverageNote: FieldRef<"Election", 'String'>
+    readonly referenceUrl: FieldRef<"Election", 'String'>
     readonly isActive: FieldRef<"Election", 'Boolean'>
     readonly createdAt: FieldRef<"Election", 'DateTime'>
     readonly updatedAt: FieldRef<"Election", 'DateTime'>
@@ -7606,6 +7864,7 @@ export namespace Prisma {
 
   export type IncidentAvgAggregateOutputType = {
     confidenceScore: number | null
+    corroboratingSources: number | null
     latitude: number | null
     longitude: number | null
     injured: number | null
@@ -7615,6 +7874,7 @@ export namespace Prisma {
 
   export type IncidentSumAggregateOutputType = {
     confidenceScore: number | null
+    corroboratingSources: number | null
     latitude: number | null
     longitude: number | null
     injured: number | null
@@ -7634,6 +7894,8 @@ export namespace Prisma {
     confidenceScore: number | null
     isAutoDetected: boolean | null
     isDemo: boolean | null
+    verificationPathway: $Enums.VerificationPathway | null
+    corroboratingSources: number | null
     extractionModel: string | null
     promptVersion: string | null
     country: string | null
@@ -7675,6 +7937,8 @@ export namespace Prisma {
     confidenceScore: number | null
     isAutoDetected: boolean | null
     isDemo: boolean | null
+    verificationPathway: $Enums.VerificationPathway | null
+    corroboratingSources: number | null
     extractionModel: string | null
     promptVersion: string | null
     country: string | null
@@ -7716,6 +7980,8 @@ export namespace Prisma {
     confidenceScore: number
     isAutoDetected: number
     isDemo: number
+    verificationPathway: number
+    corroboratingSources: number
     evidence: number
     extractionModel: number
     promptVersion: number
@@ -7750,6 +8016,7 @@ export namespace Prisma {
 
   export type IncidentAvgAggregateInputType = {
     confidenceScore?: true
+    corroboratingSources?: true
     latitude?: true
     longitude?: true
     injured?: true
@@ -7759,6 +8026,7 @@ export namespace Prisma {
 
   export type IncidentSumAggregateInputType = {
     confidenceScore?: true
+    corroboratingSources?: true
     latitude?: true
     longitude?: true
     injured?: true
@@ -7778,6 +8046,8 @@ export namespace Prisma {
     confidenceScore?: true
     isAutoDetected?: true
     isDemo?: true
+    verificationPathway?: true
+    corroboratingSources?: true
     extractionModel?: true
     promptVersion?: true
     country?: true
@@ -7819,6 +8089,8 @@ export namespace Prisma {
     confidenceScore?: true
     isAutoDetected?: true
     isDemo?: true
+    verificationPathway?: true
+    corroboratingSources?: true
     extractionModel?: true
     promptVersion?: true
     country?: true
@@ -7860,6 +8132,8 @@ export namespace Prisma {
     confidenceScore?: true
     isAutoDetected?: true
     isDemo?: true
+    verificationPathway?: true
+    corroboratingSources?: true
     evidence?: true
     extractionModel?: true
     promptVersion?: true
@@ -7989,6 +8263,8 @@ export namespace Prisma {
     confidenceScore: number
     isAutoDetected: boolean
     isDemo: boolean
+    verificationPathway: $Enums.VerificationPathway
+    corroboratingSources: number
     evidence: JsonValue | null
     extractionModel: string | null
     promptVersion: string | null
@@ -8050,6 +8326,8 @@ export namespace Prisma {
     confidenceScore?: boolean
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: boolean
+    corroboratingSources?: boolean
     evidence?: boolean
     extractionModel?: boolean
     promptVersion?: boolean
@@ -8102,6 +8380,8 @@ export namespace Prisma {
     confidenceScore?: boolean
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: boolean
+    corroboratingSources?: boolean
     evidence?: boolean
     extractionModel?: boolean
     promptVersion?: boolean
@@ -8147,6 +8427,8 @@ export namespace Prisma {
     confidenceScore?: boolean
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: boolean
+    corroboratingSources?: boolean
     evidence?: boolean
     extractionModel?: boolean
     promptVersion?: boolean
@@ -8220,6 +8502,18 @@ export namespace Prisma {
       confidenceScore: number
       isAutoDetected: boolean
       isDemo: boolean
+      /**
+       * How this record reached its current status.
+       * 
+       * A reader must be able to tell an editor's judgement from an automated
+       * corroboration rule. Recording the pathway is what lets the interface say
+       * which one happened instead of implying the stronger of the two.
+       */
+      verificationPathway: $Enums.VerificationPathway
+      /**
+       * Independent publishers citing this incident at the time it was published.
+       */
+      corroboratingSources: number
       evidence: Prisma.JsonValue | null
       extractionModel: string | null
       promptVersion: string | null
@@ -8661,6 +8955,8 @@ export namespace Prisma {
     readonly confidenceScore: FieldRef<"Incident", 'Float'>
     readonly isAutoDetected: FieldRef<"Incident", 'Boolean'>
     readonly isDemo: FieldRef<"Incident", 'Boolean'>
+    readonly verificationPathway: FieldRef<"Incident", 'VerificationPathway'>
+    readonly corroboratingSources: FieldRef<"Incident", 'Int'>
     readonly evidence: FieldRef<"Incident", 'Json'>
     readonly extractionModel: FieldRef<"Incident", 'String'>
     readonly promptVersion: FieldRef<"Incident", 'String'>
@@ -11197,11 +11493,13 @@ export namespace Prisma {
   export type MonitoredSourceAvgAggregateOutputType = {
     trustScore: number | null
     consecutiveFailures: number | null
+    reliabilityTier: number | null
   }
 
   export type MonitoredSourceSumAggregateOutputType = {
     trustScore: number | null
     consecutiveFailures: number | null
+    reliabilityTier: number | null
   }
 
   export type MonitoredSourceMinAggregateOutputType = {
@@ -11219,6 +11517,9 @@ export namespace Prisma {
     lastSuccessAt: Date | null
     lastError: string | null
     consecutiveFailures: number | null
+    coverageScope: string | null
+    reliabilityTier: number | null
+    coverageArea: string | null
     electionId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11239,6 +11540,9 @@ export namespace Prisma {
     lastSuccessAt: Date | null
     lastError: string | null
     consecutiveFailures: number | null
+    coverageScope: string | null
+    reliabilityTier: number | null
+    coverageArea: string | null
     electionId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11259,6 +11563,9 @@ export namespace Prisma {
     lastSuccessAt: number
     lastError: number
     consecutiveFailures: number
+    coverageScope: number
+    reliabilityTier: number
+    coverageArea: number
     electionId: number
     createdAt: number
     updatedAt: number
@@ -11269,11 +11576,13 @@ export namespace Prisma {
   export type MonitoredSourceAvgAggregateInputType = {
     trustScore?: true
     consecutiveFailures?: true
+    reliabilityTier?: true
   }
 
   export type MonitoredSourceSumAggregateInputType = {
     trustScore?: true
     consecutiveFailures?: true
+    reliabilityTier?: true
   }
 
   export type MonitoredSourceMinAggregateInputType = {
@@ -11291,6 +11600,9 @@ export namespace Prisma {
     lastSuccessAt?: true
     lastError?: true
     consecutiveFailures?: true
+    coverageScope?: true
+    reliabilityTier?: true
+    coverageArea?: true
     electionId?: true
     createdAt?: true
     updatedAt?: true
@@ -11311,6 +11623,9 @@ export namespace Prisma {
     lastSuccessAt?: true
     lastError?: true
     consecutiveFailures?: true
+    coverageScope?: true
+    reliabilityTier?: true
+    coverageArea?: true
     electionId?: true
     createdAt?: true
     updatedAt?: true
@@ -11331,6 +11646,9 @@ export namespace Prisma {
     lastSuccessAt?: true
     lastError?: true
     consecutiveFailures?: true
+    coverageScope?: true
+    reliabilityTier?: true
+    coverageArea?: true
     electionId?: true
     createdAt?: true
     updatedAt?: true
@@ -11438,6 +11756,9 @@ export namespace Prisma {
     lastSuccessAt: Date | null
     lastError: string | null
     consecutiveFailures: number
+    coverageScope: string | null
+    reliabilityTier: number | null
+    coverageArea: string | null
     electionId: string | null
     createdAt: Date
     updatedAt: Date
@@ -11477,6 +11798,9 @@ export namespace Prisma {
     lastSuccessAt?: boolean
     lastError?: boolean
     consecutiveFailures?: boolean
+    coverageScope?: boolean
+    reliabilityTier?: boolean
+    coverageArea?: boolean
     electionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11500,6 +11824,9 @@ export namespace Prisma {
     lastSuccessAt?: boolean
     lastError?: boolean
     consecutiveFailures?: boolean
+    coverageScope?: boolean
+    reliabilityTier?: boolean
+    coverageArea?: boolean
     electionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11521,6 +11848,9 @@ export namespace Prisma {
     lastSuccessAt?: boolean
     lastError?: boolean
     consecutiveFailures?: boolean
+    coverageScope?: boolean
+    reliabilityTier?: boolean
+    coverageArea?: boolean
     electionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11556,6 +11886,20 @@ export namespace Prisma {
       lastSuccessAt: Date | null
       lastError: string | null
       consecutiveFailures: number
+      /**
+       * Registry metadata. The source list bounds what the platform can find, so
+       * it is described rather than left implicit.
+       * national | subnational | regional | international
+       */
+      coverageScope: string | null
+      /**
+       * 1 (highest) to 5. Editorial independence and track record, not popularity.
+       */
+      reliabilityTier: number | null
+      /**
+       * Free-text area actually covered, e.g. "Osun State", "West Africa".
+       */
+      coverageArea: string | null
       electionId: string | null
       createdAt: Date
       updatedAt: Date
@@ -11968,6 +12312,9 @@ export namespace Prisma {
     readonly lastSuccessAt: FieldRef<"MonitoredSource", 'DateTime'>
     readonly lastError: FieldRef<"MonitoredSource", 'String'>
     readonly consecutiveFailures: FieldRef<"MonitoredSource", 'Int'>
+    readonly coverageScope: FieldRef<"MonitoredSource", 'String'>
+    readonly reliabilityTier: FieldRef<"MonitoredSource", 'Int'>
+    readonly coverageArea: FieldRef<"MonitoredSource", 'String'>
     readonly electionId: FieldRef<"MonitoredSource", 'String'>
     readonly createdAt: FieldRef<"MonitoredSource", 'DateTime'>
     readonly updatedAt: FieldRef<"MonitoredSource", 'DateTime'>
@@ -19443,9 +19790,22 @@ export namespace Prisma {
     name: 'name',
     country: 'country',
     countryCode: 'countryCode',
+    region: 'region',
     electionDate: 'electionDate',
+    startDate: 'startDate',
+    endDate: 'endDate',
     electionType: 'electionType',
     wikidataId: 'wikidataId',
+    status: 'status',
+    monitoringStatus: 'monitoringStatus',
+    currentStage: 'currentStage',
+    registeredVoters: 'registeredVoters',
+    pollingUnits: 'pollingUnits',
+    administrativeAreas: 'administrativeAreas',
+    administrativeAreaLabel: 'administrativeAreaLabel',
+    description: 'description',
+    coverageNote: 'coverageNote',
+    referenceUrl: 'referenceUrl',
     isActive: 'isActive',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -19466,6 +19826,8 @@ export namespace Prisma {
     confidenceScore: 'confidenceScore',
     isAutoDetected: 'isAutoDetected',
     isDemo: 'isDemo',
+    verificationPathway: 'verificationPathway',
+    corroboratingSources: 'corroboratingSources',
     evidence: 'evidence',
     extractionModel: 'extractionModel',
     promptVersion: 'promptVersion',
@@ -19544,6 +19906,9 @@ export namespace Prisma {
     lastSuccessAt: 'lastSuccessAt',
     lastError: 'lastError',
     consecutiveFailures: 'consecutiveFailures',
+    coverageScope: 'coverageScope',
+    reliabilityTier: 'reliabilityTier',
+    coverageArea: 'coverageArea',
     electionId: 'electionId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -19773,6 +20138,48 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ElectionStatus'
+   */
+  export type EnumElectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ElectionStatus[]'
+   */
+  export type ListEnumElectionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'MonitoringStatus'
+   */
+  export type EnumMonitoringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MonitoringStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'MonitoringStatus[]'
+   */
+  export type ListEnumMonitoringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MonitoringStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ElectionStage'
+   */
+  export type EnumElectionStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStage'>
+    
+
+
+  /**
+   * Reference to a field of type 'ElectionStage[]'
+   */
+  export type ListEnumElectionStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStage[]'>
+    
+
+
+  /**
    * Reference to a field of type 'IncidentCategory'
    */
   export type EnumIncidentCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IncidentCategory'>
@@ -19815,20 +20222,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'ElectionStage'
-   */
-  export type EnumElectionStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStage'>
-    
-
-
-  /**
-   * Reference to a field of type 'ElectionStage[]'
-   */
-  export type ListEnumElectionStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ElectionStage[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -19839,6 +20232,20 @@ export namespace Prisma {
    * Reference to a field of type 'Float[]'
    */
   export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'VerificationPathway'
+   */
+  export type EnumVerificationPathwayFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VerificationPathway'>
+    
+
+
+  /**
+   * Reference to a field of type 'VerificationPathway[]'
+   */
+  export type ListEnumVerificationPathwayFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VerificationPathway[]'>
     
 
 
@@ -20228,9 +20635,22 @@ export namespace Prisma {
     name?: StringFilter<"Election"> | string
     country?: StringFilter<"Election"> | string
     countryCode?: StringFilter<"Election"> | string
+    region?: StringNullableFilter<"Election"> | string | null
     electionDate?: DateTimeFilter<"Election"> | Date | string
+    startDate?: DateTimeNullableFilter<"Election"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"Election"> | Date | string | null
     electionType?: StringFilter<"Election"> | string
     wikidataId?: StringNullableFilter<"Election"> | string | null
+    status?: EnumElectionStatusFilter<"Election"> | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFilter<"Election"> | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFilter<"Election"> | $Enums.ElectionStage
+    registeredVoters?: IntNullableFilter<"Election"> | number | null
+    pollingUnits?: IntNullableFilter<"Election"> | number | null
+    administrativeAreas?: IntNullableFilter<"Election"> | number | null
+    administrativeAreaLabel?: StringNullableFilter<"Election"> | string | null
+    description?: StringNullableFilter<"Election"> | string | null
+    coverageNote?: StringNullableFilter<"Election"> | string | null
+    referenceUrl?: StringNullableFilter<"Election"> | string | null
     isActive?: BoolFilter<"Election"> | boolean
     createdAt?: DateTimeFilter<"Election"> | Date | string
     updatedAt?: DateTimeFilter<"Election"> | Date | string
@@ -20243,9 +20663,22 @@ export namespace Prisma {
     name?: SortOrder
     country?: SortOrder
     countryCode?: SortOrder
+    region?: SortOrderInput | SortOrder
     electionDate?: SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
     electionType?: SortOrder
     wikidataId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    monitoringStatus?: SortOrder
+    currentStage?: SortOrder
+    registeredVoters?: SortOrderInput | SortOrder
+    pollingUnits?: SortOrderInput | SortOrder
+    administrativeAreas?: SortOrderInput | SortOrder
+    administrativeAreaLabel?: SortOrderInput | SortOrder
+    description?: SortOrderInput | SortOrder
+    coverageNote?: SortOrderInput | SortOrder
+    referenceUrl?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -20261,9 +20694,22 @@ export namespace Prisma {
     name?: StringFilter<"Election"> | string
     country?: StringFilter<"Election"> | string
     countryCode?: StringFilter<"Election"> | string
+    region?: StringNullableFilter<"Election"> | string | null
     electionDate?: DateTimeFilter<"Election"> | Date | string
+    startDate?: DateTimeNullableFilter<"Election"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"Election"> | Date | string | null
     electionType?: StringFilter<"Election"> | string
     wikidataId?: StringNullableFilter<"Election"> | string | null
+    status?: EnumElectionStatusFilter<"Election"> | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFilter<"Election"> | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFilter<"Election"> | $Enums.ElectionStage
+    registeredVoters?: IntNullableFilter<"Election"> | number | null
+    pollingUnits?: IntNullableFilter<"Election"> | number | null
+    administrativeAreas?: IntNullableFilter<"Election"> | number | null
+    administrativeAreaLabel?: StringNullableFilter<"Election"> | string | null
+    description?: StringNullableFilter<"Election"> | string | null
+    coverageNote?: StringNullableFilter<"Election"> | string | null
+    referenceUrl?: StringNullableFilter<"Election"> | string | null
     isActive?: BoolFilter<"Election"> | boolean
     createdAt?: DateTimeFilter<"Election"> | Date | string
     updatedAt?: DateTimeFilter<"Election"> | Date | string
@@ -20276,15 +20722,30 @@ export namespace Prisma {
     name?: SortOrder
     country?: SortOrder
     countryCode?: SortOrder
+    region?: SortOrderInput | SortOrder
     electionDate?: SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
     electionType?: SortOrder
     wikidataId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    monitoringStatus?: SortOrder
+    currentStage?: SortOrder
+    registeredVoters?: SortOrderInput | SortOrder
+    pollingUnits?: SortOrderInput | SortOrder
+    administrativeAreas?: SortOrderInput | SortOrder
+    administrativeAreaLabel?: SortOrderInput | SortOrder
+    description?: SortOrderInput | SortOrder
+    coverageNote?: SortOrderInput | SortOrder
+    referenceUrl?: SortOrderInput | SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ElectionCountOrderByAggregateInput
+    _avg?: ElectionAvgOrderByAggregateInput
     _max?: ElectionMaxOrderByAggregateInput
     _min?: ElectionMinOrderByAggregateInput
+    _sum?: ElectionSumOrderByAggregateInput
   }
 
   export type ElectionScalarWhereWithAggregatesInput = {
@@ -20295,9 +20756,22 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Election"> | string
     country?: StringWithAggregatesFilter<"Election"> | string
     countryCode?: StringWithAggregatesFilter<"Election"> | string
+    region?: StringNullableWithAggregatesFilter<"Election"> | string | null
     electionDate?: DateTimeWithAggregatesFilter<"Election"> | Date | string
+    startDate?: DateTimeNullableWithAggregatesFilter<"Election"> | Date | string | null
+    endDate?: DateTimeNullableWithAggregatesFilter<"Election"> | Date | string | null
     electionType?: StringWithAggregatesFilter<"Election"> | string
     wikidataId?: StringNullableWithAggregatesFilter<"Election"> | string | null
+    status?: EnumElectionStatusWithAggregatesFilter<"Election"> | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusWithAggregatesFilter<"Election"> | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageWithAggregatesFilter<"Election"> | $Enums.ElectionStage
+    registeredVoters?: IntNullableWithAggregatesFilter<"Election"> | number | null
+    pollingUnits?: IntNullableWithAggregatesFilter<"Election"> | number | null
+    administrativeAreas?: IntNullableWithAggregatesFilter<"Election"> | number | null
+    administrativeAreaLabel?: StringNullableWithAggregatesFilter<"Election"> | string | null
+    description?: StringNullableWithAggregatesFilter<"Election"> | string | null
+    coverageNote?: StringNullableWithAggregatesFilter<"Election"> | string | null
+    referenceUrl?: StringNullableWithAggregatesFilter<"Election"> | string | null
     isActive?: BoolWithAggregatesFilter<"Election"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Election"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Election"> | Date | string
@@ -20318,6 +20792,8 @@ export namespace Prisma {
     confidenceScore?: FloatFilter<"Incident"> | number
     isAutoDetected?: BoolFilter<"Incident"> | boolean
     isDemo?: BoolFilter<"Incident"> | boolean
+    verificationPathway?: EnumVerificationPathwayFilter<"Incident"> | $Enums.VerificationPathway
+    corroboratingSources?: IntFilter<"Incident"> | number
     evidence?: JsonNullableFilter<"Incident">
     extractionModel?: StringNullableFilter<"Incident"> | string | null
     promptVersion?: StringNullableFilter<"Incident"> | string | null
@@ -20369,6 +20845,8 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     isAutoDetected?: SortOrder
     isDemo?: SortOrder
+    verificationPathway?: SortOrder
+    corroboratingSources?: SortOrder
     evidence?: SortOrderInput | SortOrder
     extractionModel?: SortOrderInput | SortOrder
     promptVersion?: SortOrderInput | SortOrder
@@ -20423,6 +20901,8 @@ export namespace Prisma {
     confidenceScore?: FloatFilter<"Incident"> | number
     isAutoDetected?: BoolFilter<"Incident"> | boolean
     isDemo?: BoolFilter<"Incident"> | boolean
+    verificationPathway?: EnumVerificationPathwayFilter<"Incident"> | $Enums.VerificationPathway
+    corroboratingSources?: IntFilter<"Incident"> | number
     evidence?: JsonNullableFilter<"Incident">
     extractionModel?: StringNullableFilter<"Incident"> | string | null
     promptVersion?: StringNullableFilter<"Incident"> | string | null
@@ -20474,6 +20954,8 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     isAutoDetected?: SortOrder
     isDemo?: SortOrder
+    verificationPathway?: SortOrder
+    corroboratingSources?: SortOrder
     evidence?: SortOrderInput | SortOrder
     extractionModel?: SortOrderInput | SortOrder
     promptVersion?: SortOrderInput | SortOrder
@@ -20524,6 +21006,8 @@ export namespace Prisma {
     confidenceScore?: FloatWithAggregatesFilter<"Incident"> | number
     isAutoDetected?: BoolWithAggregatesFilter<"Incident"> | boolean
     isDemo?: BoolWithAggregatesFilter<"Incident"> | boolean
+    verificationPathway?: EnumVerificationPathwayWithAggregatesFilter<"Incident"> | $Enums.VerificationPathway
+    corroboratingSources?: IntWithAggregatesFilter<"Incident"> | number
     evidence?: JsonNullableWithAggregatesFilter<"Incident">
     extractionModel?: StringNullableWithAggregatesFilter<"Incident"> | string | null
     promptVersion?: StringNullableWithAggregatesFilter<"Incident"> | string | null
@@ -20724,6 +21208,9 @@ export namespace Prisma {
     lastSuccessAt?: DateTimeNullableFilter<"MonitoredSource"> | Date | string | null
     lastError?: StringNullableFilter<"MonitoredSource"> | string | null
     consecutiveFailures?: IntFilter<"MonitoredSource"> | number
+    coverageScope?: StringNullableFilter<"MonitoredSource"> | string | null
+    reliabilityTier?: IntNullableFilter<"MonitoredSource"> | number | null
+    coverageArea?: StringNullableFilter<"MonitoredSource"> | string | null
     electionId?: StringNullableFilter<"MonitoredSource"> | string | null
     createdAt?: DateTimeFilter<"MonitoredSource"> | Date | string
     updatedAt?: DateTimeFilter<"MonitoredSource"> | Date | string
@@ -20746,6 +21233,9 @@ export namespace Prisma {
     lastSuccessAt?: SortOrderInput | SortOrder
     lastError?: SortOrderInput | SortOrder
     consecutiveFailures?: SortOrder
+    coverageScope?: SortOrderInput | SortOrder
+    reliabilityTier?: SortOrderInput | SortOrder
+    coverageArea?: SortOrderInput | SortOrder
     electionId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -20771,6 +21261,9 @@ export namespace Prisma {
     lastSuccessAt?: DateTimeNullableFilter<"MonitoredSource"> | Date | string | null
     lastError?: StringNullableFilter<"MonitoredSource"> | string | null
     consecutiveFailures?: IntFilter<"MonitoredSource"> | number
+    coverageScope?: StringNullableFilter<"MonitoredSource"> | string | null
+    reliabilityTier?: IntNullableFilter<"MonitoredSource"> | number | null
+    coverageArea?: StringNullableFilter<"MonitoredSource"> | string | null
     electionId?: StringNullableFilter<"MonitoredSource"> | string | null
     createdAt?: DateTimeFilter<"MonitoredSource"> | Date | string
     updatedAt?: DateTimeFilter<"MonitoredSource"> | Date | string
@@ -20793,6 +21286,9 @@ export namespace Prisma {
     lastSuccessAt?: SortOrderInput | SortOrder
     lastError?: SortOrderInput | SortOrder
     consecutiveFailures?: SortOrder
+    coverageScope?: SortOrderInput | SortOrder
+    reliabilityTier?: SortOrderInput | SortOrder
+    coverageArea?: SortOrderInput | SortOrder
     electionId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -20821,6 +21317,9 @@ export namespace Prisma {
     lastSuccessAt?: DateTimeNullableWithAggregatesFilter<"MonitoredSource"> | Date | string | null
     lastError?: StringNullableWithAggregatesFilter<"MonitoredSource"> | string | null
     consecutiveFailures?: IntWithAggregatesFilter<"MonitoredSource"> | number
+    coverageScope?: StringNullableWithAggregatesFilter<"MonitoredSource"> | string | null
+    reliabilityTier?: IntNullableWithAggregatesFilter<"MonitoredSource"> | number | null
+    coverageArea?: StringNullableWithAggregatesFilter<"MonitoredSource"> | string | null
     electionId?: StringNullableWithAggregatesFilter<"MonitoredSource"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"MonitoredSource"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"MonitoredSource"> | Date | string
@@ -21706,9 +22205,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -21721,9 +22233,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -21736,9 +22261,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21751,9 +22289,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21766,9 +22317,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -21779,9 +22343,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21792,9 +22369,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21812,6 +22402,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -21860,6 +22452,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -21908,6 +22502,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21956,6 +22552,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22004,6 +22602,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -22046,6 +22646,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22085,6 +22687,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22296,6 +22900,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     election?: ElectionCreateNestedOneWithoutSourcesInput
@@ -22317,6 +22924,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     electionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22338,6 +22948,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     election?: ElectionUpdateOneWithoutSourcesNestedInput
@@ -22359,6 +22972,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     electionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22380,6 +22996,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     electionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -22400,6 +23019,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -22419,6 +23041,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     electionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23435,6 +24060,27 @@ export namespace Prisma {
     expires?: SortOrder
   }
 
+  export type EnumElectionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStatus | EnumElectionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStatusFilter<$PrismaModel> | $Enums.ElectionStatus
+  }
+
+  export type EnumMonitoringStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.MonitoringStatus | EnumMonitoringStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMonitoringStatusFilter<$PrismaModel> | $Enums.MonitoringStatus
+  }
+
+  export type EnumElectionStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStageFilter<$PrismaModel> | $Enums.ElectionStage
+  }
+
   export type MonitoredSourceListRelationFilter = {
     every?: MonitoredSourceWhereInput
     some?: MonitoredSourceWhereInput
@@ -23450,12 +24096,31 @@ export namespace Prisma {
     name?: SortOrder
     country?: SortOrder
     countryCode?: SortOrder
+    region?: SortOrder
     electionDate?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
     electionType?: SortOrder
     wikidataId?: SortOrder
+    status?: SortOrder
+    monitoringStatus?: SortOrder
+    currentStage?: SortOrder
+    registeredVoters?: SortOrder
+    pollingUnits?: SortOrder
+    administrativeAreas?: SortOrder
+    administrativeAreaLabel?: SortOrder
+    description?: SortOrder
+    coverageNote?: SortOrder
+    referenceUrl?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ElectionAvgOrderByAggregateInput = {
+    registeredVoters?: SortOrder
+    pollingUnits?: SortOrder
+    administrativeAreas?: SortOrder
   }
 
   export type ElectionMaxOrderByAggregateInput = {
@@ -23463,9 +24128,22 @@ export namespace Prisma {
     name?: SortOrder
     country?: SortOrder
     countryCode?: SortOrder
+    region?: SortOrder
     electionDate?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
     electionType?: SortOrder
     wikidataId?: SortOrder
+    status?: SortOrder
+    monitoringStatus?: SortOrder
+    currentStage?: SortOrder
+    registeredVoters?: SortOrder
+    pollingUnits?: SortOrder
+    administrativeAreas?: SortOrder
+    administrativeAreaLabel?: SortOrder
+    description?: SortOrder
+    coverageNote?: SortOrder
+    referenceUrl?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -23476,12 +24154,61 @@ export namespace Prisma {
     name?: SortOrder
     country?: SortOrder
     countryCode?: SortOrder
+    region?: SortOrder
     electionDate?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
     electionType?: SortOrder
     wikidataId?: SortOrder
+    status?: SortOrder
+    monitoringStatus?: SortOrder
+    currentStage?: SortOrder
+    registeredVoters?: SortOrder
+    pollingUnits?: SortOrder
+    administrativeAreas?: SortOrder
+    administrativeAreaLabel?: SortOrder
+    description?: SortOrder
+    coverageNote?: SortOrder
+    referenceUrl?: SortOrder
     isActive?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type ElectionSumOrderByAggregateInput = {
+    registeredVoters?: SortOrder
+    pollingUnits?: SortOrder
+    administrativeAreas?: SortOrder
+  }
+
+  export type EnumElectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStatus | EnumElectionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumElectionStatusFilter<$PrismaModel>
+    _max?: NestedEnumElectionStatusFilter<$PrismaModel>
+  }
+
+  export type EnumMonitoringStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MonitoringStatus | EnumMonitoringStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMonitoringStatusWithAggregatesFilter<$PrismaModel> | $Enums.MonitoringStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMonitoringStatusFilter<$PrismaModel>
+    _max?: NestedEnumMonitoringStatusFilter<$PrismaModel>
+  }
+
+  export type EnumElectionStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStageWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumElectionStageFilter<$PrismaModel>
+    _max?: NestedEnumElectionStageFilter<$PrismaModel>
   }
 
   export type EnumIncidentCategoryFilter<$PrismaModel = never> = {
@@ -23505,13 +24232,6 @@ export namespace Prisma {
     not?: NestedEnumVerificationStatusFilter<$PrismaModel> | $Enums.VerificationStatus
   }
 
-  export type EnumElectionStageFilter<$PrismaModel = never> = {
-    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
-    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    not?: NestedEnumElectionStageFilter<$PrismaModel> | $Enums.ElectionStage
-  }
-
   export type FloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -23521,6 +24241,24 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type EnumVerificationPathwayFilter<$PrismaModel = never> = {
+    equals?: $Enums.VerificationPathway | EnumVerificationPathwayFieldRefInput<$PrismaModel>
+    in?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    notIn?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    not?: NestedEnumVerificationPathwayFilter<$PrismaModel> | $Enums.VerificationPathway
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
   }
   export type JsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -23554,17 +24292,6 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type EnumWeaponTypeFilter<$PrismaModel = never> = {
@@ -23646,6 +24373,8 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     isAutoDetected?: SortOrder
     isDemo?: SortOrder
+    verificationPathway?: SortOrder
+    corroboratingSources?: SortOrder
     evidence?: SortOrder
     extractionModel?: SortOrder
     promptVersion?: SortOrder
@@ -23678,6 +24407,7 @@ export namespace Prisma {
 
   export type IncidentAvgOrderByAggregateInput = {
     confidenceScore?: SortOrder
+    corroboratingSources?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     injured?: SortOrder
@@ -23697,6 +24427,8 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     isAutoDetected?: SortOrder
     isDemo?: SortOrder
+    verificationPathway?: SortOrder
+    corroboratingSources?: SortOrder
     extractionModel?: SortOrder
     promptVersion?: SortOrder
     country?: SortOrder
@@ -23738,6 +24470,8 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     isAutoDetected?: SortOrder
     isDemo?: SortOrder
+    verificationPathway?: SortOrder
+    corroboratingSources?: SortOrder
     extractionModel?: SortOrder
     promptVersion?: SortOrder
     country?: SortOrder
@@ -23769,6 +24503,7 @@ export namespace Prisma {
 
   export type IncidentSumOrderByAggregateInput = {
     confidenceScore?: SortOrder
+    corroboratingSources?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
     injured?: SortOrder
@@ -23806,16 +24541,6 @@ export namespace Prisma {
     _max?: NestedEnumVerificationStatusFilter<$PrismaModel>
   }
 
-  export type EnumElectionStageWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
-    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    not?: NestedEnumElectionStageWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStage
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumElectionStageFilter<$PrismaModel>
-    _max?: NestedEnumElectionStageFilter<$PrismaModel>
-  }
-
   export type FloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -23830,6 +24555,32 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type EnumVerificationPathwayWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.VerificationPathway | EnumVerificationPathwayFieldRefInput<$PrismaModel>
+    in?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    notIn?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    not?: NestedEnumVerificationPathwayWithAggregatesFilter<$PrismaModel> | $Enums.VerificationPathway
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumVerificationPathwayFilter<$PrismaModel>
+    _max?: NestedEnumVerificationPathwayFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -23871,22 +24622,6 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type EnumWeaponTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -24070,6 +24805,9 @@ export namespace Prisma {
     lastSuccessAt?: SortOrder
     lastError?: SortOrder
     consecutiveFailures?: SortOrder
+    coverageScope?: SortOrder
+    reliabilityTier?: SortOrder
+    coverageArea?: SortOrder
     electionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -24078,6 +24816,7 @@ export namespace Prisma {
   export type MonitoredSourceAvgOrderByAggregateInput = {
     trustScore?: SortOrder
     consecutiveFailures?: SortOrder
+    reliabilityTier?: SortOrder
   }
 
   export type MonitoredSourceMaxOrderByAggregateInput = {
@@ -24095,6 +24834,9 @@ export namespace Prisma {
     lastSuccessAt?: SortOrder
     lastError?: SortOrder
     consecutiveFailures?: SortOrder
+    coverageScope?: SortOrder
+    reliabilityTier?: SortOrder
+    coverageArea?: SortOrder
     electionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -24115,6 +24857,9 @@ export namespace Prisma {
     lastSuccessAt?: SortOrder
     lastError?: SortOrder
     consecutiveFailures?: SortOrder
+    coverageScope?: SortOrder
+    reliabilityTier?: SortOrder
+    coverageArea?: SortOrder
     electionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -24123,6 +24868,7 @@ export namespace Prisma {
   export type MonitoredSourceSumOrderByAggregateInput = {
     trustScore?: SortOrder
     consecutiveFailures?: SortOrder
+    reliabilityTier?: SortOrder
   }
 
   export type EnumSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -24832,6 +25578,18 @@ export namespace Prisma {
     connect?: MonitoredSourceWhereUniqueInput | MonitoredSourceWhereUniqueInput[]
   }
 
+  export type EnumElectionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ElectionStatus
+  }
+
+  export type EnumMonitoringStatusFieldUpdateOperationsInput = {
+    set?: $Enums.MonitoringStatus
+  }
+
+  export type EnumElectionStageFieldUpdateOperationsInput = {
+    set?: $Enums.ElectionStage
+  }
+
   export type IncidentUpdateManyWithoutElectionNestedInput = {
     create?: XOR<IncidentCreateWithoutElectionInput, IncidentUncheckedCreateWithoutElectionInput> | IncidentCreateWithoutElectionInput[] | IncidentUncheckedCreateWithoutElectionInput[]
     connectOrCreate?: IncidentCreateOrConnectWithoutElectionInput | IncidentCreateOrConnectWithoutElectionInput[]
@@ -25000,11 +25758,19 @@ export namespace Prisma {
     set?: $Enums.VerificationStatus
   }
 
-  export type EnumElectionStageFieldUpdateOperationsInput = {
-    set?: $Enums.ElectionStage
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
-  export type FloatFieldUpdateOperationsInput = {
+  export type EnumVerificationPathwayFieldUpdateOperationsInput = {
+    set?: $Enums.VerificationPathway
+  }
+
+  export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
     decrement?: number
@@ -25014,14 +25780,6 @@ export namespace Prisma {
 
   export type NullableFloatFieldUpdateOperationsInput = {
     set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
     increment?: number
     decrement?: number
     multiply?: number
@@ -25671,6 +26429,57 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedEnumElectionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStatus | EnumElectionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStatusFilter<$PrismaModel> | $Enums.ElectionStatus
+  }
+
+  export type NestedEnumMonitoringStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.MonitoringStatus | EnumMonitoringStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMonitoringStatusFilter<$PrismaModel> | $Enums.MonitoringStatus
+  }
+
+  export type NestedEnumElectionStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStageFilter<$PrismaModel> | $Enums.ElectionStage
+  }
+
+  export type NestedEnumElectionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStatus | EnumElectionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStatus[] | ListEnumElectionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStatusWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumElectionStatusFilter<$PrismaModel>
+    _max?: NestedEnumElectionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumMonitoringStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.MonitoringStatus | EnumMonitoringStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.MonitoringStatus[] | ListEnumMonitoringStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumMonitoringStatusWithAggregatesFilter<$PrismaModel> | $Enums.MonitoringStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMonitoringStatusFilter<$PrismaModel>
+    _max?: NestedEnumMonitoringStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumElectionStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumElectionStageWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumElectionStageFilter<$PrismaModel>
+    _max?: NestedEnumElectionStageFilter<$PrismaModel>
+  }
+
   export type NestedEnumIncidentCategoryFilter<$PrismaModel = never> = {
     equals?: $Enums.IncidentCategory | EnumIncidentCategoryFieldRefInput<$PrismaModel>
     in?: $Enums.IncidentCategory[] | ListEnumIncidentCategoryFieldRefInput<$PrismaModel>
@@ -25692,13 +26501,6 @@ export namespace Prisma {
     not?: NestedEnumVerificationStatusFilter<$PrismaModel> | $Enums.VerificationStatus
   }
 
-  export type NestedEnumElectionStageFilter<$PrismaModel = never> = {
-    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
-    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    not?: NestedEnumElectionStageFilter<$PrismaModel> | $Enums.ElectionStage
-  }
-
   export type NestedFloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -25708,6 +26510,13 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumVerificationPathwayFilter<$PrismaModel = never> = {
+    equals?: $Enums.VerificationPathway | EnumVerificationPathwayFieldRefInput<$PrismaModel>
+    in?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    notIn?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    not?: NestedEnumVerificationPathwayFilter<$PrismaModel> | $Enums.VerificationPathway
   }
 
   export type NestedEnumWeaponTypeFilter<$PrismaModel = never> = {
@@ -25747,16 +26556,6 @@ export namespace Prisma {
     _max?: NestedEnumVerificationStatusFilter<$PrismaModel>
   }
 
-  export type NestedEnumElectionStageWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.ElectionStage | EnumElectionStageFieldRefInput<$PrismaModel>
-    in?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    notIn?: $Enums.ElectionStage[] | ListEnumElectionStageFieldRefInput<$PrismaModel>
-    not?: NestedEnumElectionStageWithAggregatesFilter<$PrismaModel> | $Enums.ElectionStage
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumElectionStageFilter<$PrismaModel>
-    _max?: NestedEnumElectionStageFilter<$PrismaModel>
-  }
-
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -25771,6 +26570,32 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedEnumVerificationPathwayWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.VerificationPathway | EnumVerificationPathwayFieldRefInput<$PrismaModel>
+    in?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    notIn?: $Enums.VerificationPathway[] | ListEnumVerificationPathwayFieldRefInput<$PrismaModel>
+    not?: NestedEnumVerificationPathwayWithAggregatesFilter<$PrismaModel> | $Enums.VerificationPathway
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumVerificationPathwayFilter<$PrismaModel>
+    _max?: NestedEnumVerificationPathwayFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -25809,22 +26634,6 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type NestedEnumWeaponTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -26007,6 +26816,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26054,6 +26865,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26111,6 +26924,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26158,6 +26973,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26390,6 +27207,8 @@ export namespace Prisma {
     confidenceScore?: FloatFilter<"Incident"> | number
     isAutoDetected?: BoolFilter<"Incident"> | boolean
     isDemo?: BoolFilter<"Incident"> | boolean
+    verificationPathway?: EnumVerificationPathwayFilter<"Incident"> | $Enums.VerificationPathway
+    corroboratingSources?: IntFilter<"Incident"> | number
     evidence?: JsonNullableFilter<"Incident">
     extractionModel?: StringNullableFilter<"Incident"> | string | null
     promptVersion?: StringNullableFilter<"Incident"> | string | null
@@ -26725,6 +27544,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26772,6 +27593,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -26832,6 +27655,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     rawArticles?: RawArticleCreateNestedManyWithoutSourceInput
@@ -26852,6 +27678,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     rawArticles?: RawArticleUncheckedCreateNestedManyWithoutSourceInput
@@ -26917,6 +27746,9 @@ export namespace Prisma {
     lastSuccessAt?: DateTimeNullableFilter<"MonitoredSource"> | Date | string | null
     lastError?: StringNullableFilter<"MonitoredSource"> | string | null
     consecutiveFailures?: IntFilter<"MonitoredSource"> | number
+    coverageScope?: StringNullableFilter<"MonitoredSource"> | string | null
+    reliabilityTier?: IntNullableFilter<"MonitoredSource"> | number | null
+    coverageArea?: StringNullableFilter<"MonitoredSource"> | string | null
     electionId?: StringNullableFilter<"MonitoredSource"> | string | null
     createdAt?: DateTimeFilter<"MonitoredSource"> | Date | string
     updatedAt?: DateTimeFilter<"MonitoredSource"> | Date | string
@@ -26927,9 +27759,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -26941,9 +27786,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -27256,9 +28114,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -27270,9 +28141,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -27565,6 +28449,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -27612,6 +28498,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -27675,6 +28563,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27722,6 +28612,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27769,6 +28661,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -27816,6 +28710,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -27879,6 +28775,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27926,6 +28824,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27966,9 +28866,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -27980,9 +28893,22 @@ export namespace Prisma {
     name: string
     country: string
     countryCode: string
+    region?: string | null
     electionDate: Date | string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
     electionType: string
     wikidataId?: string | null
+    status?: $Enums.ElectionStatus
+    monitoringStatus?: $Enums.MonitoringStatus
+    currentStage?: $Enums.ElectionStage
+    registeredVoters?: number | null
+    pollingUnits?: number | null
+    administrativeAreas?: number | null
+    administrativeAreaLabel?: string | null
+    description?: string | null
+    coverageNote?: string | null
+    referenceUrl?: string | null
     isActive?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -28060,9 +28986,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -28074,9 +29013,22 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
     countryCode?: StringFieldUpdateOperationsInput | string
+    region?: NullableStringFieldUpdateOperationsInput | string | null
     electionDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     electionType?: StringFieldUpdateOperationsInput | string
     wikidataId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumElectionStatusFieldUpdateOperationsInput | $Enums.ElectionStatus
+    monitoringStatus?: EnumMonitoringStatusFieldUpdateOperationsInput | $Enums.MonitoringStatus
+    currentStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
+    registeredVoters?: NullableIntFieldUpdateOperationsInput | number | null
+    pollingUnits?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreas?: NullableIntFieldUpdateOperationsInput | number | null
+    administrativeAreaLabel?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    coverageNote?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -28114,6 +29066,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     election?: ElectionCreateNestedOneWithoutSourcesInput
@@ -28134,6 +29089,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     electionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -28156,6 +29114,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28203,6 +29163,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28269,6 +29231,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     election?: ElectionUpdateOneWithoutSourcesNestedInput
@@ -28289,6 +29254,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     electionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -28322,6 +29290,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28369,6 +29339,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28432,6 +29404,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28479,6 +29453,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28526,6 +29502,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28573,6 +29551,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28636,6 +29616,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28683,6 +29665,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28730,6 +29714,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28777,6 +29763,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -28883,6 +29871,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28930,6 +29920,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29230,6 +30222,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -29271,6 +30265,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -29405,6 +30401,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29452,6 +30450,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29499,6 +30499,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29540,6 +30542,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29587,6 +30591,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29634,6 +30640,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29774,6 +30782,8 @@ export namespace Prisma {
     confidenceScore?: number
     isAutoDetected?: boolean
     isDemo?: boolean
+    verificationPathway?: $Enums.VerificationPathway
+    corroboratingSources?: number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: string | null
     promptVersion?: string | null
@@ -29818,6 +30828,9 @@ export namespace Prisma {
     lastSuccessAt?: Date | string | null
     lastError?: string | null
     consecutiveFailures?: number
+    coverageScope?: string | null
+    reliabilityTier?: number | null
+    coverageArea?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -29834,6 +30847,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29881,6 +30896,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29928,6 +30945,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -29972,6 +30991,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rawArticles?: RawArticleUpdateManyWithoutSourceNestedInput
@@ -29992,6 +31014,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rawArticles?: RawArticleUncheckedUpdateManyWithoutSourceNestedInput
@@ -30012,6 +31037,9 @@ export namespace Prisma {
     lastSuccessAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastError?: NullableStringFieldUpdateOperationsInput | string | null
     consecutiveFailures?: IntFieldUpdateOperationsInput | number
+    coverageScope?: NullableStringFieldUpdateOperationsInput | string | null
+    reliabilityTier?: NullableIntFieldUpdateOperationsInput | number | null
+    coverageArea?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -30374,6 +31402,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30421,6 +31451,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null
@@ -30468,6 +31500,8 @@ export namespace Prisma {
     confidenceScore?: FloatFieldUpdateOperationsInput | number
     isAutoDetected?: BoolFieldUpdateOperationsInput | boolean
     isDemo?: BoolFieldUpdateOperationsInput | boolean
+    verificationPathway?: EnumVerificationPathwayFieldUpdateOperationsInput | $Enums.VerificationPathway
+    corroboratingSources?: IntFieldUpdateOperationsInput | number
     evidence?: NullableJsonNullValueInput | InputJsonValue
     extractionModel?: NullableStringFieldUpdateOperationsInput | string | null
     promptVersion?: NullableStringFieldUpdateOperationsInput | string | null

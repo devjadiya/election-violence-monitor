@@ -4,6 +4,7 @@ import { geocodeLocation } from '@/lib/ai/classifier'
 import { getAiProvider } from '@/lib/ai/gemini'
 import { fetchArticleBody } from '@/lib/ingestion/article-body'
 import { titleShingle } from '@/lib/ingestion/canonical'
+import { evaluateForAutoPublication } from '@/lib/incidents/publication'
 
 /** Below this, a feed snippet is a teaser and the published page is worth fetching. */
 const BODY_FETCH_THRESHOLD = 900
@@ -284,5 +285,118 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
     data: { isProcessed: true, pass2At: new Date() },
   })
 
+  // Automated publication.
+  //
+  // There is no editorial desk on this deployment, so a record either clears the
+  // automated criteria or waits. Records that clear are stamped
+  // AUTOMATED_CORROBORATION and the interface states that no person checked
+  // them. A record that cannot quote its source never reaches the public site.
+  await maybeAutoPublish(incident.id)
+
   return { status: 'created', incidentId: incident.id }
+}
+
+/**
+ * Applies the automated publication criteria to one record.
+ *
+ * Kept separate from creation so it can also be run over records that were
+ * flagged before their article body could be retrieved.
+ */
+export async function maybeAutoPublish(incidentId: string): Promise<boolean> {
+  const row = await prisma.incident.findUnique({
+    where: { id: incidentId },
+    select: {
+      id: true, status: true, isDemo: true, confidenceScore: true, evidence: true,
+      sources: { select: { sourceUrl: true } },
+      rawArticles: { select: { bodyMethod: true } },
+    },
+  })
+  if (!row) return false
+
+  const decision = evaluateForAutoPublication({
+    status: row.status,
+    isDemo: row.isDemo,
+    confidenceScore: row.confidenceScore,
+    evidence: row.evidence,
+    sources: row.sources,
+    bodyMethod: row.rawArticles[0]?.bodyMethod ?? null,
+  })
+  if (!decision.publish) return false
+
+  await prisma.incident.update({
+    where: { id: row.id },
+    data: {
+      status: 'PUBLISHED',
+      publishedAt: new Date(),
+      verificationPathway: decision.pathway,
+      corroboratingSources: decision.corroboratingSources,
+    },
+  })
+
+  await prisma.auditLog
+    .create({
+      data: {
+        incidentId: row.id,
+        action: 'PUBLISHED',
+        notes: `Automated publication: ${decision.reasons.join('; ')}. No human review performed.`,
+      },
+    })
+    .catch(() => {
+      // Publication must not fail because the trail could not be written.
+    })
+
+  return true
+}
+
+/**
+ * Re-runs extraction for records that were flagged before their article body
+ * could be retrieved.
+ *
+ * Early runs stored only the feed teaser, so those extractions have no
+ * supporting quotations and cannot be published. Fetching the published page
+ * and extracting again is what turns them into citable records — or confirms
+ * they should stay unpublished.
+ */
+export async function enrichIncident(incidentId: string): Promise<'enriched' | 'unchanged' | 'failed'> {
+  const row = await prisma.incident.findUnique({
+    where: { id: incidentId },
+    select: {
+      id: true, title: true,
+      rawArticles: { select: { id: true, url: true, content: true, bodyMethod: true }, take: 1 },
+    },
+  })
+  const article = row?.rawArticles[0]
+  if (!row || !article || article.bodyMethod) return 'unchanged'
+
+  const fetched = await fetchArticleBody(article.url)
+  if (!fetched || fetched.chars <= (article.content?.length ?? 0)) return 'failed'
+
+  const body = fetched.text.slice(0, MAX_BODY_CHARS)
+  await prisma.rawArticle.update({
+    where: { id: article.id },
+    data: { content: body, bodyFetchedAt: new Date(), bodyMethod: fetched.method },
+  })
+
+  const result = await getAiProvider().extract({ title: row.title, text: body })
+  if (!result.ok) return 'failed'
+
+  const e = result.data
+  await prisma.incident.update({
+    where: { id: row.id },
+    data: {
+      description: e.summary,
+      category: e.category,
+      electionStage: e.electionStage,
+      fatalities: e.fatalities,
+      injured: e.injured,
+      arrested: e.arrested,
+      weaponType: e.weaponType,
+      confidenceScore: e.confidence,
+      evidence: e.evidence.length ? e.evidence.map((x) => ({ field: x.field, quote: x.quote })) : undefined,
+      extractionModel: result.modelId,
+      promptVersion: result.promptVersion,
+    },
+  })
+
+  return 'enriched'
 }

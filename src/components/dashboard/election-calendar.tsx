@@ -27,13 +27,13 @@ export async function ElectionCalendar() {
             <Calendar size={15} className="text-zinc-400" />
             Election Calendar
           </h2>
-          <Link href="/elections/new" className="text-xs text-blue-500 hover:underline">
+          <Link href="/manage/elections/new" className="text-xs text-blue-500 hover:underline">
             + Add
           </Link>
         </div>
         <div className="text-center py-6 text-zinc-400 text-xs">
           No elections configured.{' '}
-          <Link href="/elections/new" className="text-blue-500 hover:underline">
+          <Link href="/manage/elections/new" className="text-blue-500 hover:underline">
             Add one
           </Link>
         </div>
@@ -49,7 +49,7 @@ export async function ElectionCalendar() {
           Election Calendar
         </h2>
         <Link
-          href="/elections"
+          href="/manage/elections"
           className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
         >
           View all →

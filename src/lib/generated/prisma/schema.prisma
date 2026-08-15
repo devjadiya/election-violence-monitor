@@ -193,17 +193,77 @@ model VerificationToken {
 // ELECTIONS
 // ============================================================
 
+/// Where an election sits in time. Derived from dates on write rather than
+/// computed on read, so listings can be ordered and indexed by it.
+/// How a record came to be published.
+///
+/// EDITORIAL_REVIEW means a person read the record against its sources and
+/// stood behind it. AUTOMATED_CORROBORATION means independent publishers
+/// reported the same event and the record cleared the automated thresholds —
+/// no person has checked it. These must never be presented as the same thing.
+enum VerificationPathway {
+  PENDING
+  AUTOMATED_CORROBORATION
+  EDITORIAL_REVIEW
+}
+
+enum ElectionStatus {
+  UPCOMING
+  ONGOING
+  RECENTLY_COMPLETED
+  HISTORICAL
+}
+
+/// Whether this platform is actually collecting for an election.
+///
+/// Deliberately separate from ElectionStatus: an election can be ONGOING while
+/// monitoring is NOT_ACTIVE. Conflating the two would let the calendar imply
+/// coverage that does not exist, which is the single easiest way for a global
+/// platform to mislead.
+enum MonitoringStatus {
+  ACTIVE
+  SCHEDULED
+  NOT_ACTIVE
+  CONCLUDED
+}
+
 model Election {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   name         String
   country      String
-  countryCode  String   @db.VarChar(3)
+  countryCode  String    @db.VarChar(3)
+  /// Subnational unit for state/provincial elections. Null for national ones.
+  region       String?
   electionDate DateTime
+  /// Elections are not always single-day events (multi-phase national polls,
+  /// staggered regional rounds). electionDate stays the principal date.
+  startDate    DateTime?
+  endDate      DateTime?
   electionType String // presidential, parliamentary, gubernatorial, etc.
   wikidataId   String? // Q-number from Wikidata
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  status           ElectionStatus   @default(UPCOMING)
+  monitoringStatus MonitoringStatus @default(NOT_ACTIVE)
+  currentStage     ElectionStage    @default(UNKNOWN)
+
+  /// Official scale figures, cited to `referenceUrl`. Never inferred.
+  registeredVoters        Int?
+  pollingUnits            Int?
+  administrativeAreas     Int?
+  /// What the administrative unit is called locally — "local government areas",
+  /// "counties", "constituencies". Keeps the UI from imposing one country's
+  /// vocabulary on every other.
+  administrativeAreaLabel String?
+
+  description  String? @db.Text
+  /// Honest statement of what this platform can and cannot see for this
+  /// election. Shown wherever coverage is claimed.
+  coverageNote String? @db.Text
+  referenceUrl String?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   incidents Incident[]
   sources   MonitoredSource[]
@@ -211,6 +271,8 @@ model Election {
   @@index([country])
   @@index([isActive])
   @@index([electionDate])
+  @@index([status])
+  @@index([monitoringStatus])
 }
 
 // ============================================================
@@ -233,6 +295,15 @@ model Incident {
   // Kept rather than deleted so the published history stays auditable, but
   // excluded from every public surface.
   isDemo Boolean @default(false)
+
+  /// How this record reached its current status.
+  ///
+  /// A reader must be able to tell an editor's judgement from an automated
+  /// corroboration rule. Recording the pathway is what lets the interface say
+  /// which one happened instead of implying the stronger of the two.
+  verificationPathway  VerificationPathway @default(PENDING)
+  /// Independent publishers citing this incident at the time it was published.
+  corroboratingSources Int                 @default(0)
 
   // Processing provenance. Which model and prompt produced this extraction, and
   // the quotes it based each field on. Without these an AI-derived record is
@@ -369,8 +440,17 @@ model MonitoredSource {
   lastSuccessAt       DateTime?
   lastError           String?
   consecutiveFailures Int       @default(0)
-  electionId          String?
-  election            Election? @relation(fields: [electionId], references: [id])
+
+  /// Registry metadata. The source list bounds what the platform can find, so
+  /// it is described rather than left implicit.
+  /// national | subnational | regional | international
+  coverageScope   String?
+  /// 1 (highest) to 5. Editorial independence and track record, not popularity.
+  reliabilityTier Int?
+  /// Free-text area actually covered, e.g. "Osun State", "West Africa".
+  coverageArea    String?
+  electionId      String?
+  election        Election? @relation(fields: [electionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

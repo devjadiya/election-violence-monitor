@@ -10,7 +10,13 @@ import Link from 'next/link'
  * support.
  */
 
+/**
+ * Elections lead, because the platform's unit of organisation is
+ * country → election → incident. Putting incidents first would frame the
+ * product as a feed of violence rather than a structured record of elections.
+ */
 const NAV = [
+  { href: '/elections', label: 'Elections' },
   { href: '/incidents', label: 'Incidents' },
   { href: '/map', label: 'Map' },
   { href: '/sources', label: 'Sources' },
@@ -32,7 +38,7 @@ export function SiteHeader({ current }: { current?: string }) {
               Election Violence Monitor
             </span>
             <span className="block text-[0.6875rem] text-[var(--ink-3)]">
-              Structured incident records, Nigeria
+              Open records of election-related violence
             </span>
           </Link>
 

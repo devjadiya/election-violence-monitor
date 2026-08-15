@@ -136,6 +136,7 @@ export default async function IncidentsPage({ searchParams }: { searchParams: Se
         id: true, referenceId: true, title: true, description: true, category: true,
         country: true, region: true, district: true, community: true, occurredAt: true,
         fatalities: true, injured: true, arrested: true, confidenceScore: true,
+        verificationPathway: true, corroboratingSources: true,
         sources: { select: { sourceUrl: true, sourceName: true } },
       },
     }),
