@@ -20,14 +20,39 @@ export const PUBLIC_VISIBLE_STATUSES: IncidentStatus[] = ['PUBLISHED']
 export const PRIVILEGED_EXPORT_STATUSES: IncidentStatus[] = ['PUBLISHED', 'VERIFIED']
 
 /**
+ * Prefix of the synthetic source URLs attached to every seeded incident.
+ *
+ * Verified against production on 2026-08-15: all 52 incidents in the database
+ * carry an IncidentSource whose sourceUrl is
+ *   https://premiumtimesng.com/elections/evm-YYYY-NNNNN
+ * a path built from the referenceId that 404s on the real publisher. No real
+ * ingested incident can produce this shape, because real source URLs come from
+ * RSS/GDELT discovery and are never synthesised from our own identifiers.
+ */
+export const FABRICATED_SOURCE_URL_PREFIX = 'https://premiumtimesng.com/elections/evm-'
+
+/**
  * The baseline filter for anything a member of the public can reach.
  *
- * TODO(Step 6): add `isDemo: false` once the column exists on Incident.
- * The column is NOT in the schema yet and this turn must not alter the schema,
- * so demo records cannot be excluded here today. See docs/TECHNICAL_BLUEPRINT.md §23 Step 6.
+ * Excludes fabricated seed records two ways, belt and braces:
+ *
+ *  1. `isDemo: false` — the clean mechanism, once the column exists. Written
+ *     as an OR against null so this predicate is valid both before and after
+ *     scripts/quarantine-demo-data.ts has been run.
+ *  2. Provenance shape — no incident whose evidence is a synthetic URL may
+ *     ever be published. This works today with no schema change and is the
+ *     stronger guarantee, because it keys off the thing that actually makes a
+ *     record fake: its source does not exist.
  */
 export function publicIncidentFilter(): Prisma.IncidentWhereInput {
-  return { status: { in: PUBLIC_VISIBLE_STATUSES } }
+  return {
+    status: { in: PUBLIC_VISIBLE_STATUSES },
+    NOT: {
+      sources: {
+        some: { sourceUrl: { startsWith: FABRICATED_SOURCE_URL_PREFIX } },
+      },
+    },
+  }
 }
 
 /** Search scope: public sees PUBLISHED only; ANALYST+ sees everything. */
