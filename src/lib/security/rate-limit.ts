@@ -31,6 +31,21 @@ export const ingestLimiter = new Ratelimit({
   prefix: 'evm:ingest',
 })
 
+// Bulk export is expensive — it reads the whole published set per request.
+export const exportLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 h'),
+  prefix: 'evm:export',
+})
+
+// Outbound calls to Wikimedia infrastructure are made from our IP; throttle
+// hard so we cannot be used to amplify traffic against WMF.
+export const wikidataLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, '1 m'),
+  prefix: 'evm:wikidata',
+})
+
 export function getClientIp(req: NextRequest): string {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??

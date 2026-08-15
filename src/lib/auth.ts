@@ -1,21 +1,11 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/db'
-import { UserRole } from '@/lib/generated/prisma'
 import bcrypt from 'bcryptjs'
 
-export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  PUBLIC: 0,
-  OBSERVER: 1,
-  ANALYST: 2,
-  REVIEWER: 3,
-  EDITOR: 4,
-  ADMIN: 5,
-}
-
-export function hasPermission(userRole: UserRole, requiredRole: UserRole): boolean {
-  return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[requiredRole]
-}
+// Role logic lives in ./auth/roles so it can be imported without initialising
+// NextAuth. Re-exported here for backward compatibility with existing imports.
+export { ROLE_HIERARCHY, hasPermission } from '@/lib/auth/roles'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: 'jwt' },
