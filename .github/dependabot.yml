@@ -1,0 +1,74 @@
+version: 2
+
+updates:
+  # --------------------------------------------------------------- npm/pnpm --
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: 'deps'
+      prefix-development: 'deps-dev'
+
+    # Grouped so we review a handful of coherent PRs, not thirty. Grouping is
+    # only applied to patch/minor — majors always arrive as individual PRs so a
+    # breaking change is never buried inside a batch.
+    groups:
+      next:
+        patterns: ['next', 'eslint-config-next', '@next/*']
+        update-types: [minor, patch]
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: [minor, patch]
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+        update-types: [minor, patch]
+      ai-sdk:
+        patterns: ['ai', '@ai-sdk/*']
+        update-types: [minor, patch]
+      testing:
+        patterns: ['vitest', '@vitest/*', '@testing-library/*', 'jsdom']
+        update-types: [minor, patch]
+      linting:
+        patterns: ['eslint', 'eslint-*', '@typescript-eslint/*', 'prettier', 'prettier-*']
+        update-types: [minor, patch]
+      types:
+        patterns: ['@types/*']
+        update-types: [minor, patch]
+      ui:
+        patterns: ['radix-ui', '@base-ui/*', 'lucide-react', 'tailwind*', '@tailwindcss/*']
+        update-types: [minor, patch]
+
+    ignore:
+      # NextAuth is on a v5 beta line. Beta-to-beta bumps have repeatedly shipped
+      # breaking changes; this is the authentication path, so it is upgraded
+      # deliberately and manually, never by bot.
+      - dependency-name: 'next-auth'
+
+  # ---------------------------------------------------- GitHub Actions SHAs --
+  # Our workflows pin third-party actions to commit SHAs. Dependabot understands
+  # the `uses: owner/repo@<sha> # vX.Y.Z` convention and updates both the SHA and
+  # the trailing version comment, so pinning does not mean going stale.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels: [dependencies, github-actions]
+    commit-message:
+      prefix: 'ci'
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+# NOTE: auto-merge is deliberately NOT configured. A dependency update is a
+# supply-chain event; every one gets human review. See docs/SECURITY_AND_QUALITY.md.

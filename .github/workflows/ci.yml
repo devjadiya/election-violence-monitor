@@ -1,0 +1,86 @@
+name: CI
+
+# Cost control (docs/SECURITY_AND_QUALITY.md): everything below runs in ONE job
+# so dependencies are installed and cached exactly once per run. The checks are
+# ordered cheapest-and-most-likely-to-fail first, so a bad PR fails in seconds
+# rather than after a full Next.js build.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# Least privilege by default; no job here needs write access.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Prisma requires DATABASE_URL to be defined to generate a client. This is
+      # a syntactically valid, credential-free placeholder pointing at nothing.
+      # CI never connects to a database. See docs/PRODUCTION_SAFETY.md.
+      DATABASE_URL: postgresql://localhost:5432/evm_ci_placeholder
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # lint:changed diffs against the merge base, so it needs history.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # --- Fast, high-signal checks first -----------------------------------
+
+      - name: Production-safety check
+        run: pnpm run check:safety
+
+      - name: Environment contract
+        # Advisory: CI has no secrets by design, so missing values are expected.
+        # This still fails if a server-only secret is exposed via NEXT_PUBLIC_.
+        run: pnpm run check:env
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Lint changed files
+        # Blocking. New/changed code must be lint-clean.
+        run: pnpm run lint:changed ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
+
+      - name: Lint full repository
+        # Non-blocking: reports the ~95-error legacy backlog without blocking
+        # unrelated PRs. Burn-down is tracked; see docs/SECURITY_AND_QUALITY.md.
+        continue-on-error: true
+        run: pnpm run lint
+
+      - name: Tests
+        run: pnpm run test:run
+
+      # --- Most expensive last ----------------------------------------------
+
+      - name: Production build
+        run: pnpm run build

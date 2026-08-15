@@ -1,8 +1,24 @@
 # Election Violence Monitor
 
-A production-grade platform for structured, ethical documentation of election-related violence incidents. Built for the Wikimedia community, NGOs, civil society organizations, and election monitoring bodies.
+[![CI](https://github.com/devjadiya/election-violence-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/devjadiya/election-violence-monitor/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/devjadiya/election-violence-monitor/actions/workflows/codeql.yml/badge.svg)](https://github.com/devjadiya/election-violence-monitor/actions/workflows/codeql.yml)
+[![Security](https://github.com/devjadiya/election-violence-monitor/actions/workflows/security.yml/badge.svg)](https://github.com/devjadiya/election-violence-monitor/actions/workflows/security.yml)
+
+<!--
+  Scorecard badge — add ONLY after the Scorecard workflow has run green at least
+  once, and only while this repository is public. A permanently red badge is
+  worse than no badge.
+
+  [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/devjadiya/election-violence-monitor/badge)](https://scorecard.dev/viewer/?uri=github.com/devjadiya/election-violence-monitor)
+-->
+
+A platform for structured, ethical documentation of election-related violence incidents. Built for the Wikimedia community, NGOs, civil society organizations, and election monitoring bodies.
 
 **Live:** https://election-violence-monitor.vercel.app
+
+**Contributors:** start with [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md) · [SECURITY.md](SECURITY.md) · [docs/SECURITY_AND_QUALITY.md](docs/SECURITY_AND_QUALITY.md)
+
+> This project uses **pnpm**, not npm. See [docs/DEVELOPER_SETUP.md](docs/DEVELOPER_SETUP.md#2-this-project-uses-pnpm-not-npm).
 
 ---
 

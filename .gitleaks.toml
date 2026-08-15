@@ -1,0 +1,53 @@
+# Gitleaks configuration.
+#
+# Extends the upstream default ruleset and adds rules for the specific
+# credential shapes this project uses. Allowlists are intentionally narrow —
+# only the committed .env template, which contains names and no values.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "supabase-service-role-key"
+description = "Supabase service_role JWT (bypasses all row-level security)"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}'''
+tags = ["supabase", "jwt", "critical"]
+
+[[rules]]
+id = "postgres-connection-string-with-password"
+description = "PostgreSQL connection string containing a password"
+regex = '''postgres(ql)?://[^\s:/]+:[^\s@]{6,}@[^\s/]+'''
+tags = ["database", "critical"]
+
+[[rules]]
+id = "qstash-signing-key"
+description = "Upstash QStash signing key"
+regex = '''\bsig_[A-Za-z0-9]{24,}\b'''
+tags = ["upstash", "qstash"]
+
+[[rules]]
+id = "upstash-rest-token"
+description = "Upstash Redis REST token"
+regex = '''\b[A-Za-z0-9_-]{8}AAAAA[A-Za-z0-9_-]{30,}\b'''
+tags = ["upstash", "redis"]
+
+[[rules]]
+id = "google-generative-ai-key"
+description = "Google AI / Gemini API key"
+regex = '''\bAIza[0-9A-Za-z_-]{35}\b'''
+tags = ["google", "gemini"]
+
+[allowlist]
+description = "Committed templates and documentation contain names, never values"
+paths = [
+  '''\.env\.example$''',
+  '''\.env\..*\.example$''',
+  '''\.gitleaks\.toml$''',
+  '''scripts/check-production-safety\.ts$''',
+]
+# Placeholder text that must never be treated as a finding.
+regexes = [
+  '''your[-_]?(key|token|secret|password)[-_]?here''',
+  '''<[A-Z_]+>''',
+  '''postgresql://localhost:5432/''',
+]

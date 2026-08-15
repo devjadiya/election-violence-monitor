@@ -1,0 +1,53 @@
+name: OpenSSF Scorecard
+
+# Rates this repository's supply-chain posture (branch protection, pinned
+# dependencies, token permissions, code review, SAST coverage, ...).
+#
+# Requires a PUBLIC repository. If this repository is private, this workflow
+# will fail — disable it rather than working around it.
+#
+# Weekly only: the score changes with repository settings, not with code, so
+# running it per-PR would spend Actions minutes for no new information.
+
+on:
+  branch_protection_rule:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '23 6 * * 1'
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      # Required to upload results to the code-scanning dashboard.
+      security-events: write
+      # Required for the (public) results to be published to the OpenSSF API.
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@99c09fe975337306107572b4fdf4db224cf8e2f2 # v2.4.3
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          # Publishing makes the score queryable via the public OpenSSF API,
+          # which is what backs the README badge. Public-interest project, so
+          # transparency about our own posture is appropriate.
+          publish_results: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard
