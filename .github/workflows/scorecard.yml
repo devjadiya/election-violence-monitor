@@ -9,10 +9,14 @@ name: OpenSSF Scorecard
 # Weekly only: the score changes with repository settings, not with code, so
 # running it per-PR would spend Actions minutes for no new information.
 
+# Deliberately NOT run on push. Scorecard rates repository posture — branch
+# protection, token scope, pinning — which changes with settings, not with a
+# commit. Running it per-push added a red check to every commit while telling
+# us nothing new about that commit. Weekly, plus whenever branch protection
+# changes, is when its answer can actually differ.
 on:
   branch_protection_rule:
-  push:
-    branches: [master]
+  workflow_dispatch:
   schedule:
     - cron: '23 6 * * 1'
 
@@ -23,10 +27,7 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Report-only. Scorecard rates repository posture, not code correctness, so
-    # it should never block a merge. It also failed while this repository was
-    # still private; now that it is public the score should populate, but the
-    # result is informational either way.
+    # Informational: posture rating, never a merge gate.
     continue-on-error: true
     permissions:
       # Required to upload results to the code-scanning dashboard.

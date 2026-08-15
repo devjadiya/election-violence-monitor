@@ -23,10 +23,10 @@ human gates on the operations that are hard to undo.
 | **Zizmor** | Workflow permissions, injection, credential leakage | PR, push | ✅ **Yes** (high severity) | ✅ OSS | Security tab (SARIF) |
 | **Semgrep** | SAST — OWASP Top 10, TypeScript, Next.js packs | PR, push | ✅ **Yes** (ERROR only) | ✅ OSS rules | Job log |
 | **CodeQL** | Deep dataflow / taint analysis | PR, push, weekly | ⚠️ Recommended | ✅ Free for public repos | Security tab |
-| **pnpm audit** | Dependency CVEs from the GitHub Advisory DB | PR, push, weekly | ⚠️ Report-only until Step 3 | ✅ | CI job log |
+| **pnpm audit** | Dependency CVEs from the GitHub Advisory DB | PR, push, weekly | ⚠️ Informational until Step 3 | ✅ | Job log |
 | **Dependabot** | Dependency + Action updates | Weekly | ❌ Opens PRs | ✅ | Pull requests |
 | **Trivy** | Misconfiguration + secret scan | **Weekly only** | ❌ | ✅ OSS | Security tab |
-| **OpenSSF Scorecard** | Supply-chain posture rating | **Weekly only** | ❌ | ✅ Public repos | Security tab + badge |
+| **OpenSSF Scorecard** | Supply-chain posture rating | **Weekly + on branch-protection change** | ❌ | ✅ Public repos | Security tab + badge |
 | **OWASP ZAP** | DAST | **Not implemented** — see §6 | — | ✅ | — |
 | **Secret scanning push protection** | Blocks secrets *before* they enter history | Every push | ✅ Yes | ✅ Public repos | GitHub UI |
 
@@ -58,9 +58,10 @@ Production-safety · TypeScript · ESLint on changed files · Vitest · Build ·
 | Check | Why not blocking |
 |---|---|
 | **ESLint full repo** | ~95 pre-existing errors. Blocking would red-wall every unrelated PR; downgrading the rules would hide real problems. The ratchet — new code must be clean — gets the benefit without the paralysis |
-| **pnpm audit** | 4 high-severity `undici` advisories exist today (Step 3 fixes them). Promote to blocking after that |
+| **pnpm audit** | **112 advisories today — 41 high, 4 critical**, almost all transitive (`@auth/core` via next-auth; a long chain under the unused `@sentry/nextjs`). Clearing them is a dependency-upgrade project. The step prints the full report and does not fail: a check that is *always* red teaches people to ignore red. Step 3 removes the unused packages, upgrades the rest, drops the `\|\| true`, and makes this blocking |
 | **Semgrep** | Publishes SARIF to the Security tab instead of failing. `--error` was blocking the whole Security workflow and, without build-log access, a genuine finding was indistinguishable from a ruleset-fetch failure |
-| **Trivy / Scorecard** | Weekly posture signals, not per-change correctness |
+| **Scorecard** | Posture rating, not code correctness. **No longer runs on push** — it changes with repository settings, not with a commit, so a per-push run added a red check that said nothing about that commit |
+| **Trivy** | Weekly posture signal |
 
 These exceptions are **temporary and tied to a specific step**, not permanent tolerance.
 

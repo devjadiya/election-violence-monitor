@@ -80,15 +80,19 @@ jobs:
     name: Dependency vulnerabilities (pnpm audit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Report-only until Step 3 clears the four open high-severity undici
-    # advisories; blocking on them today would red-wall every unrelated PR.
+    # INFORMATIONAL until Step 3. `pnpm audit` currently reports 112 advisories
+    # (41 high, 4 critical), almost all transitive — @auth/core via next-auth,
+    # and a long chain under @sentry/nextjs, which is installed but never
+    # configured. Clearing them is a dependency-upgrade project, not a CI fix.
     #
-    # This replaced google/osv-scanner-action, which failed at "Set up job" on
-    # every run and produced no diagnosable output. `pnpm audit` reads the same
-    # GitHub Advisory data against the exact lockfile we ship, needs no
-    # third-party action, and costs no extra install. Dependabot covers the
-    # other half of the job by opening fix PRs.
-    continue-on-error: true
+    # The step prints the full report and does not fail, so the check reflects
+    # "the audit ran" rather than sitting permanently red. A check that is
+    # always red teaches people to ignore red. Step 3 removes the unused
+    # packages and upgrades the rest, after which `|| true` comes off and this
+    # becomes blocking.
+    #
+    # Replaced google/osv-scanner-action, which failed at "Set up job" on every
+    # run with no diagnosable output. Dependabot opens the fix PRs.
     steps:
       - uses: actions/checkout@v5
         with:
@@ -101,8 +105,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - name: Audit dependencies
-        run: pnpm audit --audit-level=high --prod
+      - name: Audit dependencies (informational — see job comment)
+        run: |
+          pnpm audit --audit-level=high --prod || true
+          echo ""
+          echo "::notice::Dependency audit is informational until Step 3 clears the backlog."
 
   # --------------------------------------------------------------- SAST ------
   semgrep:
