@@ -34,19 +34,22 @@ export const FABRICATED_SOURCE_URL_PREFIX = 'https://premiumtimesng.com/election
 /**
  * The baseline filter for anything a member of the public can reach.
  *
- * Excludes fabricated seed records two ways, belt and braces:
+ * Excludes fabricated seed records two independent ways, deliberately:
  *
- *  1. `isDemo: false` — the clean mechanism, once the column exists. Written
- *     as an OR against null so this predicate is valid both before and after
- *     scripts/quarantine-demo-data.ts has been run.
- *  2. Provenance shape — no incident whose evidence is a synthetic URL may
- *     ever be published. This works today with no schema change and is the
- *     stronger guarantee, because it keys off the thing that actually makes a
- *     record fake: its source does not exist.
+ *  1. `isDemo: false` — the explicit flag, applied to all 52 seed records on
+ *     2026-08-15 by scripts/flag-demo-records.ts.
+ *  2. Provenance shape — no incident citing a synthetic URL may ever be
+ *     published, flag or no flag.
+ *
+ * Two mechanisms rather than one because they fail differently. The flag is
+ * cheap and indexed but relies on someone having set it; the shape check needs
+ * a join but is self-maintaining and would catch a future seed script that
+ * forgot the flag. Neither alone would have caught both cases.
  */
 export function publicIncidentFilter(): Prisma.IncidentWhereInput {
   return {
     status: { in: PUBLIC_VISIBLE_STATUSES },
+    isDemo: false,
     NOT: {
       sources: {
         some: { sourceUrl: { startsWith: FABRICATED_SOURCE_URL_PREFIX } },
@@ -55,16 +58,24 @@ export function publicIncidentFilter(): Prisma.IncidentWhereInput {
   }
 }
 
-/** Search scope: public sees PUBLISHED only; ANALYST+ sees everything. */
+/**
+ * Internal scope: everything the pipeline and reviewers work with, minus the
+ * seed records. Reviewers should never be handed fabricated items to verify.
+ */
+export function internalIncidentFilter(): Prisma.IncidentWhereInput {
+  return { isDemo: false }
+}
+
+/** Search scope: public sees PUBLISHED only; ANALYST+ sees every real record. */
 export function searchVisibilityFilter(actor: Actor | null): Prisma.IncidentWhereInput {
-  if (actor && hasPermission(actor.role, 'ANALYST')) return {}
+  if (actor && hasPermission(actor.role, 'ANALYST')) return internalIncidentFilter()
   return publicIncidentFilter()
 }
 
 /** Export scope: public sees PUBLISHED only; ANALYST+ additionally sees VERIFIED. */
 export function exportVisibilityFilter(actor: Actor | null): Prisma.IncidentWhereInput {
   if (actor && hasPermission(actor.role, 'ANALYST')) {
-    return { status: { in: PRIVILEGED_EXPORT_STATUSES } }
+    return { status: { in: PRIVILEGED_EXPORT_STATUSES }, isDemo: false }
   }
   return publicIncidentFilter()
 }

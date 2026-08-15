@@ -2,6 +2,17 @@ import { nanoid } from 'nanoid'
 import { prisma } from '@/lib/db'
 import { geocodeLocation } from '@/lib/ai/classifier'
 import { getAiProvider } from '@/lib/ai/gemini'
+import { fetchArticleBody } from '@/lib/ingestion/article-body'
+import { titleShingle } from '@/lib/ingestion/canonical'
+
+/** Below this, a feed snippet is a teaser and the published page is worth fetching. */
+const BODY_FETCH_THRESHOLD = 900
+
+/**
+ * We link back to the publisher rather than mirroring their journalism, so we
+ * keep only enough text to screen, extract and let a reviewer verify a quote.
+ */
+const MAX_BODY_CHARS = 6000
 
 /**
  * Outcome of processing a single article.
@@ -18,6 +29,59 @@ export type ProcessOutcome =
   | { status: 'filtered'; stage: 'pass1' | 'pass2'; reason: string }
   | { status: 'skipped'; reason: string }
   | { status: 'error'; stage: 'pass1' | 'pass2'; reason: string; detail: string }
+
+/** Fraction of shared headline tokens above which two reports describe one event. */
+const SAME_INCIDENT_THRESHOLD = 0.55
+
+/** How far back a report can still be about the same event. */
+const CLUSTER_WINDOW_DAYS = 10
+
+function jaccard(a: string, b: string): number {
+  const sa = new Set(a.split(' ').filter(Boolean))
+  const sb = new Set(b.split(' ').filter(Boolean))
+  if (!sa.size || !sb.size) return 0
+  let shared = 0
+  for (const t of sa) if (sb.has(t)) shared++
+  return shared / (sa.size + sb.size - shared)
+}
+
+/**
+ * Finds an existing incident that this article is another report OF.
+ *
+ * Compared in memory over a bounded recent window rather than in SQL, because
+ * headline similarity is not something Postgres can index without a stored
+ * shingle. At the current scale — tens of incidents in any ten-day window —
+ * this is a single small query. If the window ever holds thousands, the
+ * shingle needs to become a column with its own index.
+ */
+async function findExistingIncident(
+  title: string,
+  region?: string,
+  country?: string
+): Promise<{ id: string } | null> {
+  const since = new Date(Date.now() - CLUSTER_WINDOW_DAYS * 24 * 60 * 60 * 1000)
+
+  const candidates = await prisma.incident.findMany({
+    where: {
+      isDemo: false,
+      occurredAt: { gte: since },
+      // Same place, however precisely each extraction happened to name it.
+      ...(region || country
+        ? { OR: [region ? { region } : {}, country ? { country } : {}].filter(Boolean) }
+        : {}),
+    },
+    select: { id: true, title: true },
+    take: 400,
+  })
+
+  const target = titleShingle(title)
+  for (const c of candidates) {
+    if (jaccard(target, titleShingle(c.title)) >= SAME_INCIDENT_THRESHOLD) {
+      return { id: c.id }
+    }
+  }
+  return null
+}
 
 /**
  * Runs pass 1 and pass 2 against an article that is ALREADY stored.
@@ -41,7 +105,21 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
   if (row.incidents.length > 0) return { status: 'skipped', reason: 'already_has_incident' }
 
   const ai = getAiProvider()
-  const body = row.content ?? ''
+
+  // Feeds supply a 100–400 character teaser. The extractor is required to quote
+  // the sentence behind every field it fills, which is impossible from a
+  // teaser, so fetch the published page when what we hold is clearly too thin.
+  let body = row.content ?? ''
+  if (body.length < BODY_FETCH_THRESHOLD) {
+    const fetched = await fetchArticleBody(row.url)
+    if (fetched && fetched.chars > body.length) {
+      body = fetched.text.slice(0, MAX_BODY_CHARS)
+      await prisma.rawArticle.update({
+        where: { id: row.id },
+        data: { content: body, bodyFetchedAt: new Date(), bodyMethod: fetched.method },
+      })
+    }
+  }
 
   // --- Pass 1: relevance gate ------------------------------------------------
   const screen = await ai.screen({ title: row.title, text: body })
@@ -98,6 +176,32 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
     return { status: 'filtered', stage: 'pass2', reason: 'low_confidence' }
   }
 
+  // The unit of knowledge is the INCIDENT, not the article. Two publishers
+  // covering one arrest is one incident with two sources, not two incidents —
+  // the first real run produced three records for a single Osun event before
+  // this existed.
+  const duplicate = await findExistingIncident(row.title, extracted.region, extracted.country)
+  if (duplicate) {
+    await prisma.incidentSource.create({
+      data: {
+        incidentId: duplicate.id,
+        sourceUrl: row.url,
+        sourceName: row.source.name,
+        sourceType: row.source.sourceType,
+        publishedAt: row.publishedAt,
+      },
+    })
+    await prisma.incident.update({
+      where: { id: duplicate.id },
+      data: { rawArticles: { connect: [{ id: row.id }] } },
+    })
+    await prisma.rawArticle.update({
+      where: { id: row.id },
+      data: { isProcessed: true, pass2At: new Date() },
+    })
+    return { status: 'duplicate', via: 'canonical' }
+  }
+
   const coords = await geocodeLocation({
     country: extracted.country,
     region: extracted.region,
@@ -135,6 +239,16 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
       status: 'FLAGGED',
       isAutoDetected: true,
       confidenceScore: extracted.confidence,
+      // Nothing the pipeline creates is ever demo data.
+      isDemo: false,
+      // Provenance of the extraction itself. A reviewer checking a claim needs
+      // the quote it came from; an auditor re-running an old record needs to
+      // know which model and prompt produced it.
+      evidence: extracted.evidence.length
+        ? extracted.evidence.map((e) => ({ field: e.field, quote: e.quote }))
+        : undefined,
+      extractionModel: result.modelId,
+      promptVersion: result.promptVersion,
       sources: {
         create: {
           // The ORIGINAL publisher URL, exactly as stored on the article. This

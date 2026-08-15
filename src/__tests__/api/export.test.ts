@@ -121,16 +121,22 @@ describe('GET /api/export — privileged scope', () => {
 
 describe('GET /api/export — demo data exclusion', () => {
   /**
-   * BLOCKED ON STEP 6. `Incident.isDemo` does not exist in the schema yet, so
-   * the 49 fabricated seed incidents currently DO reach anonymous export.
-   *
-   * This is a live, known gap — not an oversight. The filter is centralised in
-   * src/lib/incidents/visibility.ts so closing it is a one-line change; this
-   * test is written now so it fails the moment the column lands and the filter
-   * is forgotten. Remove `.fails` when Step 6 adds the column.
+   * Closed on 2026-08-15. `Incident.isDemo` landed with the
+   * provenance/source-health migration and all 52 seed records were flagged.
+   * This test was written while the gap was still open so that it would fail
+   * the moment the column existed and the filter had been forgotten.
    */
-  it.fails('excludes isDemo records from anonymous export', async () => {
+  it('excludes isDemo records from anonymous export', async () => {
     mocks.auth.mockResolvedValue(null)
+
+    await GET(req())
+
+    const where = JSON.stringify(mocks.findMany.mock.calls[0]?.[0]?.where)
+    expect(where).toContain('isDemo')
+  })
+
+  it('excludes isDemo records from privileged export too', async () => {
+    mocks.auth.mockResolvedValue(sessionFor('ANALYST'))
 
     await GET(req())
 

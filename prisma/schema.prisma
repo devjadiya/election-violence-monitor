@@ -229,6 +229,18 @@ model Incident {
   confidenceScore Float            @default(0) // 0-100, from AI + corroboration
   isAutoDetected  Boolean          @default(true)
 
+  // Marks records that are NOT real observations: the April 2026 seed data.
+  // Kept rather than deleted so the published history stays auditable, but
+  // excluded from every public surface.
+  isDemo          Boolean          @default(false)
+
+  // Processing provenance. Which model and prompt produced this extraction, and
+  // the quotes it based each field on. Without these an AI-derived record is
+  // unauditable, and a reviewer cannot check a claim against the source text.
+  evidence        Json?
+  extractionModel String?
+  promptVersion   String?
+
   // Location
   country         String
   countryCode     String?          @db.VarChar(3)
@@ -286,6 +298,8 @@ model Incident {
   @@index([electionStage])
   @@index([confidenceScore])
   @@index([latitude, longitude])
+  // Every public query filters on these two together.
+  @@index([isDemo, status])
 }
 
 // ============================================================
@@ -347,7 +361,14 @@ model MonitoredSource {
   language     String     @default("en")
   isActive     Boolean    @default(true)
   trustScore   Float      @default(50) // 0-100
+
+  // Health. lastFetchedAt records an ATTEMPT; lastSuccessAt records a fetch
+  // that actually returned items. Conflating the two is what let sixteen dead
+  // feeds look healthy for four months.
   lastFetchedAt DateTime?
+  lastSuccessAt DateTime?
+  lastError     String?
+  consecutiveFailures Int @default(0)
   electionId   String?
   election     Election?  @relation(fields: [electionId], references: [id])
 
@@ -358,6 +379,7 @@ model MonitoredSource {
 
   @@index([isActive])
   @@index([country])
+  @@index([lastSuccessAt])
 }
 
 model RawArticle {
@@ -379,6 +401,12 @@ model RawArticle {
   // AI Pass 2 result
   isProcessed   Boolean   @default(false)
   pass2At       DateTime?
+
+  // Body extraction. Feeds supply a teaser; `content` is replaced with the
+  // published article text when we can fetch it, and these record whether that
+  // happened and how, so thin extractions can be told from rich ones.
+  bodyFetchedAt DateTime?
+  bodyMethod    String?
 
   sourceId      String
   source        MonitoredSource @relation(fields: [sourceId], references: [id])

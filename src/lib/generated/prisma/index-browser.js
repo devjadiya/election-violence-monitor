@@ -187,6 +187,10 @@ exports.Prisma.IncidentScalarFieldEnum = {
   electionStage: 'electionStage',
   confidenceScore: 'confidenceScore',
   isAutoDetected: 'isAutoDetected',
+  isDemo: 'isDemo',
+  evidence: 'evidence',
+  extractionModel: 'extractionModel',
+  promptVersion: 'promptVersion',
   country: 'country',
   countryCode: 'countryCode',
   region: 'region',
@@ -250,6 +254,9 @@ exports.Prisma.MonitoredSourceScalarFieldEnum = {
   isActive: 'isActive',
   trustScore: 'trustScore',
   lastFetchedAt: 'lastFetchedAt',
+  lastSuccessAt: 'lastSuccessAt',
+  lastError: 'lastError',
+  consecutiveFailures: 'consecutiveFailures',
   electionId: 'electionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -270,6 +277,8 @@ exports.Prisma.RawArticleScalarFieldEnum = {
   pass1At: 'pass1At',
   isProcessed: 'isProcessed',
   pass2At: 'pass2At',
+  bodyFetchedAt: 'bodyFetchedAt',
+  bodyMethod: 'bodyMethod',
   sourceId: 'sourceId'
 };
 

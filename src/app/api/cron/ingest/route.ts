@@ -108,9 +108,16 @@ export async function GET(req: NextRequest) {
       perSource['GDELT Project'].error = (e as Error).message.slice(0, 200)
     }
 
+    const g = perSource['GDELT Project']
     await prisma.monitoredSource.update({
       where: { id: gdeltSource.id },
-      data: { lastFetchedAt: new Date() },
+      data: g.ok
+        ? { lastFetchedAt: new Date(), lastSuccessAt: new Date(), lastError: null, consecutiveFailures: 0 }
+        : {
+            lastFetchedAt: new Date(),
+            lastError: g.error ?? 'unknown failure',
+            consecutiveFailures: { increment: 1 },
+          },
     })
 
     // ---- RSS ----------------------------------------------------------------
@@ -135,11 +142,24 @@ export async function GET(req: NextRequest) {
         perSource[source.name].error = (e as Error).message.slice(0, 200)
       }
 
-      // lastFetchedAt records an ATTEMPT. Whether it worked is `ok`, recorded
-      // in the log — the two must not be conflated.
+      // lastFetchedAt records an ATTEMPT; lastSuccessAt records a fetch that
+      // actually returned items. Conflating the two is what let sixteen dead
+      // feeds look healthy for four months.
+      const r = perSource[source.name]
       await prisma.monitoredSource.update({
         where: { id: source.id },
-        data: { lastFetchedAt: new Date() },
+        data: r.ok
+          ? {
+              lastFetchedAt: new Date(),
+              lastSuccessAt: new Date(),
+              lastError: null,
+              consecutiveFailures: 0,
+            }
+          : {
+              lastFetchedAt: new Date(),
+              lastError: r.error ?? 'unknown failure',
+              consecutiveFailures: { increment: 1 },
+            },
       })
     }
 
