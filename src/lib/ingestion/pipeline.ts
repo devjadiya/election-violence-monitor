@@ -12,6 +12,7 @@ import { getAiProvider } from '@/lib/ai/gemini'
  * success. On `error` the article is left unprocessed so a later run retries it.
  */
 export type ProcessOutcome =
+  | { status: 'stored'; rawArticleId: string }
   | { status: 'created'; incidentId: string }
   | { status: 'duplicate'; via: 'redis' | 'db' | 'canonical' }
   | { status: 'filtered'; stage: 'pass1' | 'pass2'; reason: string }

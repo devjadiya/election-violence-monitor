@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { isAlreadyProcessed, markAsProcessed } from '@/lib/queue/dedup'
-import { classifyStoredArticle, type ProcessOutcome } from '@/lib/ingestion/pipeline'
+import { type ProcessOutcome } from '@/lib/ingestion/pipeline'
 import { dedupHashes } from '@/lib/ingestion/canonical'
 
 export type { ProcessOutcome }
@@ -59,7 +59,18 @@ export async function fetchRssArticles(source: {
   }
 }
 
-export async function processArticle(article: {
+/**
+ * Stores a discovered article. Does NOT classify it.
+ *
+ * Discovery and classification are deliberately separate jobs. Feed reads are
+ * fast and rate-limit-free; AI calls are neither. Running both in one request
+ * meant a single invocation had to screen every article discovered that day,
+ * which overran the 300s function limit and left the run half-applied and
+ * unlogged — the same class of invisible failure this rebuild exists to end.
+ *
+ * Discovery now always completes. The classifier drains the queue separately.
+ */
+export async function storeArticle(article: {
   url: string
   title: string
   content: string
@@ -103,7 +114,7 @@ export async function processArticle(article: {
 
   await markAsProcessed(canonical)
 
-  return classifyStoredArticle(rawArticle.id)
+  return { status: 'stored', rawArticleId: rawArticle.id }
 }
 
 export const ELECTION_VIOLENCE_KEYWORDS = [

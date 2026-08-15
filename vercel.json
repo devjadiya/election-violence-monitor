@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/ingest",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/classify",
+      "schedule": "30 9 * * *"
     }
   ],
   "headers": [
