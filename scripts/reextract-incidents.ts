@@ -40,6 +40,27 @@ const APPLY = process.argv.includes('--apply')
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.split('=')[1] ?? 25)
 
 const log = (s = '') => console.log(s)
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Pacing.
+ *
+ * The extraction model's free tier is limited per minute, not just per day, and
+ * firing a batch back to back exhausts it in seconds — the first attempt at
+ * this returned RATE_LIMITED for sixteen consecutive records, having done no
+ * useful work at all. A fixed gap between records keeps a long backfill inside
+ * the allowance, and the gap widens when the provider pushes back.
+ */
+const BASE_PAUSE_MS = 6_000
+const MAX_PAUSE_MS = 90_000
+let pauseMs = BASE_PAUSE_MS
+
+function slowDown(): void {
+  pauseMs = Math.min(MAX_PAUSE_MS, Math.round(pauseMs * 2))
+}
+function speedUp(): void {
+  pauseMs = Math.max(BASE_PAUSE_MS, Math.round(pauseMs * 0.7))
+}
 
 async function main() {
   // Imported after the environment is loaded, because these modules read it.
@@ -79,8 +100,21 @@ async function main() {
   let retracted = 0
   let updated = 0
   let unchanged = 0
+  let consecutiveRateLimits = 0
 
-  for (const inc of incidents) {
+  for (const [index, inc] of incidents.entries()) {
+    if (index > 0) await sleep(pauseMs)
+
+    // Three refusals in a row means the allowance is genuinely spent. Grinding
+    // through the rest to collect sixteen identical failures wastes the run and
+    // tells us nothing we do not already know.
+    if (consecutiveRateLimits >= 3) {
+      log('')
+      log(`STOPPING: ${consecutiveRateLimits} consecutive rate limits. ${incidents.length - index} record(s) left.`)
+      log('The selection is by promptVersion, so re-running picks up exactly what was missed.')
+      break
+    }
+
     const article = inc.rawArticles[0]
     if (!article) {
       log(`SKIP    ${inc.referenceId}  no article attached`)
@@ -145,10 +179,18 @@ async function main() {
     // --- Extraction ---------------------------------------------------------
     const result = await ai.extract({ title: inc.title, text: body })
     if (!result.ok) {
-      log(`ERROR   ${inc.referenceId}  extraction failed: ${result.reason}`)
+      if (result.reason === 'RATE_LIMITED' || result.reason === 'MODEL_UNAVAILABLE') {
+        consecutiveRateLimits++
+        slowDown()
+        log(`WAIT    ${inc.referenceId}  ${result.reason} — backing off to ${Math.round(pauseMs / 1000)}s`)
+      } else {
+        log(`ERROR   ${inc.referenceId}  extraction failed: ${result.reason}`)
+      }
       unchanged++
       continue
     }
+    consecutiveRateLimits = 0
+    speedUp()
 
     const e = result.data
     const resolved = await resolveCountry({

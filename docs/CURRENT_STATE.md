@@ -1,6 +1,7 @@
 # Current State — verified as-built
 
-> **Last verified: 2026-08-15** by direct inspection of the working tree.
+> **Last verified: 2026-08-16** by direct inspection of the working tree and the
+> live deployment.
 > Everything below was read from source, not inferred. Where this contradicts
 > `Project_Documentation.MD` / `Project_Documentation_2.MD`, **this file wins** —
 > those two are product/pitch documents and have drifted from the code.
@@ -51,35 +52,75 @@ Two consequences worth internalising:
 
 ## 2. The ingestion pipeline, as actually implemented
 
-Entry point: `GET /api/cron/ingest` — [src/app/api/cron/ingest/route.ts](../src/app/api/cron/ingest/route.ts)
-Scheduled **daily at 09:00 UTC**, `maxDuration = 60`, bearer-auth against `CRON_SECRET`.
+**Discovery and classification are separate jobs.** They were one, and it timed
+out at exactly 300s half-applied with no `IngestionLog` written.
+
+| Job | Route | Schedule | Budget |
+|---|---|---|---|
+| Discovery — no AI | `GET /api/cron/ingest` | daily 09:00 UTC (`vercel.json`) + every 15 min via GitHub Actions when an election is live | `maxDuration = 300` |
+| Classification — all AI | `GET /api/cron/classify` | daily 09:30 UTC + the same 15-min schedule | 90s enrichment + 145s drain |
+
+Both bearer-auth against `CRON_SECRET` with `timingSafeEqual`.
 
 ```
-GDELT (30 records, 2-day window, English)  ─┐
-RSS (up to 10 active sources × 20 items)   ─┴─→ processArticle()
-                                                  │
-   Redis dedup (URL hash, 7d TTL) ────────────────┤
+GDELT (50 records) ─┐
+RSS × 27 feeds      ─┴─→ storeArticles()   batched: one Redis mget + one DB
+                                            findMany for the whole feed
+   Redis dedup (canonical + legacy hash, 7d TTL) ─┤
    DB dedup (sha256 urlHash, unique) ─────────────┤
+   in-run dedup (a feed can list one story twice) ┤
                                                   ↓
-   AI Pass 1  gemini-1.5-flash → {isElectionRelated, isViolenceRelated, confidence}
-                                                  │  drop if either false or confidence < 50
+                            RawArticle, isProcessed = false
                                                   ↓
-   AI Pass 2  gemini-1.5-flash → category, stage, location, weapon, casualties,
-                                 victim roles, actor types, summary, confidence
-                                                  │  drop if null or confidence < 40
+   ── /api/cron/classify, newest first ────────────
                                                   ↓
-   Nominatim geocode → lat/lng
+   body fetch if stored text < 900 chars (cheerio, behind an SSRF guard)
                                                   ↓
-   Incident created with status = FLAGGED, isAutoDetected = true
+   Pass 1  AI_SCREENING_MODEL → {isElectionRelated, isViolenceRelated, confidence}
+                                                  │  drop if either false
                                                   ↓
-   notifyAdmins() → /review
+   Pass 2  AI_EXTRACTION_MODEL → disorderType, category, stage, occurredOn,
+                                 location, tags, weapon, casualties, summary,
+                                 confidence, evidence quotes
+                                                  │  drop if confidence < 40
+                                                  ↓
+   cluster: title-shingle Jaccard ≥ 0.55, same place, 10-day window
+       └─ hit → attach as another IncidentSource, recount corroboration,
+                re-apply the publication criteria
+                                                  ↓
+   country resolved · event date resolved · Nominatim geocode (≤1 req/s)
+                                                  ↓
+   Incident, status = FLAGGED, isAutoDetected = true, isDemo = false
+                                                  ↓
+   maybeAutoPublish() → PUBLISHED only if it cites a resolvable URL, quotes a
+                        verbatim passage, was read from the article rather than
+                        a feed teaser, and clears confidence ≥ 65
 ```
 
-Core logic lives in [src/lib/ingestion/gdelt.ts](../src/lib/ingestion/gdelt.ts) and [src/lib/ai/classifier.ts](../src/lib/ai/classifier.ts).
+Core logic: [src/lib/ingestion/pipeline.ts](../src/lib/ingestion/pipeline.ts),
+[backlog.ts](../src/lib/ingestion/backlog.ts),
+[normalise.ts](../src/lib/ingestion/normalise.ts),
+[article-body.ts](../src/lib/ingestion/article-body.ts),
+[src/lib/ai/provider.ts](../src/lib/ai/provider.ts),
+[gemini.ts](../src/lib/ai/gemini.ts),
+[src/lib/incidents/publication.ts](../src/lib/incidents/publication.ts).
 
-**What is right about this:** auto-detected incidents land in `FLAGGED`, never `VERIFIED`. The AI-is-not-the-authority principle holds in the code. Two-pass screening keeps cost down. Redis dedup fires before the DB round-trip. `IngestionLog` records every run.
+**Auto-publication.** There is no reviewer on this deployment. A record that
+clears the criteria is stamped `AUTOMATED_CORROBORATION` and labelled
+"Machine-extracted", never "verified" or "reviewed"; the detail page states that
+no human checked it. `EDITORIAL_REVIEW` stays reserved for records a person read.
+Enforced by tests asserting the automated label cannot contain reviewer language.
 
-**What is missing relative to the vision:** there is no cross-source correlation, no article body extraction, and no clustering. See §4.
+**Model configuration** — `AI_SCREENING_MODEL` / `AI_EXTRACTION_MODEL` /
+`AI_FALLBACK_MODEL`, all env vars. A provider failure is a distinct outcome from
+a negative classification (`AiResult<T>` is a discriminated union) and leaves the
+article unprocessed to be retried, never silently discarded.
+
+**Cadence follows the election, not a global timer.** `GET /api/monitoring/status`
+reports whether any election is inside its collection window (21 days before
+polling to 30 after; "intensive" from 2 days before to 7 after). The GitHub
+Actions workflow reads it and exits early when nothing is live, so the
+high-frequency pass costs nothing on an ordinary day.
 
 ---
 
@@ -101,11 +142,18 @@ Core logic lives in [src/lib/ingestion/gdelt.ts](../src/lib/ingestion/gdelt.ts) 
 
 Ordered by how much damage they can do. Anything marked 🔴 should be fixed before the system is shown as a data source rather than a prototype.
 
-### ✅ D1 — RESOLVED 2026-08-15 — Seed data is fabricated but was presented as fact
+### ✅ D1 — CLOSED 2026-08-16 — Fabricated seed data, now deleted
 
-`Incident.isDemo` now exists and all **52** seed records carry it. Public surfaces
-exclude them two independent ways — the flag, and the synthetic-provenance shape —
-because the two fail differently.
+All **52** seed incidents were deleted on 2026-08-16 by
+[scripts/purge-seed-data.ts](../scripts/purge-seed-data.ts). They claimed **102
+deaths and 424 injuries that never happened**, each attributed to a
+`premiumtimesng.com/elections/evm-…` URL synthesised from our own reference id,
+and 45 were `PUBLISHED`. A full JSON dump is written to `backups/` (gitignored)
+before the delete, and the delete does not proceed unless the dump round-trips.
+
+They had been quarantined rather than removed on the reasoning that they were the
+only account of what was published. That stopped being worth the cost: nothing
+could be re-fetched, because the URLs do not resolve.
 
 The exposure was **worse than originally described**. The audit that found D1 also
 reported the public surface clean; that check tested `publicIncidentFilter()` rather
@@ -116,7 +164,18 @@ counts, fatality totals, map markers and indexed report pages. All now route thr
 one function, guarded by `src/__tests__/lib/visibility-callsites.test.ts`, which walks
 the public source tree and fails if a hand-rolled status filter reappears.
 
-The records were **not deleted**. They are the only account of what was published.
+**The generator was the real defect.** `prisma/seeds/seed.ts` calls
+`deleteMany({})` with no filter on Incident, IncidentSource, Victim, Actor,
+AuditLog and FollowUp — every real record and the audit trail proving what
+happened to them — and upserts a fixed admin password. One `npm run db:seed`
+against the deployed `DATABASE_URL` would have destroyed the dataset and
+published a known credential. It now refuses any host that is not localhost
+unless `SEED_ALLOW_REMOTE=i-understand`, and marks its records `isDemo` at
+creation instead of relying on a later repair.
+
+`publicIncidentFilter()` still excludes the fabricated URL shape as well as the
+flag, although no such row now exists. On a table this size the subquery costs
+nothing measurable, and it would catch a future seeder that forgot the flag.
 
 <details><summary>Original finding</summary>
 
