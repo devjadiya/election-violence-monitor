@@ -1,8 +1,0 @@
-﻿perf(ingestion): batch discovery round trips
-
-A 200-article discovery run took 277s of a 300s budget because each article
-cost four network round trips: a Redis lookup, a database lookup, an insert
-and a Redis write. Six new sources would have pushed it over the limit.
-
-Discovery now checks and marks a whole feed at once, turning 4N calls into
-a handful per source.
