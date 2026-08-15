@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+
 /**
  * URL canonicalisation for deduplication.
  *
@@ -49,6 +51,25 @@ export function canonicalUrl(raw: string): string {
   } catch {
     return raw.trim()
   }
+}
+
+export function urlHashOf(url: string): string {
+  return createHash('sha256').update(url).digest('hex')
+}
+
+/**
+ * Hashes to test when deciding whether an article is already known.
+ *
+ * Rows discovered before canonicalisation existed were keyed on the RAW url.
+ * Checking only the canonical hash would therefore miss every one of them and
+ * re-insert the entire backlog as fresh rows. Both keys are checked; the
+ * canonical hash is always the one written for new rows.
+ */
+export function dedupHashes(rawUrl: string): { canonical: string; hashes: string[] } {
+  const canonical = canonicalUrl(rawUrl)
+  const hashes = [urlHashOf(canonical)]
+  if (canonical !== rawUrl) hashes.push(urlHashOf(rawUrl))
+  return { canonical, hashes }
 }
 
 /** Stable shingle of a headline, for catching syndicated wire copy. */

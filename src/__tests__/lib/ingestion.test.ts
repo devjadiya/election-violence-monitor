@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { canonicalUrl, titleShingle } from '@/lib/ingestion/canonical'
+import { canonicalUrl, dedupHashes, titleShingle, urlHashOf } from '@/lib/ingestion/canonical'
 import { classifyError } from '@/lib/ai/provider'
 import { FABRICATED_SOURCE_URL_PREFIX, publicIncidentFilter } from '@/lib/incidents/visibility'
 
@@ -33,6 +33,32 @@ describe('URL canonicalisation', () => {
 
   it('returns the input unchanged when it is not a URL', () => {
     expect(canonicalUrl('not a url')).toBe('not a url')
+  })
+})
+
+describe('dedup stays compatible with pre-canonicalisation rows', () => {
+  // Every one of the 3,919 already-discovered articles was hashed on its RAW
+  // url. Introducing canonicalisation without also checking the legacy hash
+  // would have made the whole backlog look brand new and re-inserted it.
+  it('also offers the legacy raw-url hash when canonicalisation changes the url', () => {
+    const raw = 'https://www.punchng.com/story/?utm_source=twitter'
+    const { canonical, hashes } = dedupHashes(raw)
+    expect(canonical).not.toBe(raw)
+    expect(hashes).toContain(urlHashOf(canonical))
+    expect(hashes).toContain(urlHashOf(raw))
+  })
+
+  it('offers a single hash when the url is already canonical', () => {
+    const raw = 'https://punchng.com/story'
+    const { canonical, hashes } = dedupHashes(raw)
+    expect(canonical).toBe(raw)
+    expect(hashes).toEqual([urlHashOf(raw)])
+  })
+
+  it('writes the canonical hash first, so new rows converge on one key', () => {
+    const a = dedupHashes('https://punchng.com/story?utm_source=x')
+    const b = dedupHashes('https://www.punchng.com/story/')
+    expect(a.hashes[0]).toBe(b.hashes[0])
   })
 })
 

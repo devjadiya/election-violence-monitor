@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/db'
+import { isAuthorisedCron } from '@/lib/auth/cron'
 import {
   fetchGdeltArticles,
   fetchRssArticles,
@@ -13,18 +13,6 @@ import { notifyAdmins } from '@/lib/notifications'
 // Hobby allows up to 300s. The previous value of 60 was self-imposed.
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
-
-/** Constant-time bearer comparison so the secret cannot be probed by timing. */
-function authorised(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-  const header = req.headers.get('authorization') ?? ''
-  const expected = `Bearer ${secret}`
-  const a = Buffer.from(header)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length) return false
-  return timingSafeEqual(a, b)
-}
 
 interface Tally {
   discovered: number
@@ -53,7 +41,7 @@ function tallyOutcome(t: Tally, o: ProcessOutcome) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!authorised(req)) {
+  if (!isAuthorisedCron(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
