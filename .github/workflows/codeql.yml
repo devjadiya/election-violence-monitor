@@ -1,0 +1,56 @@
+name: CodeQL
+
+# Deep semantic analysis of JS/TS. Complements Semgrep: CodeQL does whole-program
+# dataflow (taint tracking from request -> sink), Semgrep does fast pattern rules.
+# Both are kept because they catch different classes of bug, but Semgrep is
+# restricted to security packs so the overlap stays small.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  schedule:
+    # Weekly full analysis, offset from the Security workflow to spread load.
+    - cron: '41 5 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze JavaScript/TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-extended adds higher-recall (slightly noisier) security
+          # queries. Worth it here: this app parses untrusted publisher content.
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - src/lib/generated
+              - node_modules
+              - .next
+
+      # No build step: CodeQL analyses JS/TS without compilation, and skipping
+      # the Next.js build keeps this job to a few minutes.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
