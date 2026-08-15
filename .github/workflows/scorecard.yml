@@ -23,6 +23,11 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Report-only. Scorecard rates repository posture, not code correctness, so
+    # it should never block a merge. It also failed while this repository was
+    # still private; now that it is public the score should populate, but the
+    # result is informational either way.
+    continue-on-error: true
     permissions:
       # Required to upload results to the code-scanning dashboard.
       security-events: write

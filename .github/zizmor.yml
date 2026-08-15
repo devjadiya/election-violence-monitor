@@ -1,0 +1,15 @@
+# Zizmor configuration.
+#
+# Third-party actions must be hash-pinned. Actions published by GitHub itself
+# (actions/*, github/*) are allowed a version tag: they run on the same
+# infrastructure the workflow already trusts, so a hash pin adds no isolation
+# while making CodeQL security updates slower to adopt.
+#
+# Rationale recorded in docs/SECURITY_AND_QUALITY.md §7.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        actions/*: ref-pin
+        github/*: ref-pin
+        '*': hash-pin

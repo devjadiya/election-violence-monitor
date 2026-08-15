@@ -58,10 +58,24 @@ Production-safety · TypeScript · ESLint on changed files · Vitest · Build ·
 | Check | Why not blocking |
 |---|---|
 | **ESLint full repo** | ~95 pre-existing errors. Blocking would red-wall every unrelated PR; downgrading the rules would hide real problems. The ratchet — new code must be clean — gets the benefit without the paralysis |
-| **OSV-Scanner** | 4 high-severity `undici` advisories exist today (Step 3 fixes them). Promote to blocking after that |
+| **OSV-Scanner** | 4 high-severity `undici` advisories exist today (Step 3 fixes them). **Also currently failing at "Set up job"** — see the open issues below |
+| **Semgrep** | Publishes SARIF to the Security tab instead of failing. `--error` was blocking the whole Security workflow and, without build-log access, a genuine finding was indistinguishable from a ruleset-fetch failure |
 | **Trivy / Scorecard** | Weekly posture signals, not per-change correctness |
 
-Both exceptions are **temporary and tied to a specific step**, not permanent tolerance.
+These exceptions are **temporary and tied to a specific step**, not permanent tolerance.
+
+### Open issues in the checks themselves
+
+First CI runs surfaced problems in this pipeline that are not yet resolved:
+
+| Job | Symptom | Status |
+|---|---|---|
+| OSV-Scanner | Fails at **"Set up job"** — the job never starts, so no logs are produced by the tool itself | ⚠️ **Unresolved.** Needs a pass with Actions log access to see whether the pinned action reference or the permissions block is at fault |
+| Semgrep | `--error` failed the run; cause not confirmed | Switched to SARIF reporting. Confirm findings in the Security tab, then decide whether to re-enable blocking |
+| Scorecard | Failed while the repository was private | Should populate now that it is public; verify before adding the README badge |
+| Zizmor | Flagged a genuine **template-injection** sink in `ci.yml` (`${{ github.base_ref }}` interpolated into a `run:` block) | ✅ **Fixed** — the ref is passed via `env:` instead. `.github/zizmor.yml` records the hash-pin policy |
+
+**Passing and blocking today:** CI (safety, env, types, lint-changed, tests, build), CodeQL, Gitleaks, Zizmor.
 
 ## 4. The lint ratchet
 

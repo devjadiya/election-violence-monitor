@@ -69,7 +69,19 @@ jobs:
 
       - name: Lint changed files
         # Blocking. New/changed code must be lint-clean.
-        run: pnpm run lint:changed ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
+        #
+        # base_ref is passed through the environment, never interpolated into
+        # the shell. A branch name is attacker-controlled, so `${{ }}` inside a
+        # `run:` block would be a script-injection sink.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            pnpm run lint:changed "origin/$BASE_REF"
+          else
+            pnpm run lint:changed "HEAD~1"
+          fi
 
       - name: Lint full repository
         # Non-blocking: reports the ~95-error legacy backlog without blocking
