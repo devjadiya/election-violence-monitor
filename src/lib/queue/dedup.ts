@@ -23,6 +23,31 @@ export async function markAsProcessed(url: string): Promise<void> {
   await redis.set(key, '1', { ex: DEDUP_TTL })
 }
 
+/**
+ * Batch variants.
+ *
+ * Discovery was issuing four network round trips per article, which put a
+ * 200-article run at 277s of a 300s budget. Checking and marking a whole feed
+ * at once turns that into two calls per source.
+ */
+export async function filterAlreadyProcessed(urls: string[]): Promise<Set<string>> {
+  if (!urls.length) return new Set()
+  const keys = urls.map((u) => `evm:dedup:${hashUrl(u)}`)
+  const values = await redis.mget<(string | null)[]>(...keys)
+  const seen = new Set<string>()
+  values.forEach((v, i) => {
+    if (v !== null && v !== undefined) seen.add(urls[i])
+  })
+  return seen
+}
+
+export async function markManyAsProcessed(urls: string[]): Promise<void> {
+  if (!urls.length) return
+  const pipe = redis.pipeline()
+  for (const u of urls) pipe.set(`evm:dedup:${hashUrl(u)}`, '1', { ex: DEDUP_TTL })
+  await pipe.exec()
+}
+
 export async function getProcessingStats(): Promise<{
   queueSize: number
 }> {

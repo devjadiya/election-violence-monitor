@@ -1,5 +1,10 @@
 import { prisma } from '@/lib/db'
-import { isAlreadyProcessed, markAsProcessed } from '@/lib/queue/dedup'
+import {
+  isAlreadyProcessed,
+  markAsProcessed,
+  filterAlreadyProcessed,
+  markManyAsProcessed,
+} from '@/lib/queue/dedup'
 import { type ProcessOutcome } from '@/lib/ingestion/pipeline'
 import { dedupHashes } from '@/lib/ingestion/canonical'
 
@@ -57,6 +62,85 @@ export async function fetchRssArticles(source: {
   } catch {
     return []
   }
+}
+
+export interface DiscoveredArticle {
+  url: string
+  title: string
+  content: string
+  publishedAt: Date
+  language?: string
+}
+
+/**
+ * Stores a whole feed's worth of articles in a handful of round trips.
+ *
+ * The per-article path issued four network calls each (Redis get, DB lookup,
+ * DB insert, Redis set), which put a 200-article discovery run at 277s of a
+ * 300s budget. Batching keeps discovery comfortably inside the limit as the
+ * source list grows.
+ */
+export async function storeArticles(
+  sourceId: string,
+  articles: DiscoveredArticle[]
+): Promise<{ stored: number; duplicates: number; skipped: number }> {
+  const usable = articles.filter((a) => a.url && a.title)
+  const skipped = articles.length - usable.length
+  if (!usable.length) return { stored: 0, duplicates: 0, skipped }
+
+  const prepared = usable.map((a) => ({ article: a, ...dedupHashes(a.url) }))
+
+  // One Redis round trip for the whole feed.
+  const seenInRedis = await filterAlreadyProcessed(
+    prepared.flatMap((p) => [p.canonical, p.article.url])
+  )
+
+  // One database round trip for the whole feed.
+  const knownRows = await prisma.rawArticle.findMany({
+    where: { urlHash: { in: prepared.flatMap((p) => p.hashes) } },
+    select: { urlHash: true },
+  })
+  const knownHashes = new Set(knownRows.map((r) => r.urlHash))
+
+  const fresh: typeof prepared = []
+  const seenThisRun = new Set<string>()
+  let duplicates = 0
+
+  for (const p of prepared) {
+    const isDuplicate =
+      seenInRedis.has(p.canonical) ||
+      seenInRedis.has(p.article.url) ||
+      p.hashes.some((h) => knownHashes.has(h)) ||
+      // A feed can list the same story twice in one payload.
+      seenThisRun.has(p.hashes[0])
+
+    if (isDuplicate) {
+      duplicates++
+      continue
+    }
+    seenThisRun.add(p.hashes[0])
+    fresh.push(p)
+  }
+
+  if (fresh.length) {
+    await prisma.rawArticle.createMany({
+      data: fresh.map((p) => ({
+        urlHash: p.hashes[0],
+        url: p.canonical,
+        title: p.article.title,
+        // Store a bounded excerpt only. We link back to the publisher rather
+        // than retaining full article bodies.
+        content: p.article.content.slice(0, 2000),
+        publishedAt: p.article.publishedAt,
+        language: p.article.language ?? 'en',
+        sourceId,
+      })),
+      skipDuplicates: true,
+    })
+    await markManyAsProcessed(fresh.map((p) => p.canonical))
+  }
+
+  return { stored: fresh.length, duplicates, skipped }
 }
 
 /**

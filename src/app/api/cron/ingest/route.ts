@@ -4,8 +4,9 @@ import { isAuthorisedCron } from '@/lib/auth/cron'
 import {
   fetchGdeltArticles,
   fetchRssArticles,
-  storeArticle,
+  storeArticles,
   ELECTION_VIOLENCE_KEYWORDS,
+  type DiscoveredArticle,
 } from '@/lib/ingestion/gdelt'
 import { backlogSize } from '@/lib/ingestion/backlog'
 import { notifyAdmins } from '@/lib/notifications'
@@ -45,29 +46,20 @@ export async function GET(req: NextRequest) {
 
   const blank = (): SourceResult => ({ discovered: 0, stored: 0, duplicates: 0, ok: true })
 
-  const ingest = async (
-    name: string,
-    sourceId: string,
-    articles: { url: string; title: string; content: string; publishedAt: Date; language?: string }[]
-  ) => {
+  const ingest = async (name: string, sourceId: string, articles: DiscoveredArticle[]) => {
     const r = perSource[name]
     r.discovered = articles.length
     discovered += articles.length
 
-    for (const a of articles) {
-      try {
-        const outcome = await storeArticle({ ...a, sourceId })
-        if (outcome.status === 'stored') {
-          r.stored++
-          stored++
-        } else if (outcome.status === 'duplicate') {
-          r.duplicates++
-          duplicates++
-        }
-      } catch (e) {
-        r.ok = false
-        r.error = (e as Error).message.slice(0, 200)
-      }
+    try {
+      const result = await storeArticles(sourceId, articles)
+      r.stored = result.stored
+      r.duplicates = result.duplicates
+      stored += result.stored
+      duplicates += result.duplicates
+    } catch (e) {
+      r.ok = false
+      r.error = (e as Error).message.slice(0, 200)
     }
   }
 
