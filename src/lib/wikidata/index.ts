@@ -1,17 +1,55 @@
 const WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql'
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php'
 
+/**
+ * Wikidata Q-identifier: "Q" followed by digits, no leading zero.
+ */
+const QID_PATTERN = /^Q[1-9][0-9]{0,11}$/
+
+/**
+ * Country names may contain letters (any script), spaces, hyphens, apostrophes
+ * and full stops. Anything else — quotes, braces, newlines, SPARQL keywords —
+ * is rejected outright rather than escaped.
+ */
+const COUNTRY_NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M}\s'’.\-()]{1,59}$/u
+
+export function isValidQid(qid: string): boolean {
+  return QID_PATTERN.test(qid)
+}
+
+export function isValidCountryName(country: string): boolean {
+  return COUNTRY_NAME_PATTERN.test(country)
+}
+
+/**
+ * Escape a value for use inside a SPARQL double-quoted string literal.
+ * Defence in depth — callers must ALSO have validated against the allowlist.
+ */
+function escapeSparqlLiteral(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t')
+}
+
 export async function searchWikidataElections(country: string): Promise<{
   id: string
   label: string
   description: string
   date: string | null
 }[]> {
+  // Never interpolate unvalidated input into a query. Reject, do not sanitise.
+  if (!isValidCountryName(country)) return []
+
+  const safeCountry = escapeSparqlLiteral(country)
+
   const sparql = `
     SELECT ?item ?itemLabel ?itemDescription ?date WHERE {
       ?item wdt:P31 wd:Q40231.
       ?item wdt:P17 ?country.
-      ?country rdfs:label "${country}"@en.
+      ?country rdfs:label "${safeCountry}"@en.
       OPTIONAL { ?item wdt:P585 ?date. }
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
     }
@@ -40,9 +78,11 @@ export async function getWikidataEntity(qid: string): Promise<{
   description: string
   claims: Record<string, any>
 } | null> {
+  if (!isValidQid(qid)) return null
+
   try {
     const res = await fetch(
-      `${WIKIDATA_API}?action=wbgetentities&ids=${qid}&format=json&languages=en&origin=*`
+      `${WIKIDATA_API}?action=wbgetentities&ids=${encodeURIComponent(qid)}&format=json&languages=en&origin=*`
     )
     const data = await res.json()
     const entity = data.entities?.[qid]

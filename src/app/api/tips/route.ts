@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { tipLimiter, getClientIp, rateLimit } from '@/lib/security/rate-limit'
 import { notifyAdmins } from '@/lib/notifications'
+import { requireRole } from '@/lib/auth/guard'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -47,10 +48,48 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, id: tip.id })
 }
 
+/**
+ * Tip submissions may come from witnesses, victims or observers at personal
+ * risk. They are raw, unreviewed and unverified.
+ *
+ * Access requires REVIEWER or above, and `submitterId` is NEVER returned —
+ * linking a report to an account is a source-protection failure regardless of
+ * who is asking.
+ */
 export async function GET() {
+  const guard = await requireRole('REVIEWER')
+  if (!guard.ok) return guard.response
+
   const tips = await prisma.tipSubmission.findMany({
     orderBy: { createdAt: 'desc' },
     take: 50,
+    // Explicit allowlist. Never use the default (which includes submitterId).
+    select: {
+      id: true,
+      description: true,
+      location: true,
+      occurredAt: true,
+      category: true,
+      isAnonymous: true,
+      isReviewed: true,
+      reviewNotes: true,
+      createdAt: true,
+    },
   })
-  return NextResponse.json({ success: true, data: tips })
+
+  // Defence in depth: project explicitly at the response boundary too, so the
+  // guarantee holds even if the select allowlist above is ever widened.
+  const safe = tips.map((t) => ({
+    id: t.id,
+    description: t.description,
+    location: t.location,
+    occurredAt: t.occurredAt,
+    category: t.category,
+    isAnonymous: t.isAnonymous,
+    isReviewed: t.isReviewed,
+    reviewNotes: t.reviewNotes,
+    createdAt: t.createdAt,
+  }))
+
+  return NextResponse.json({ success: true, data: safe })
 }
