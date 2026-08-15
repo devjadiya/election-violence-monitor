@@ -96,6 +96,16 @@ describe('AI failure classification', () => {
     ).toBe('MODEL_UNAVAILABLE')
   })
 
+  // Observed in production. A transient capacity problem reported as UNKNOWN
+  // skips the fallback model, so the article is deferred for no reason.
+  it('treats transient overload as RATE_LIMITED so the fallback is tried', () => {
+    expect(
+      classifyError(new Error('This model is currently experiencing high demand.')).reason
+    ).toBe('RATE_LIMITED')
+    expect(classifyError(new Error('503 Service Unavailable')).reason).toBe('RATE_LIMITED')
+    expect(classifyError(new Error('The model is overloaded')).reason).toBe('RATE_LIMITED')
+  })
+
   it.each([
     ['404 Not Found', 'MODEL_UNAVAILABLE'],
     ['429 quota exceeded', 'RATE_LIMITED'],

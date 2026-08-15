@@ -111,7 +111,20 @@ export function classifyError(err: unknown): { reason: AiFailureReason; message:
     lower.includes('deprecated')
   )
     return { reason: 'MODEL_UNAVAILABLE', message }
-  if (lower.includes('429') || lower.includes('quota') || lower.includes('rate limit'))
+  // Transient capacity problems belong here, not under UNKNOWN. Observed in
+  // production on 2026-08-15: "This model is currently experiencing high
+  // demand" fell through to UNKNOWN, so callWithFallback never tried the
+  // fallback model and the article was left for a later run for no reason.
+  if (
+    lower.includes('429') ||
+    lower.includes('quota') ||
+    lower.includes('rate limit') ||
+    lower.includes('high demand') ||
+    lower.includes('overloaded') ||
+    lower.includes('503') ||
+    lower.includes('service unavailable') ||
+    lower.includes('try again later')
+  )
     return { reason: 'RATE_LIMITED', message }
   if (lower.includes('timeout') || lower.includes('etimedout') || lower.includes('aborted'))
     return { reason: 'TIMEOUT', message }

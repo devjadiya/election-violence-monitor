@@ -15,6 +15,13 @@ const BODY_FETCH_THRESHOLD = 900
 const MAX_BODY_CHARS = 6000
 
 /**
+ * Ceiling for an extraction that quotes nothing and had only a teaser to read.
+ * Above the 40 threshold, so the record still reaches a human — it just stops
+ * claiming to be as well-founded as an evidenced one.
+ */
+const UNEVIDENCED_CONFIDENCE_CAP = 55
+
+/**
  * Outcome of processing a single article.
  *
  * `error` is deliberately distinct from `filtered`. A provider failure must
@@ -167,6 +174,15 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
   }
 
   const extracted = result.data
+
+  // An extraction with no supporting quotes, taken from a headline, is a guess.
+  // Observed in production: a 153-character feed snippet produced a confidence
+  // of 90 and zero evidence spans, which would have reached a reviewer looking
+  // exactly as trustworthy as an extraction backed by a 3,000-character article
+  // and five verbatim quotes. Confidence must reflect what the text supports.
+  if (extracted.evidence.length === 0 && body.length < BODY_FETCH_THRESHOLD) {
+    extracted.confidence = Math.min(extracted.confidence, UNEVIDENCED_CONFIDENCE_CAP)
+  }
 
   if (extracted.confidence < 40) {
     await prisma.rawArticle.update({
