@@ -58,3 +58,8 @@ msg.txt
 
 # Prisma engine temp files from interrupted generate runs
 src/lib/generated/prisma/*.tmp*
+
+# Local dumps taken before a destructive script runs. These are a safety net for
+# the operator, not repository content — and a dump of incident rows is exactly
+# the sort of thing that should not be pushed anywhere by accident.
+backups/

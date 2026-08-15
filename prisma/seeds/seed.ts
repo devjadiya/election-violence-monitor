@@ -3,8 +3,59 @@ import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
 
+/**
+ * Refuses to run against anything that is not a local, disposable database.
+ *
+ * This script is more dangerous than it looks. Below, it calls deleteMany({})
+ * on Incident, IncidentSource, Victim, Actor, AuditLog and FollowUp with no
+ * filter — every real record the pipeline has ever produced, and the audit
+ * trail proving what happened to them. It also upserts a fixed admin password.
+ * A single `npm run db:seed` pointed at production would destroy the dataset
+ * and hand out a known credential.
+ *
+ * The 52 incidents it creates were live on the public site for four months,
+ * attributed to Premium Times URLs that do not exist. They were deleted on
+ * 2026-08-16. Nothing about that outcome should be reachable by a typo.
+ *
+ * Set SEED_ALLOW_REMOTE=i-understand only if you genuinely mean it.
+ */
+function assertLocalDatabase(): void {
+  const url = process.env.DATABASE_URL ?? ""
+  if (!url) throw new Error("DATABASE_URL is not set.")
+
+  if (process.env.SEED_ALLOW_REMOTE === "i-understand") {
+    console.warn("SEED_ALLOW_REMOTE is set. Proceeding against a non-local database.")
+    return
+  }
+
+  let host: string
+  try {
+    host = new URL(url).hostname.toLowerCase()
+  } catch {
+    throw new Error("DATABASE_URL is not a parseable URL; refusing to seed.")
+  }
+
+  const local =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "host.docker.internal" ||
+    host.endsWith(".local")
+
+  if (!local) {
+    throw new Error(
+      `Refusing to seed: ${host} is not a local database.\n` +
+        "This script deletes EVERY incident, source, victim, actor, follow-up and\n" +
+        "audit-log row, then creates 52 fabricated incidents attributed to a real\n" +
+        "newspaper's domain, and resets the admin password to a fixed value.\n" +
+        "Run it against a local Postgres, or set SEED_ALLOW_REMOTE=i-understand."
+    )
+  }
+}
+
 async function main() {
-  console.log("Starting full seed...")
+  assertLocalDatabase()
+  console.log("Starting full seed against a local database...")
 
   const password = await bcrypt.hash("password123", 12)
   const adminPassword = await bcrypt.hash("admin123456", 12)
@@ -132,6 +183,11 @@ async function main() {
     await prisma.incident.create({
       data: {
         ...data,
+        // Nothing this script writes is an observation. The flag is set here,
+        // at the point of creation, rather than repaired afterwards by a
+        // separate script — which is what had to happen last time, four months
+        // and one public dataset too late.
+        isDemo: true,
         createdById: adminUser.id,
         reviewedById: ["PUBLISHED", "VERIFIED"].includes(data.status) ? reviewerUser.id : undefined,
         publishedAt: data.status === "PUBLISHED" ? new Date(data.occurredAt.getTime() + 86400000) : undefined,
