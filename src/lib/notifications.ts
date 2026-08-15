@@ -7,6 +7,9 @@ type NotificationType =
   | 'incident_rejected'
   | 'new_tip'
   | 'ingestion_complete'
+  // Raised when a run discovers articles but classifies none, or errors on a
+  // large share of them. Operators need to hear about a silently dead pipeline.
+  | 'ingestion_failure'
   | 'system'
 
 export async function notifyAdmins(opts: {

@@ -1,7 +1,25 @@
 import { createHash } from 'crypto'
 import { prisma } from '@/lib/db'
-import { pass1Screen, pass2Extract, geocodeLocation } from '@/lib/ai/classifier'
+import { geocodeLocation } from '@/lib/ai/classifier'
+import { getAiProvider } from '@/lib/ai/gemini'
 import { isAlreadyProcessed, markAsProcessed } from '@/lib/queue/dedup'
+import { canonicalUrl } from '@/lib/ingestion/canonical'
+import { nanoid } from 'nanoid'
+
+/**
+ * Outcome of processing a single article.
+ *
+ * `error` is deliberately distinct from `filtered`. A provider failure must
+ * never be recorded as "not relevant" — that is precisely the bug that left
+ * 3,919 real articles classified as irrelevant while the pipeline reported
+ * success. On `error` the article is left unprocessed so a later run retries it.
+ */
+export type ProcessOutcome =
+  | { status: 'created'; incidentId: string }
+  | { status: 'duplicate'; via: 'redis' | 'db' | 'canonical' }
+  | { status: 'filtered'; stage: 'pass1' | 'pass2'; reason: string }
+  | { status: 'skipped'; reason: string }
+  | { status: 'error'; stage: 'pass1' | 'pass2'; reason: string; detail: string }
 
 const GDELT_BASE = 'https://api.gdeltproject.org/api/v2/doc/doc'
 
@@ -64,58 +82,91 @@ export async function processArticle(article: {
   publishedAt: Date
   sourceId: string
   language?: string
-}): Promise<{ created: boolean; incidentId?: string; reason?: string }> {
+}): Promise<ProcessOutcome> {
+  if (!article.url || !article.title) return { status: 'skipped', reason: 'missing_fields' }
 
-  if (!article.url || !article.title) return { created: false, reason: 'missing_fields' }
+  const ai = getAiProvider()
 
-  // Upstash dedup check — faster than DB
-  const alreadyDone = await isAlreadyProcessed(article.url)
-  if (alreadyDone) return { created: false, reason: 'duplicate_redis' }
+  // Dedup on the CANONICAL url so tracking-parameter variants of the same
+  // article collapse together.
+  const canonical = canonicalUrl(article.url)
 
-  // DB dedup check as fallback
-  const urlHash = createHash('sha256').update(article.url).digest('hex')
+  const alreadyDone = await isAlreadyProcessed(canonical)
+  if (alreadyDone) return { status: 'duplicate', via: 'redis' }
+
+  const urlHash = createHash('sha256').update(canonical).digest('hex')
   const existing = await prisma.rawArticle.findUnique({ where: { urlHash } })
   if (existing) {
-    await markAsProcessed(article.url)
-    return { created: false, reason: 'duplicate_db' }
+    await markAsProcessed(canonical)
+    return { status: 'duplicate', via: 'db' }
   }
 
   const text = `${article.title}. ${article.content}`.trim()
 
-  // Pass 1: Quick screen
-  const screen = await pass1Screen(text)
+  // --- Pass 1: relevance gate ------------------------------------------------
+  const screen = await ai.screen({ title: article.title, text: article.content })
+
+  if (!screen.ok) {
+    // Provider failure. Persist NOTHING about relevance and do not mark the URL
+    // processed, so the next run retries this article rather than silently
+    // discarding it.
+    return {
+      status: 'error',
+      stage: 'pass1',
+      reason: screen.reason,
+      detail: `${screen.modelId}: ${screen.error.slice(0, 200)}`,
+    }
+  }
 
   const rawArticle = await prisma.rawArticle.create({
     data: {
       urlHash,
-      url: article.url,
+      url: canonical,
       title: article.title,
-      content: article.content.slice(0, 5000),
+      // Store a bounded excerpt only. We link back to the publisher rather than
+      // retaining full article bodies.
+      content: article.content.slice(0, 2000),
       publishedAt: article.publishedAt,
       language: article.language ?? 'en',
-      isElectionRelated: screen.isElectionRelated,
-      isViolenceRelated: screen.isViolenceRelated,
-      pass1Score: screen.confidence,
+      isElectionRelated: screen.data.isElectionRelated,
+      isViolenceRelated: screen.data.isViolenceRelated,
+      pass1Score: screen.data.confidence,
       pass1At: new Date(),
       sourceId: article.sourceId,
     },
   })
 
-  // Mark in Redis immediately
-  await markAsProcessed(article.url)
+  await markAsProcessed(canonical)
 
-  if (!screen.isElectionRelated || !screen.isViolenceRelated || screen.confidence < 50) {
-    return { created: false, reason: 'pass1_failed' }
+  if (!screen.data.isElectionRelated || !screen.data.isViolenceRelated) {
+    await prisma.rawArticle.update({
+      where: { id: rawArticle.id },
+      data: { isProcessed: true },
+    })
+    return { status: 'filtered', stage: 'pass1', reason: 'not_election_violence' }
   }
 
-  // Pass 2: Deep extraction
-  const extracted = await pass2Extract(text, article.title)
-  if (!extracted || extracted.confidence < 40) {
+  // --- Pass 2: structured extraction ----------------------------------------
+  const result = await ai.extract({ title: article.title, text: article.content })
+
+  if (!result.ok) {
+    // Again: a failure here is not a filter. Leave isProcessed false to retry.
+    return {
+      status: 'error',
+      stage: 'pass2',
+      reason: result.reason,
+      detail: `${result.modelId}: ${result.error.slice(0, 200)}`,
+    }
+  }
+
+  const extracted = result.data
+
+  if (extracted.confidence < 40) {
     await prisma.rawArticle.update({
       where: { id: rawArticle.id },
       data: { isProcessed: true, pass2At: new Date() },
     })
-    return { created: false, reason: 'pass2_low_confidence' }
+    return { status: 'filtered', stage: 'pass2', reason: 'low_confidence' }
   }
 
   // Geocode
@@ -126,9 +177,20 @@ export async function processArticle(article: {
     community: extracted.community,
   })
 
-  // Create incident
-  const count = await prisma.incident.count()
-  const referenceId = `EVM-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`
+  // Reference id.
+  //
+  // The previous implementation used `count() + 1`, which races under any
+  // concurrency against a @unique column and renumbers after a deletion. A
+  // random suffix is collision-safe without a round trip, and the id stays
+  // stable for external citation.
+  const referenceId = `EVM-${new Date().getUTCFullYear()}-${nanoid(8).toUpperCase()}`
+
+  // Publisher name for provenance. article.sourceId is a database id, not
+  // something a reader can act on, so resolve the real publisher.
+  const source = await prisma.monitoredSource.findUnique({
+    where: { id: article.sourceId },
+    select: { name: true, sourceType: true },
+  })
 
   const incident = await prisma.incident.create({
     data: {
@@ -146,15 +208,17 @@ export async function processArticle(article: {
       occurredAt: article.publishedAt,
       fatalities: extracted.fatalities,
       injured: extracted.injured,
+      arrested: extracted.arrested,
       weaponType: extracted.weaponType,
+      // AI output can only ever reach FLAGGED. A human moves it further.
       status: 'FLAGGED',
       isAutoDetected: true,
       confidenceScore: extracted.confidence,
       sources: {
         create: {
-          sourceUrl: article.url,
-          sourceName: article.sourceId,
-          sourceType: 'RSS_FEED',
+          sourceUrl: canonical,
+          sourceName: source?.name ?? 'Unknown source',
+          sourceType: source?.sourceType ?? 'RSS_FEED',
           publishedAt: article.publishedAt,
         },
       },
@@ -167,7 +231,7 @@ export async function processArticle(article: {
     data: { isProcessed: true, pass2At: new Date() },
   })
 
-  return { created: true, incidentId: incident.id }
+  return { status: 'created', incidentId: incident.id }
 }
 
 export const ELECTION_VIOLENCE_KEYWORDS = [

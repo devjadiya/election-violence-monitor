@@ -1,27 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/db'
-import { fetchGdeltArticles, fetchRssArticles, processArticle, ELECTION_VIOLENCE_KEYWORDS } from '@/lib/ingestion/gdelt'
+import {
+  fetchGdeltArticles,
+  fetchRssArticles,
+  processArticle,
+  ELECTION_VIOLENCE_KEYWORDS,
+  type ProcessOutcome,
+} from '@/lib/ingestion/gdelt'
 import { notifyAdmins } from '@/lib/notifications'
 
-export const maxDuration = 60
+// Hobby allows up to 300s. The previous value of 60 was self-imposed.
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
+
+/** Constant-time bearer comparison so the secret cannot be probed by timing. */
+function authorised(req: NextRequest): boolean {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return false
+  const header = req.headers.get('authorization') ?? ''
+  const expected = `Bearer ${secret}`
+  const a = Buffer.from(header)
+  const b = Buffer.from(expected)
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
+
+interface Tally {
+  discovered: number
+  duplicates: number
+  filtered: number
+  created: number
+  errors: number
+}
+
+function tallyOutcome(t: Tally, o: ProcessOutcome) {
+  switch (o.status) {
+    case 'created':
+      t.created++
+      break
+    case 'duplicate':
+      t.duplicates++
+      break
+    case 'filtered':
+    case 'skipped':
+      t.filtered++
+      break
+    case 'error':
+      t.errors++
+      break
+  }
+}
 
 export async function GET(req: NextRequest) {
-  // Verify cron secret
-  const authHeader = req.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (!authorised(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const startedAt = new Date()
-  let articlesFound = 0
-  let articlesNew = 0
-  let incidentsCreated = 0
-  const errors: string[] = []
+  const t: Tally = { discovered: 0, duplicates: 0, filtered: 0, created: 0, errors: 0 }
+
+  // Structured failure records. The previous implementation joined error
+  // strings with newlines, which made them unqueryable and easy to ignore.
+  const failures: { scope: string; reason: string; detail: string }[] = []
+  const perSource: Record<string, { discovered: number; created: number; errors: number }> = {}
+
+  const note = (scope: string, reason: string, detail: string) => {
+    failures.push({ scope, reason, detail: detail.slice(0, 300) })
+  }
 
   try {
-    // 1. Fetch from GDELT
+    // ---- GDELT --------------------------------------------------------------
     const gdeltSource = await prisma.monitoredSource.upsert({
       where: { url: 'https://api.gdeltproject.org' },
       update: { lastFetchedAt: new Date() },
@@ -30,91 +79,160 @@ export async function GET(req: NextRequest) {
         url: 'https://api.gdeltproject.org',
         sourceType: 'API',
         language: 'en',
-        trustScore: 70,
         lastFetchedAt: new Date(),
       },
     })
 
-    const gdeltArticles = await fetchGdeltArticles(ELECTION_VIOLENCE_KEYWORDS, 30)
-    articlesFound += gdeltArticles.length
+    try {
+      const gdeltArticles = await fetchGdeltArticles(ELECTION_VIOLENCE_KEYWORDS, 30)
+      t.discovered += gdeltArticles.length
+      perSource['GDELT Project'] = { discovered: gdeltArticles.length, created: 0, errors: 0 }
 
-    for (const article of gdeltArticles) {
-      try {
-        const result = await processArticle({
-          url: article.url,
-          title: article.title,
-          content: article.title,
-          publishedAt: new Date(article.seendate),
-          sourceId: gdeltSource.id,
-          language: article.language ?? 'en',
-        })
-        if (result.created) incidentsCreated++
-        articlesNew++
-      } catch (e: any) {
-        errors.push(`GDELT: ${e.message}`)
+      for (const article of gdeltArticles) {
+        try {
+          const outcome = await processArticle({
+            url: article.url,
+            title: article.title,
+            // GDELT returns metadata only, no body. Screening therefore sees a
+            // headline. Article-body extraction is the next pipeline step.
+            content: article.title,
+            publishedAt: new Date(article.seendate),
+            sourceId: gdeltSource.id,
+            language: article.language ?? 'en',
+          })
+          tallyOutcome(t, outcome)
+          if (outcome.status === 'created') perSource['GDELT Project'].created++
+          if (outcome.status === 'error') {
+            perSource['GDELT Project'].errors++
+            note('GDELT', outcome.reason, outcome.detail)
+          }
+        } catch (e) {
+          t.errors++
+          note('GDELT', 'UNCAUGHT', (e as Error).message)
+        }
       }
+    } catch (e) {
+      note('GDELT', 'DISCOVERY_FAILED', (e as Error).message)
     }
 
-    // 2. Fetch from active RSS sources
+    // ---- RSS ----------------------------------------------------------------
     const rssSources = await prisma.monitoredSource.findMany({
       where: { isActive: true, rssUrl: { not: null }, sourceType: 'RSS_FEED' },
-      take: 10,
+      take: 20,
     })
 
     for (const source of rssSources) {
+      perSource[source.name] = { discovered: 0, created: 0, errors: 0 }
       try {
         const articles = await fetchRssArticles(source)
-        articlesFound += articles.length
+        t.discovered += articles.length
+        perSource[source.name].discovered = articles.length
+
+        // A feed that returns nothing is a signal, not a non-event.
+        if (articles.length === 0) {
+          note(source.name, 'EMPTY_FEED', 'feed returned zero items')
+        }
 
         for (const article of articles) {
-          const result = await processArticle({
-            ...article,
-            sourceId: source.id,
-          })
-          if (result.created) incidentsCreated++
-          articlesNew++
+          try {
+            const outcome = await processArticle({ ...article, sourceId: source.id })
+            tallyOutcome(t, outcome)
+            if (outcome.status === 'created') perSource[source.name].created++
+            if (outcome.status === 'error') {
+              perSource[source.name].errors++
+              note(source.name, outcome.reason, outcome.detail)
+            }
+          } catch (e) {
+            t.errors++
+            perSource[source.name].errors++
+            note(source.name, 'UNCAUGHT', (e as Error).message)
+          }
         }
 
         await prisma.monitoredSource.update({
           where: { id: source.id },
           data: { lastFetchedAt: new Date() },
         })
-      } catch (e: any) {
-        errors.push(`RSS ${source.name}: ${e.message}`)
+      } catch (e) {
+        perSource[source.name].errors++
+        note(source.name, 'FETCH_FAILED', (e as Error).message)
       }
     }
 
-    // Log the run
+    const durationMs = Date.now() - startedAt.getTime()
+
     await prisma.ingestionLog.create({
       data: {
         jobType: 'cron',
-        articlesFound,
-        articlesNew,
-        incidentsCreated,
-        errors: errors.length > 0 ? errors.join('\n') : null,
-        durationMs: Date.now() - startedAt.getTime(),
+        articlesFound: t.discovered,
+        articlesNew: t.discovered - t.duplicates,
+        incidentsCreated: t.created,
+        errors: failures.length ? JSON.stringify({ failures, perSource }) : null,
+        durationMs,
         completedAt: new Date(),
       },
     })
 
-    if (incidentsCreated > 0) {
+    // Alarms. A run that discovers articles but produces neither incidents nor
+    // filtered results means the classifier is not working — the exact failure
+    // that went unnoticed for months.
+    const classifierDead = t.discovered > 20 && t.created === 0 && t.filtered === 0
+    const highErrorRate = t.discovered > 0 && t.errors / t.discovered > 0.4
+
+    if (t.created > 0) {
       await notifyAdmins({
         type: 'new_incident',
-        title: `AI detected ${incidentsCreated} new incident${incidentsCreated > 1 ? 's' : ''}`,
-        message: `Ingestion found ${articlesFound} articles, created ${incidentsCreated} incidents for review.`,
+        title: `${t.created} incident${t.created > 1 ? 's' : ''} awaiting review`,
+        message: `Ingestion screened ${t.discovered} articles and flagged ${t.created} for human review.`,
         link: '/review',
       })
     }
 
+    if (classifierDead || highErrorRate) {
+      await notifyAdmins({
+        type: 'ingestion_failure',
+        title: classifierDead ? 'Ingestion produced no results' : 'Ingestion error rate high',
+        message: classifierDead
+          ? `${t.discovered} articles discovered but none classified. The AI provider is likely failing.`
+          : `${t.errors} of ${t.discovered} articles errored.`,
+        link: '/admin/settings',
+      })
+    }
+
     return NextResponse.json({
-      success: true,
-      articlesFound,
-      articlesNew,
-      incidentsCreated,
-      errors,
-      duration: `${Date.now() - startedAt.getTime()}ms`,
+      ok: true,
+      // Report honestly. Zero is zero.
+      discovered: t.discovered,
+      duplicates: t.duplicates,
+      filtered: t.filtered,
+      created: t.created,
+      errors: t.errors,
+      failureCount: failures.length,
+      failures: failures.slice(0, 20),
+      perSource,
+      durationMs,
+      healthy: !classifierDead && !highErrorRate,
     })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error) {
+    const durationMs = Date.now() - startedAt.getTime()
+    // A total failure must still leave a record.
+    await prisma.ingestionLog
+      .create({
+        data: {
+          jobType: 'cron',
+          articlesFound: t.discovered,
+          articlesNew: 0,
+          incidentsCreated: t.created,
+          errors: JSON.stringify({ fatal: (error as Error).message, failures }),
+          durationMs,
+          completedAt: new Date(),
+        },
+      })
+      .catch(() => {})
+
+    return NextResponse.json(
+      { ok: false, error: (error as Error).message, discovered: t.discovered },
+      { status: 500 }
+    )
   }
 }
