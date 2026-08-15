@@ -195,6 +195,8 @@ exports.Prisma.IncidentScalarFieldEnum = {
   title: 'title',
   description: 'description',
   category: 'category',
+  disorderType: 'disorderType',
+  tags: 'tags',
   status: 'status',
   verificationStatus: 'verificationStatus',
   electionStage: 'electionStage',
@@ -214,7 +216,10 @@ exports.Prisma.IncidentScalarFieldEnum = {
   specificLocation: 'specificLocation',
   latitude: 'latitude',
   longitude: 'longitude',
+  geocodeStatus: 'geocodeStatus',
+  countryResolvedVia: 'countryResolvedVia',
   occurredAt: 'occurredAt',
+  occurredAtPrecision: 'occurredAtPrecision',
   reportedAt: 'reportedAt',
   injured: 'injured',
   fatalities: 'fatalities',
@@ -438,7 +443,21 @@ exports.IncidentCategory = exports.$Enums.IncidentCategory = {
   SECURITY_FORCE_MISCONDUCT: 'SECURITY_FORCE_MISCONDUCT',
   KIDNAPPING: 'KIDNAPPING',
   POST_ELECTION_VIOLENCE: 'POST_ELECTION_VIOLENCE',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
+  MASS_ARREST_DETENTION: 'MASS_ARREST_DETENTION',
+  ABDUCTION_THREAT: 'ABDUCTION_THREAT',
+  MOB_VIOLENCE: 'MOB_VIOLENCE',
+  ATTACK_ON_JOURNALIST: 'ATTACK_ON_JOURNALIST',
+  ATTACK_ON_OFFICIAL: 'ATTACK_ON_OFFICIAL',
+  VOTE_BUYING_INDUCEMENT: 'VOTE_BUYING_INDUCEMENT',
+  BALLOT_INTEGRITY_BREACH: 'BALLOT_INTEGRITY_BREACH',
+  PROTEST_UNREST: 'PROTEST_UNREST'
+};
+
+exports.DisorderType = exports.$Enums.DisorderType = {
+  POLITICAL_VIOLENCE: 'POLITICAL_VIOLENCE',
+  DEMONSTRATION: 'DEMONSTRATION',
+  STRATEGIC_DEVELOPMENT: 'STRATEGIC_DEVELOPMENT'
 };
 
 exports.IncidentStatus = exports.$Enums.IncidentStatus = {

@@ -1,0 +1,111 @@
+name: Election monitor
+
+# Collection cadence follows the election being covered, not a fixed timer.
+#
+# Vercel's Hobby plan permits one cron per day, which is the correct baseline
+# for eleven months of the year and useless on polling day: the daily job runs
+# at 09:00 UTC, ninety minutes after Nigerian polls open, and then nothing until
+# the following morning. Election day, collation and declaration all pass
+# unobserved.
+#
+# GitHub Actions schedules are free and already available to this repository, so
+# the high-frequency pass lives here. It asks the application whether anything is
+# actually inside its collection window before doing any work, so this workflow
+# costs nothing on an ordinary day and does not burn the free AI quota.
+#
+# Scheduled runs on GitHub can be delayed by several minutes under load. That is
+# acceptable — the alternative is no observation at all.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Collect even if no election is inside its window'
+        type: boolean
+        default: false
+      limit:
+        description: 'Articles to classify this run'
+        default: '10'
+
+concurrency:
+  group: election-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check whether anything is being monitored
+        id: gate
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ]; then
+            echo "APP_URL secret is not set." >&2
+            exit 1
+          fi
+
+          status=$(curl -fsS --max-time 30 "${APP_URL}/api/monitoring/status" || echo '{}')
+          collect=$(echo "$status" | jq -r '.collect // false')
+          cadence=$(echo "$status" | jq -r '.cadence // "baseline"')
+          live=$(echo "$status" | jq -r '[.liveElections[]?.name] | join(", ")')
+
+          echo "cadence=$cadence" >> "$GITHUB_OUTPUT"
+          echo "collect=$collect" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Election monitor"
+            echo ""
+            echo "- cadence: \`$cadence\`"
+            echo "- collecting: \`$collect\`"
+            echo "- live: ${live:-none}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Discover new articles
+        if: steps.gate.outputs.collect == 'true' || inputs.force
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          # Discovery makes no AI calls, so it is safe to run often.
+          response=$(curl -fsS --max-time 300 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL}/api/cron/ingest")
+          echo "$response" | jq -c '{articlesFound, articlesNew, durationMs}' >> "$GITHUB_STEP_SUMMARY" || echo "$response"
+
+      - name: Classify
+        if: steps.gate.outputs.collect == 'true' || inputs.force
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CADENCE: ${{ steps.gate.outputs.cadence }}
+          OVERRIDE: ${{ inputs.limit }}
+        run: |
+          set -euo pipefail
+          # Bounded per run so ninety-six runs a day stay inside the free Gemini
+          # allowance. The backlog is drained newest-first, so a burst of live
+          # election-day reporting is always classified before older material.
+          if [ -n "${OVERRIDE:-}" ]; then
+            limit="$OVERRIDE"
+          elif [ "$CADENCE" = "intensive" ]; then
+            limit=12
+          else
+            limit=6
+          fi
+
+          response=$(curl -fsS --max-time 300 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL}/api/cron/classify?limit=${limit}")
+          echo "$response" | jq -c '{backlogBefore, backlogAfter, created, filtered, errors}' >> "$GITHUB_STEP_SUMMARY" || echo "$response"
+
+      - name: Nothing to collect
+        if: steps.gate.outputs.collect != 'true' && !inputs.force
+        run: echo "No election inside its collection window. Daily baseline cron still runs."

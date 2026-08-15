@@ -59,6 +59,19 @@ export function publicIncidentFilter(): Prisma.IncidentWhereInput {
 }
 
 /**
+ * The subset of public records that may be counted as violence.
+ *
+ * A strategic development — 146 people arrested, an INEC office burned with
+ * nobody inside, ballot boxes seized — belongs in the record and does not
+ * belong in a sentence beginning "violent incidents". Any figure the interface
+ * describes as violence must be computed through this filter, and any figure
+ * computed without it must be labelled "records", not "violence".
+ */
+export function publicViolenceFilter(): Prisma.IncidentWhereInput {
+  return { ...publicIncidentFilter(), disorderType: 'POLITICAL_VIOLENCE' }
+}
+
+/**
  * Internal scope: everything the pipeline and reviewers work with, minus the
  * seed records. Reviewers should never be handed fabricated items to verify.
  */
@@ -85,7 +98,9 @@ export const PUBLIC_EXPORT_SELECT = {
   referenceId: true,
   title: true,
   description: true,
+  disorderType: true,
   category: true,
+  tags: true,
   electionStage: true,
   country: true,
   region: true,
@@ -93,7 +108,9 @@ export const PUBLIC_EXPORT_SELECT = {
   community: true,
   latitude: true,
   longitude: true,
+  geocodeStatus: true,
   occurredAt: true,
+  occurredAtPrecision: true,
   fatalities: true,
   injured: true,
   arrested: true,
@@ -101,7 +118,10 @@ export const PUBLIC_EXPORT_SELECT = {
   votingDisrupted: true,
   weaponType: true,
   confidenceScore: true,
+  verificationPathway: true,
+  corroboratingSources: true,
   publishedAt: true,
+  updatedAt: true,
   wikidataId: true,
 } as const
 

@@ -14,6 +14,14 @@ export const CATEGORY_LABELS: Record<IncidentCategory, string> = {
   SECURITY_FORCE_MISCONDUCT: 'Security Force Misconduct',
   KIDNAPPING: 'Kidnapping / Abduction',
   POST_ELECTION_VIOLENCE: 'Post-Election Violence',
+  MASS_ARREST_DETENTION: 'Mass Arrest / Detention',
+  ABDUCTION_THREAT: 'Abduction / Threat',
+  MOB_VIOLENCE: 'Mob Violence',
+  ATTACK_ON_JOURNALIST: 'Attack on Journalist',
+  ATTACK_ON_OFFICIAL: 'Attack on Electoral Official',
+  VOTE_BUYING_INDUCEMENT: 'Vote Buying / Inducement',
+  BALLOT_INTEGRITY_BREACH: 'Ballot Integrity Breach',
+  PROTEST_UNREST: 'Protest / Unrest',
   OTHER: 'Other',
 }
 
@@ -28,6 +36,14 @@ export const CATEGORY_COLORS: Record<IncidentCategory, string> = {
   SECURITY_FORCE_MISCONDUCT: '#3b82f6',
   KIDNAPPING: '#991b1b',
   POST_ELECTION_VIOLENCE: '#7c3aed',
+  MASS_ARREST_DETENTION: '#0891b2',
+  ABDUCTION_THREAT: '#b91c1c',
+  MOB_VIOLENCE: '#ea580c',
+  ATTACK_ON_JOURNALIST: '#c026d3',
+  ATTACK_ON_OFFICIAL: '#2563eb',
+  VOTE_BUYING_INDUCEMENT: '#ca8a04',
+  BALLOT_INTEGRITY_BREACH: '#4f46e5',
+  PROTEST_UNREST: '#0d9488',
   OTHER: '#6b7280',
 }
 

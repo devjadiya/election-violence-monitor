@@ -113,9 +113,36 @@ export async function GET(req: NextRequest) {
     })
 
     // ---- RSS ----------------------------------------------------------------
-    const rssSources = await prisma.monitoredSource.findMany({
-      where: { isActive: true, rssUrl: { not: null }, sourceType: 'RSS_FEED' },
+    //
+    // A feed that has failed many times in a row is almost certainly gone —
+    // moved, bot-blocked, or shut down — and every attempt costs a network
+    // round trip inside a bounded run. Retried occasionally rather than
+    // abandoned, because outages end: one run in six still tries, so a feed
+    // that comes back is picked up within a day without a human noticing.
+    // Deactivation stays a deliberate act, never something the cron decides.
+    const RETRY_AFTER_FAILURES = 8
+    const attempt = Math.floor(Date.now() / (15 * 60 * 1000))
+    const retryRound = attempt % 6 === 0
+
+    const allRss = await prisma.monitoredSource.findMany({
+      where: {
+        isActive: true,
+        rssUrl: { not: null },
+        sourceType: { in: ['RSS_FEED', 'NGO_REPORT'] },
+      },
     })
+
+    const rssSources = retryRound
+      ? allRss
+      : allRss.filter((s) => s.consecutiveFailures < RETRY_AFTER_FAILURES)
+
+    const rested = allRss.length - rssSources.length
+    if (rested > 0) {
+      perSource['(rested: persistently failing feeds)'] = {
+        ...blank(),
+        error: `${rested} source(s) skipped this run; all are retried every sixth run`,
+      }
+    }
 
     for (const source of rssSources) {
       perSource[source.name] = blank()

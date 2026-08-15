@@ -4,6 +4,10 @@
  *
  * Run: pnpm exec tsx scripts/probe-feed-candidates.ts
  */
+// Marks this file a module, so its top-level names do not share a scope with
+// the other probe script.
+export {}
+
 const UA =
   'Mozilla/5.0 (compatible; EVM-monitor/1.0; +https://election-violence-monitor.vercel.app)'
 

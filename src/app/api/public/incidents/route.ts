@@ -48,23 +48,52 @@ export async function GET(req: NextRequest) {
       orderBy: { occurredAt: 'desc' },
       select: {
         referenceId: true, title: true, description: true,
-        category: true, electionStage: true, country: true,
+        disorderType: true, category: true, tags: true,
+        electionStage: true, country: true,
         region: true, district: true, community: true,
-        latitude: true, longitude: true, occurredAt: true,
+        latitude: true, longitude: true, geocodeStatus: true,
+        occurredAt: true, occurredAtPrecision: true,
         fatalities: true, injured: true, arrested: true,
         weaponType: true, confidenceScore: true,
-        publishedAt: true, wikidataId: true,
+        verificationPathway: true, corroboratingSources: true,
+        extractionModel: true, promptVersion: true,
+        publishedAt: true, updatedAt: true, wikidataId: true,
+        // The whole point of the dataset. A record without the link to the
+        // reporting it came from is an assertion, not evidence — and this
+        // endpoint was serving exactly that, while the response advertised
+        // itself as CC0 open data.
+        sources: {
+          select: { sourceUrl: true, sourceName: true, publishedAt: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     }),
     prisma.incident.count({ where }),
   ])
 
+  const data = incidents.map(({ sources, ...i }) => ({
+    ...i,
+    sources: sources.map((s) => ({
+      url: s.sourceUrl,
+      publisher: s.sourceName,
+      publishedAt: s.publishedAt,
+    })),
+  }))
+
   return NextResponse.json({
     success: true,
-    data: incidents,
+    data,
     meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
     license: 'CC0 1.0 Universal',
     attribution: 'Election Violence Monitor — election-violence-monitor.vercel.app',
+    notice:
+      'Records are extracted automatically from published reporting. ' +
+      'verificationPathway states whether a person checked each one. ' +
+      'occurredAtPrecision = REPORTED_ON means the source did not state when the ' +
+      'event happened and occurredAt is the publication time. ' +
+      'disorderType = STRATEGIC_DEVELOPMENT marks events consequential to the ' +
+      'election in which nobody was reported harmed; they are excluded from ' +
+      'violence totals.',
   }, {
     headers: {
       'Access-Control-Allow-Origin': '*',

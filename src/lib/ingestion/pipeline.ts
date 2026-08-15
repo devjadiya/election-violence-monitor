@@ -4,7 +4,8 @@ import { geocodeLocation } from '@/lib/ai/classifier'
 import { getAiProvider } from '@/lib/ai/gemini'
 import { fetchArticleBody } from '@/lib/ingestion/article-body'
 import { titleShingle } from '@/lib/ingestion/canonical'
-import { evaluateForAutoPublication } from '@/lib/incidents/publication'
+import { resolveCountry, resolveOccurredAt } from '@/lib/ingestion/normalise'
+import { distinctPublishers, evaluateForAutoPublication } from '@/lib/incidents/publication'
 
 /** Below this, a feed snippet is a teaser and the published page is worth fetching. */
 const BODY_FETCH_THRESHOLD = 900
@@ -69,14 +70,26 @@ async function findExistingIncident(
 ): Promise<{ id: string } | null> {
   const since = new Date(Date.now() - CLUSTER_WINDOW_DAYS * 24 * 60 * 60 * 1000)
 
+  // Same place, however precisely each extraction happened to name it.
+  //
+  // Built as an explicit array because the previous form was
+  // `[region ? { region } : {}, ...].filter(Boolean)` — and `{}` is truthy, so
+  // the filter removed nothing. An empty object inside a Prisma `OR` matches
+  // every row, which meant that whenever the extraction gave no region (common;
+  // it is optional) the place narrowing silently became "anywhere in the world"
+  // and a Nigerian headline could cluster onto an Indian one.
+  const place = [
+    ...(region ? [{ region }] : []),
+    ...(country ? [{ country }] : []),
+  ]
+
   const candidates = await prisma.incident.findMany({
     where: {
       isDemo: false,
       occurredAt: { gte: since },
-      // Same place, however precisely each extraction happened to name it.
-      ...(region || country
-        ? { OR: [region ? { region } : {}, country ? { country } : {}].filter(Boolean) }
-        : {}),
+      // A rejected record is not a valid thing to merge new reporting into.
+      status: { not: 'REJECTED' },
+      ...(place.length ? { OR: place } : {}),
     },
     select: { id: true, title: true },
     take: 400,
@@ -104,7 +117,7 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
   const row = await prisma.rawArticle.findUnique({
     where: { id: rawArticleId },
     include: {
-      source: { select: { name: true, sourceType: true } },
+      source: { select: { name: true, sourceType: true, country: true } },
       incidents: { select: { id: true }, take: 1 },
     },
   })
@@ -197,7 +210,13 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
   // covering one arrest is one incident with two sources, not two incidents —
   // the first real run produced three records for a single Osun event before
   // this existed.
-  const duplicate = await findExistingIncident(row.title, extracted.region, extracted.country)
+  const resolved = await resolveCountry({
+    extractedCountry: extracted.country,
+    region: extracted.region,
+    sourceCountry: row.source.country,
+  })
+
+  const duplicate = await findExistingIncident(row.title, extracted.region, resolved.country)
   if (duplicate) {
     await prisma.incidentSource.create({
       data: {
@@ -216,11 +235,21 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
       where: { id: row.id },
       data: { isProcessed: true, pass2At: new Date() },
     })
+
+    // A second publisher reporting the same event is the strongest signal this
+    // pipeline produces, and it was being thrown away: corroboratingSources was
+    // only ever written at creation, so the two-independent-sources threshold
+    // was unreachable through the live pipeline, and a record held back for
+    // thin evidence stayed held back forever no matter how many outlets
+    // confirmed it. Recount and re-apply the publication criteria.
+    await recountCorroboration(duplicate.id)
+    await maybeAutoPublish(duplicate.id)
+
     return { status: 'duplicate', via: 'canonical' }
   }
 
   const coords = await geocodeLocation({
-    country: extracted.country,
+    country: resolved.country === 'Unknown' ? undefined : resolved.country,
     region: extracted.region,
     district: extracted.district,
     community: extracted.community,
@@ -234,20 +263,31 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
   // stable for external citation.
   const referenceId = `EVM-${new Date().getUTCFullYear()}-${nanoid(8).toUpperCase()}`
 
+  // When the event happened, which is not the same as when it was written about.
+  // A story filed on the 16th about an attack on the 14th was being stored as an
+  // attack on the 16th, and the record carried no indication that the date was
+  // a stand-in.
+  const when = resolveOccurredAt(extracted.occurredOn, row.publishedAt, row.fetchedAt)
+
   const incident = await prisma.incident.create({
     data: {
       referenceId,
       title: row.title.slice(0, 200),
       description: extracted.summary,
       category: extracted.category,
+      disorderType: extracted.disorderType,
+      tags: extracted.tags.map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 12),
       electionStage: extracted.electionStage,
-      country: extracted.country ?? 'Unknown',
+      country: resolved.country,
+      countryResolvedVia: resolved.via,
       region: extracted.region,
       district: extracted.district,
       community: extracted.community,
       latitude: coords?.lat,
       longitude: coords?.lng,
-      occurredAt: row.publishedAt ?? row.fetchedAt,
+      geocodeStatus: coords ? 'ok' : 'no_match',
+      occurredAt: when.occurredAt,
+      occurredAtPrecision: when.precision,
       fatalities: extracted.fatalities,
       injured: extracted.injured,
       arrested: extracted.arrested,
@@ -297,10 +337,30 @@ export async function classifyStoredArticle(rawArticleId: string): Promise<Proce
 }
 
 /**
+ * Recomputes how many independent publishers cite this incident.
+ *
+ * Counted from distinct source hostnames rather than row count, so a publisher
+ * syndicating itself across two URLs is one publisher.
+ */
+export async function recountCorroboration(incidentId: string): Promise<number> {
+  const sources = await prisma.incidentSource.findMany({
+    where: { incidentId },
+    select: { sourceUrl: true },
+  })
+  const count = distinctPublishers(sources)
+  await prisma.incident.update({
+    where: { id: incidentId },
+    data: { corroboratingSources: count },
+  })
+  return count
+}
+
+/**
  * Applies the automated publication criteria to one record.
  *
  * Kept separate from creation so it can also be run over records that were
- * flagged before their article body could be retrieved.
+ * flagged before their article body could be retrieved, and re-run when a new
+ * publisher corroborates one.
  */
 export async function maybeAutoPublish(incidentId: string): Promise<boolean> {
   const row = await prisma.incident.findUnique({
@@ -319,7 +379,11 @@ export async function maybeAutoPublish(incidentId: string): Promise<boolean> {
     confidenceScore: row.confidenceScore,
     evidence: row.evidence,
     sources: row.sources,
-    bodyMethod: row.rawArticles[0]?.bodyMethod ?? null,
+    // ANY article behind this incident having been read in full satisfies the
+    // criterion. Reading `rawArticles[0]` took whichever row Postgres happened
+    // to return first from an unordered many-to-many, so a two-source incident
+    // could pass or fail on row order alone.
+    bodyMethod: row.rawArticles.find((a) => a.bodyMethod)?.bodyMethod ?? null,
   })
   if (!decision.publish) return false
 
@@ -362,7 +426,10 @@ export async function enrichIncident(incidentId: string): Promise<'enriched' | '
     where: { id: incidentId },
     select: {
       id: true, title: true,
-      rawArticles: { select: { id: true, url: true, content: true, bodyMethod: true }, take: 1 },
+      rawArticles: {
+        select: { id: true, url: true, content: true, bodyMethod: true, publishedAt: true, fetchedAt: true },
+        take: 1,
+      },
     },
   })
   const article = row?.rawArticles[0]
@@ -381,12 +448,18 @@ export async function enrichIncident(incidentId: string): Promise<'enriched' | '
   if (!result.ok) return 'failed'
 
   const e = result.data
+  const when = resolveOccurredAt(e.occurredOn, article.publishedAt, article.fetchedAt)
+
   await prisma.incident.update({
     where: { id: row.id },
     data: {
       description: e.summary,
       category: e.category,
+      disorderType: e.disorderType,
+      tags: e.tags.map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 12),
       electionStage: e.electionStage,
+      occurredAt: when.occurredAt,
+      occurredAtPrecision: when.precision,
       fatalities: e.fatalities,
       injured: e.injured,
       arrested: e.arrested,

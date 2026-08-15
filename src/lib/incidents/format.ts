@@ -1,4 +1,9 @@
-import type { IncidentCategory, ElectionStage, WeaponType } from '@/lib/generated/prisma'
+import type {
+  DisorderType,
+  IncidentCategory,
+  ElectionStage,
+  WeaponType,
+} from '@/lib/generated/prisma'
 
 /**
  * Human-readable labels for enum values.
@@ -18,7 +23,37 @@ export const CATEGORY_LABEL: Record<IncidentCategory, string> = {
   SECURITY_FORCE_MISCONDUCT: 'Security force misconduct',
   KIDNAPPING: 'Kidnapping',
   POST_ELECTION_VIOLENCE: 'Post-election violence',
+  MASS_ARREST_DETENTION: 'Mass arrest or detention',
+  ABDUCTION_THREAT: 'Abduction or threat',
+  MOB_VIOLENCE: 'Mob violence',
+  ATTACK_ON_JOURNALIST: 'Attack on a journalist',
+  ATTACK_ON_OFFICIAL: 'Attack on an electoral official',
+  VOTE_BUYING_INDUCEMENT: 'Vote buying or inducement',
+  BALLOT_INTEGRITY_BREACH: 'Ballot integrity breach',
+  PROTEST_UNREST: 'Protest or unrest',
   OTHER: 'Uncategorised',
+}
+
+/**
+ * The broad class, written so a reader understands what a count includes.
+ *
+ * The distinction carries weight on the public site: 146 people arrested is a
+ * significant election-day event and is not 146 people harmed. Totals described
+ * as violence are computed from POLITICAL_VIOLENCE alone.
+ */
+export const DISORDER_LABEL: Record<DisorderType, string> = {
+  POLITICAL_VIOLENCE: 'Violence',
+  DEMONSTRATION: 'Demonstration',
+  STRATEGIC_DEVELOPMENT: 'Strategic development',
+}
+
+export const DISORDER_NOTE: Record<DisorderType, string> = {
+  POLITICAL_VIOLENCE: 'Someone was harmed, attacked, threatened or coerced.',
+  DEMONSTRATION: 'A protest, march or rally, whether or not it turned violent.',
+  STRATEGIC_DEVELOPMENT:
+    'Consequential to the election, but no one was reported harmed — arrests, ' +
+    'seizures, materials destroyed, or an electoral facility attacked. Counted ' +
+    'separately from violence so that recording it does not overstate harm.',
 }
 
 export const STAGE_LABEL: Record<ElectionStage, string> = {

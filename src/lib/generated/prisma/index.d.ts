@@ -153,10 +153,27 @@ export const IncidentCategory: {
   SECURITY_FORCE_MISCONDUCT: 'SECURITY_FORCE_MISCONDUCT',
   KIDNAPPING: 'KIDNAPPING',
   POST_ELECTION_VIOLENCE: 'POST_ELECTION_VIOLENCE',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
+  MASS_ARREST_DETENTION: 'MASS_ARREST_DETENTION',
+  ABDUCTION_THREAT: 'ABDUCTION_THREAT',
+  MOB_VIOLENCE: 'MOB_VIOLENCE',
+  ATTACK_ON_JOURNALIST: 'ATTACK_ON_JOURNALIST',
+  ATTACK_ON_OFFICIAL: 'ATTACK_ON_OFFICIAL',
+  VOTE_BUYING_INDUCEMENT: 'VOTE_BUYING_INDUCEMENT',
+  BALLOT_INTEGRITY_BREACH: 'BALLOT_INTEGRITY_BREACH',
+  PROTEST_UNREST: 'PROTEST_UNREST'
 };
 
 export type IncidentCategory = (typeof IncidentCategory)[keyof typeof IncidentCategory]
+
+
+export const DisorderType: {
+  POLITICAL_VIOLENCE: 'POLITICAL_VIOLENCE',
+  DEMONSTRATION: 'DEMONSTRATION',
+  STRATEGIC_DEVELOPMENT: 'STRATEGIC_DEVELOPMENT'
+};
+
+export type DisorderType = (typeof DisorderType)[keyof typeof DisorderType]
 
 
 export const IncidentStatus: {
@@ -285,6 +302,10 @@ export const ElectionStage: typeof $Enums.ElectionStage
 export type IncidentCategory = $Enums.IncidentCategory
 
 export const IncidentCategory: typeof $Enums.IncidentCategory
+
+export type DisorderType = $Enums.DisorderType
+
+export const DisorderType: typeof $Enums.DisorderType
 
 export type IncidentStatus = $Enums.IncidentStatus
 
@@ -7888,6 +7909,7 @@ export namespace Prisma {
     title: string | null
     description: string | null
     category: $Enums.IncidentCategory | null
+    disorderType: $Enums.DisorderType | null
     status: $Enums.IncidentStatus | null
     verificationStatus: $Enums.VerificationStatus | null
     electionStage: $Enums.ElectionStage | null
@@ -7906,7 +7928,10 @@ export namespace Prisma {
     specificLocation: string | null
     latitude: number | null
     longitude: number | null
+    geocodeStatus: string | null
+    countryResolvedVia: string | null
     occurredAt: Date | null
+    occurredAtPrecision: string | null
     reportedAt: Date | null
     injured: number | null
     fatalities: number | null
@@ -7931,6 +7956,7 @@ export namespace Prisma {
     title: string | null
     description: string | null
     category: $Enums.IncidentCategory | null
+    disorderType: $Enums.DisorderType | null
     status: $Enums.IncidentStatus | null
     verificationStatus: $Enums.VerificationStatus | null
     electionStage: $Enums.ElectionStage | null
@@ -7949,7 +7975,10 @@ export namespace Prisma {
     specificLocation: string | null
     latitude: number | null
     longitude: number | null
+    geocodeStatus: string | null
+    countryResolvedVia: string | null
     occurredAt: Date | null
+    occurredAtPrecision: string | null
     reportedAt: Date | null
     injured: number | null
     fatalities: number | null
@@ -7974,6 +8003,8 @@ export namespace Prisma {
     title: number
     description: number
     category: number
+    disorderType: number
+    tags: number
     status: number
     verificationStatus: number
     electionStage: number
@@ -7993,7 +8024,10 @@ export namespace Prisma {
     specificLocation: number
     latitude: number
     longitude: number
+    geocodeStatus: number
+    countryResolvedVia: number
     occurredAt: number
+    occurredAtPrecision: number
     reportedAt: number
     injured: number
     fatalities: number
@@ -8040,6 +8074,7 @@ export namespace Prisma {
     title?: true
     description?: true
     category?: true
+    disorderType?: true
     status?: true
     verificationStatus?: true
     electionStage?: true
@@ -8058,7 +8093,10 @@ export namespace Prisma {
     specificLocation?: true
     latitude?: true
     longitude?: true
+    geocodeStatus?: true
+    countryResolvedVia?: true
     occurredAt?: true
+    occurredAtPrecision?: true
     reportedAt?: true
     injured?: true
     fatalities?: true
@@ -8083,6 +8121,7 @@ export namespace Prisma {
     title?: true
     description?: true
     category?: true
+    disorderType?: true
     status?: true
     verificationStatus?: true
     electionStage?: true
@@ -8101,7 +8140,10 @@ export namespace Prisma {
     specificLocation?: true
     latitude?: true
     longitude?: true
+    geocodeStatus?: true
+    countryResolvedVia?: true
     occurredAt?: true
+    occurredAtPrecision?: true
     reportedAt?: true
     injured?: true
     fatalities?: true
@@ -8126,6 +8168,8 @@ export namespace Prisma {
     title?: true
     description?: true
     category?: true
+    disorderType?: true
+    tags?: true
     status?: true
     verificationStatus?: true
     electionStage?: true
@@ -8145,7 +8189,10 @@ export namespace Prisma {
     specificLocation?: true
     latitude?: true
     longitude?: true
+    geocodeStatus?: true
+    countryResolvedVia?: true
     occurredAt?: true
+    occurredAtPrecision?: true
     reportedAt?: true
     injured?: true
     fatalities?: true
@@ -8257,6 +8304,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType: $Enums.DisorderType
+    tags: string[]
     status: $Enums.IncidentStatus
     verificationStatus: $Enums.VerificationStatus
     electionStage: $Enums.ElectionStage
@@ -8276,7 +8325,10 @@ export namespace Prisma {
     specificLocation: string | null
     latitude: number | null
     longitude: number | null
+    geocodeStatus: string | null
+    countryResolvedVia: string | null
     occurredAt: Date
+    occurredAtPrecision: string | null
     reportedAt: Date
     injured: number
     fatalities: number
@@ -8320,6 +8372,8 @@ export namespace Prisma {
     title?: boolean
     description?: boolean
     category?: boolean
+    disorderType?: boolean
+    tags?: boolean
     status?: boolean
     verificationStatus?: boolean
     electionStage?: boolean
@@ -8339,7 +8393,10 @@ export namespace Prisma {
     specificLocation?: boolean
     latitude?: boolean
     longitude?: boolean
+    geocodeStatus?: boolean
+    countryResolvedVia?: boolean
     occurredAt?: boolean
+    occurredAtPrecision?: boolean
     reportedAt?: boolean
     injured?: boolean
     fatalities?: boolean
@@ -8374,6 +8431,8 @@ export namespace Prisma {
     title?: boolean
     description?: boolean
     category?: boolean
+    disorderType?: boolean
+    tags?: boolean
     status?: boolean
     verificationStatus?: boolean
     electionStage?: boolean
@@ -8393,7 +8452,10 @@ export namespace Prisma {
     specificLocation?: boolean
     latitude?: boolean
     longitude?: boolean
+    geocodeStatus?: boolean
+    countryResolvedVia?: boolean
     occurredAt?: boolean
+    occurredAtPrecision?: boolean
     reportedAt?: boolean
     injured?: boolean
     fatalities?: boolean
@@ -8421,6 +8483,8 @@ export namespace Prisma {
     title?: boolean
     description?: boolean
     category?: boolean
+    disorderType?: boolean
+    tags?: boolean
     status?: boolean
     verificationStatus?: boolean
     electionStage?: boolean
@@ -8440,7 +8504,10 @@ export namespace Prisma {
     specificLocation?: boolean
     latitude?: boolean
     longitude?: boolean
+    geocodeStatus?: boolean
+    countryResolvedVia?: boolean
     occurredAt?: boolean
+    occurredAtPrecision?: boolean
     reportedAt?: boolean
     injured?: boolean
     fatalities?: boolean
@@ -8496,6 +8563,18 @@ export namespace Prisma {
       title: string
       description: string
       category: $Enums.IncidentCategory
+      /**
+       * Broad class. Violence totals count POLITICAL_VIOLENCE only, so a recorded
+       * strategic development never inflates a casualty or incident-of-violence figure.
+       */
+      disorderType: $Enums.DisorderType
+      /**
+       * Context-specific phenomena that must not become enum values: "vote buying",
+       * "thuggery", "BVAS failure", "ballot box snatching", "women targeted".
+       * ACLED's rule — keep the core taxonomy small and stable, put the volatile
+       * things in tags, so a new phenomenon never forces a schema migration.
+       */
+      tags: string[]
       status: $Enums.IncidentStatus
       verificationStatus: $Enums.VerificationStatus
       electionStage: $Enums.ElectionStage
@@ -8525,7 +8604,23 @@ export namespace Prisma {
       specificLocation: string | null
       latitude: number | null
       longitude: number | null
+      /**
+       * Why there are or are not coordinates: 'ok' | 'no_match' | 'not_attempted' |
+       * 'error'. A null lat/lng previously said nothing about whether we tried.
+       */
+      geocodeStatus: string | null
+      /**
+       * How `country` was arrived at: 'extracted' | 'election-region' | 'source' |
+       * 'unresolved'. A derived value must be distinguishable from a stated one.
+       */
+      countryResolvedVia: string | null
       occurredAt: Date
+      /**
+       * 'EXACT' | 'DAY' | 'REPORTED_ON'. REPORTED_ON means the article did not say
+       * when it happened and we are showing when it was published — which is a
+       * different claim, and the interface must not present the two identically.
+       */
+      occurredAtPrecision: string | null
       reportedAt: Date
       injured: number
       fatalities: number
@@ -8949,6 +9044,8 @@ export namespace Prisma {
     readonly title: FieldRef<"Incident", 'String'>
     readonly description: FieldRef<"Incident", 'String'>
     readonly category: FieldRef<"Incident", 'IncidentCategory'>
+    readonly disorderType: FieldRef<"Incident", 'DisorderType'>
+    readonly tags: FieldRef<"Incident", 'String[]'>
     readonly status: FieldRef<"Incident", 'IncidentStatus'>
     readonly verificationStatus: FieldRef<"Incident", 'VerificationStatus'>
     readonly electionStage: FieldRef<"Incident", 'ElectionStage'>
@@ -8968,7 +9065,10 @@ export namespace Prisma {
     readonly specificLocation: FieldRef<"Incident", 'String'>
     readonly latitude: FieldRef<"Incident", 'Float'>
     readonly longitude: FieldRef<"Incident", 'Float'>
+    readonly geocodeStatus: FieldRef<"Incident", 'String'>
+    readonly countryResolvedVia: FieldRef<"Incident", 'String'>
     readonly occurredAt: FieldRef<"Incident", 'DateTime'>
+    readonly occurredAtPrecision: FieldRef<"Incident", 'String'>
     readonly reportedAt: FieldRef<"Incident", 'DateTime'>
     readonly injured: FieldRef<"Incident", 'Int'>
     readonly fatalities: FieldRef<"Incident", 'Int'>
@@ -19820,6 +19920,8 @@ export namespace Prisma {
     title: 'title',
     description: 'description',
     category: 'category',
+    disorderType: 'disorderType',
+    tags: 'tags',
     status: 'status',
     verificationStatus: 'verificationStatus',
     electionStage: 'electionStage',
@@ -19839,7 +19941,10 @@ export namespace Prisma {
     specificLocation: 'specificLocation',
     latitude: 'latitude',
     longitude: 'longitude',
+    geocodeStatus: 'geocodeStatus',
+    countryResolvedVia: 'countryResolvedVia',
     occurredAt: 'occurredAt',
+    occurredAtPrecision: 'occurredAtPrecision',
     reportedAt: 'reportedAt',
     injured: 'injured',
     fatalities: 'fatalities',
@@ -20190,6 +20295,20 @@ export namespace Prisma {
    * Reference to a field of type 'IncidentCategory[]'
    */
   export type ListEnumIncidentCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'IncidentCategory[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DisorderType'
+   */
+  export type EnumDisorderTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DisorderType'>
+    
+
+
+  /**
+   * Reference to a field of type 'DisorderType[]'
+   */
+  export type ListEnumDisorderTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DisorderType[]'>
     
 
 
@@ -20786,6 +20905,8 @@ export namespace Prisma {
     title?: StringFilter<"Incident"> | string
     description?: StringFilter<"Incident"> | string
     category?: EnumIncidentCategoryFilter<"Incident"> | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFilter<"Incident"> | $Enums.DisorderType
+    tags?: StringNullableListFilter<"Incident">
     status?: EnumIncidentStatusFilter<"Incident"> | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFilter<"Incident"> | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFilter<"Incident"> | $Enums.ElectionStage
@@ -20805,7 +20926,10 @@ export namespace Prisma {
     specificLocation?: StringNullableFilter<"Incident"> | string | null
     latitude?: FloatNullableFilter<"Incident"> | number | null
     longitude?: FloatNullableFilter<"Incident"> | number | null
+    geocodeStatus?: StringNullableFilter<"Incident"> | string | null
+    countryResolvedVia?: StringNullableFilter<"Incident"> | string | null
     occurredAt?: DateTimeFilter<"Incident"> | Date | string
+    occurredAtPrecision?: StringNullableFilter<"Incident"> | string | null
     reportedAt?: DateTimeFilter<"Incident"> | Date | string
     injured?: IntFilter<"Incident"> | number
     fatalities?: IntFilter<"Incident"> | number
@@ -20839,6 +20963,8 @@ export namespace Prisma {
     title?: SortOrder
     description?: SortOrder
     category?: SortOrder
+    disorderType?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     verificationStatus?: SortOrder
     electionStage?: SortOrder
@@ -20858,7 +20984,10 @@ export namespace Prisma {
     specificLocation?: SortOrderInput | SortOrder
     latitude?: SortOrderInput | SortOrder
     longitude?: SortOrderInput | SortOrder
+    geocodeStatus?: SortOrderInput | SortOrder
+    countryResolvedVia?: SortOrderInput | SortOrder
     occurredAt?: SortOrder
+    occurredAtPrecision?: SortOrderInput | SortOrder
     reportedAt?: SortOrder
     injured?: SortOrder
     fatalities?: SortOrder
@@ -20895,6 +21024,8 @@ export namespace Prisma {
     title?: StringFilter<"Incident"> | string
     description?: StringFilter<"Incident"> | string
     category?: EnumIncidentCategoryFilter<"Incident"> | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFilter<"Incident"> | $Enums.DisorderType
+    tags?: StringNullableListFilter<"Incident">
     status?: EnumIncidentStatusFilter<"Incident"> | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFilter<"Incident"> | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFilter<"Incident"> | $Enums.ElectionStage
@@ -20914,7 +21045,10 @@ export namespace Prisma {
     specificLocation?: StringNullableFilter<"Incident"> | string | null
     latitude?: FloatNullableFilter<"Incident"> | number | null
     longitude?: FloatNullableFilter<"Incident"> | number | null
+    geocodeStatus?: StringNullableFilter<"Incident"> | string | null
+    countryResolvedVia?: StringNullableFilter<"Incident"> | string | null
     occurredAt?: DateTimeFilter<"Incident"> | Date | string
+    occurredAtPrecision?: StringNullableFilter<"Incident"> | string | null
     reportedAt?: DateTimeFilter<"Incident"> | Date | string
     injured?: IntFilter<"Incident"> | number
     fatalities?: IntFilter<"Incident"> | number
@@ -20948,6 +21082,8 @@ export namespace Prisma {
     title?: SortOrder
     description?: SortOrder
     category?: SortOrder
+    disorderType?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     verificationStatus?: SortOrder
     electionStage?: SortOrder
@@ -20967,7 +21103,10 @@ export namespace Prisma {
     specificLocation?: SortOrderInput | SortOrder
     latitude?: SortOrderInput | SortOrder
     longitude?: SortOrderInput | SortOrder
+    geocodeStatus?: SortOrderInput | SortOrder
+    countryResolvedVia?: SortOrderInput | SortOrder
     occurredAt?: SortOrder
+    occurredAtPrecision?: SortOrderInput | SortOrder
     reportedAt?: SortOrder
     injured?: SortOrder
     fatalities?: SortOrder
@@ -21000,6 +21139,8 @@ export namespace Prisma {
     title?: StringWithAggregatesFilter<"Incident"> | string
     description?: StringWithAggregatesFilter<"Incident"> | string
     category?: EnumIncidentCategoryWithAggregatesFilter<"Incident"> | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeWithAggregatesFilter<"Incident"> | $Enums.DisorderType
+    tags?: StringNullableListFilter<"Incident">
     status?: EnumIncidentStatusWithAggregatesFilter<"Incident"> | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusWithAggregatesFilter<"Incident"> | $Enums.VerificationStatus
     electionStage?: EnumElectionStageWithAggregatesFilter<"Incident"> | $Enums.ElectionStage
@@ -21019,7 +21160,10 @@ export namespace Prisma {
     specificLocation?: StringNullableWithAggregatesFilter<"Incident"> | string | null
     latitude?: FloatNullableWithAggregatesFilter<"Incident"> | number | null
     longitude?: FloatNullableWithAggregatesFilter<"Incident"> | number | null
+    geocodeStatus?: StringNullableWithAggregatesFilter<"Incident"> | string | null
+    countryResolvedVia?: StringNullableWithAggregatesFilter<"Incident"> | string | null
     occurredAt?: DateTimeWithAggregatesFilter<"Incident"> | Date | string
+    occurredAtPrecision?: StringNullableWithAggregatesFilter<"Incident"> | string | null
     reportedAt?: DateTimeWithAggregatesFilter<"Incident"> | Date | string
     injured?: IntWithAggregatesFilter<"Incident"> | number
     fatalities?: IntWithAggregatesFilter<"Incident"> | number
@@ -22396,6 +22540,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -22415,7 +22561,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -22446,6 +22595,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -22465,7 +22616,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -22496,6 +22650,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -22515,7 +22671,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -22546,6 +22705,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -22565,7 +22726,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -22596,6 +22760,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -22615,7 +22781,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -22640,6 +22809,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -22659,7 +22830,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -22681,6 +22855,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -22700,7 +22876,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -24218,6 +24397,21 @@ export namespace Prisma {
     not?: NestedEnumIncidentCategoryFilter<$PrismaModel> | $Enums.IncidentCategory
   }
 
+  export type EnumDisorderTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.DisorderType | EnumDisorderTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDisorderTypeFilter<$PrismaModel> | $Enums.DisorderType
+  }
+
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
   export type EnumIncidentStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.IncidentStatus | EnumIncidentStatusFieldRefInput<$PrismaModel>
     in?: $Enums.IncidentStatus[] | ListEnumIncidentStatusFieldRefInput<$PrismaModel>
@@ -24367,6 +24561,8 @@ export namespace Prisma {
     title?: SortOrder
     description?: SortOrder
     category?: SortOrder
+    disorderType?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     verificationStatus?: SortOrder
     electionStage?: SortOrder
@@ -24386,7 +24582,10 @@ export namespace Prisma {
     specificLocation?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    geocodeStatus?: SortOrder
+    countryResolvedVia?: SortOrder
     occurredAt?: SortOrder
+    occurredAtPrecision?: SortOrder
     reportedAt?: SortOrder
     injured?: SortOrder
     fatalities?: SortOrder
@@ -24421,6 +24620,7 @@ export namespace Prisma {
     title?: SortOrder
     description?: SortOrder
     category?: SortOrder
+    disorderType?: SortOrder
     status?: SortOrder
     verificationStatus?: SortOrder
     electionStage?: SortOrder
@@ -24439,7 +24639,10 @@ export namespace Prisma {
     specificLocation?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    geocodeStatus?: SortOrder
+    countryResolvedVia?: SortOrder
     occurredAt?: SortOrder
+    occurredAtPrecision?: SortOrder
     reportedAt?: SortOrder
     injured?: SortOrder
     fatalities?: SortOrder
@@ -24464,6 +24667,7 @@ export namespace Prisma {
     title?: SortOrder
     description?: SortOrder
     category?: SortOrder
+    disorderType?: SortOrder
     status?: SortOrder
     verificationStatus?: SortOrder
     electionStage?: SortOrder
@@ -24482,7 +24686,10 @@ export namespace Prisma {
     specificLocation?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
+    geocodeStatus?: SortOrder
+    countryResolvedVia?: SortOrder
     occurredAt?: SortOrder
+    occurredAtPrecision?: SortOrder
     reportedAt?: SortOrder
     injured?: SortOrder
     fatalities?: SortOrder
@@ -24519,6 +24726,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumIncidentCategoryFilter<$PrismaModel>
     _max?: NestedEnumIncidentCategoryFilter<$PrismaModel>
+  }
+
+  export type EnumDisorderTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DisorderType | EnumDisorderTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDisorderTypeWithAggregatesFilter<$PrismaModel> | $Enums.DisorderType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDisorderTypeFilter<$PrismaModel>
+    _max?: NestedEnumDisorderTypeFilter<$PrismaModel>
   }
 
   export type EnumIncidentStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -25646,6 +25863,10 @@ export namespace Prisma {
     deleteMany?: MonitoredSourceScalarWhereInput | MonitoredSourceScalarWhereInput[]
   }
 
+  export type IncidentCreatetagsInput = {
+    set: string[]
+  }
+
   export type ElectionCreateNestedOneWithoutIncidentsInput = {
     create?: XOR<ElectionCreateWithoutIncidentsInput, ElectionUncheckedCreateWithoutIncidentsInput>
     connectOrCreate?: ElectionCreateOrConnectWithoutIncidentsInput
@@ -25748,6 +25969,15 @@ export namespace Prisma {
 
   export type EnumIncidentCategoryFieldUpdateOperationsInput = {
     set?: $Enums.IncidentCategory
+  }
+
+  export type EnumDisorderTypeFieldUpdateOperationsInput = {
+    set?: $Enums.DisorderType
+  }
+
+  export type IncidentUpdatetagsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type EnumIncidentStatusFieldUpdateOperationsInput = {
@@ -26487,6 +26717,13 @@ export namespace Prisma {
     not?: NestedEnumIncidentCategoryFilter<$PrismaModel> | $Enums.IncidentCategory
   }
 
+  export type NestedEnumDisorderTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.DisorderType | EnumDisorderTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDisorderTypeFilter<$PrismaModel> | $Enums.DisorderType
+  }
+
   export type NestedEnumIncidentStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.IncidentStatus | EnumIncidentStatusFieldRefInput<$PrismaModel>
     in?: $Enums.IncidentStatus[] | ListEnumIncidentStatusFieldRefInput<$PrismaModel>
@@ -26534,6 +26771,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumIncidentCategoryFilter<$PrismaModel>
     _max?: NestedEnumIncidentCategoryFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDisorderTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DisorderType | EnumDisorderTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DisorderType[] | ListEnumDisorderTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumDisorderTypeWithAggregatesFilter<$PrismaModel> | $Enums.DisorderType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDisorderTypeFilter<$PrismaModel>
+    _max?: NestedEnumDisorderTypeFilter<$PrismaModel>
   }
 
   export type NestedEnumIncidentStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -26810,6 +27057,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -26829,7 +27078,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -26859,6 +27111,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -26878,7 +27132,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -26918,6 +27175,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -26937,7 +27196,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -26967,6 +27229,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -26986,7 +27250,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -27201,6 +27468,8 @@ export namespace Prisma {
     title?: StringFilter<"Incident"> | string
     description?: StringFilter<"Incident"> | string
     category?: EnumIncidentCategoryFilter<"Incident"> | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFilter<"Incident"> | $Enums.DisorderType
+    tags?: StringNullableListFilter<"Incident">
     status?: EnumIncidentStatusFilter<"Incident"> | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFilter<"Incident"> | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFilter<"Incident"> | $Enums.ElectionStage
@@ -27220,7 +27489,10 @@ export namespace Prisma {
     specificLocation?: StringNullableFilter<"Incident"> | string | null
     latitude?: FloatNullableFilter<"Incident"> | number | null
     longitude?: FloatNullableFilter<"Incident"> | number | null
+    geocodeStatus?: StringNullableFilter<"Incident"> | string | null
+    countryResolvedVia?: StringNullableFilter<"Incident"> | string | null
     occurredAt?: DateTimeFilter<"Incident"> | Date | string
+    occurredAtPrecision?: StringNullableFilter<"Incident"> | string | null
     reportedAt?: DateTimeFilter<"Incident"> | Date | string
     injured?: IntFilter<"Incident"> | number
     fatalities?: IntFilter<"Incident"> | number
@@ -27538,6 +27810,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -27557,7 +27831,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -27587,6 +27864,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -27606,7 +27885,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -28443,6 +28725,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -28462,7 +28746,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -28492,6 +28779,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -28511,7 +28800,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -28557,6 +28849,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -28576,7 +28870,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -28606,6 +28903,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -28625,7 +28924,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -28655,6 +28957,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -28674,7 +28978,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -28704,6 +29011,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -28723,7 +29032,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -28769,6 +29081,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -28788,7 +29102,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -28818,6 +29135,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -28837,7 +29156,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29108,6 +29430,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29127,7 +29451,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29157,6 +29484,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29176,7 +29505,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29284,6 +29616,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29303,7 +29637,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29333,6 +29670,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29352,7 +29691,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29398,6 +29740,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29417,7 +29761,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29447,6 +29794,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29466,7 +29815,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29496,6 +29848,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29515,7 +29869,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29545,6 +29902,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29564,7 +29923,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29610,6 +29972,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29629,7 +29993,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29659,6 +30026,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29678,7 +30047,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29708,6 +30080,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29727,7 +30101,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29757,6 +30134,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -29776,7 +30155,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -29865,6 +30247,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29884,7 +30268,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -29914,6 +30301,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -29933,7 +30322,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30216,6 +30608,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -30235,7 +30629,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -30259,6 +30656,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -30278,7 +30677,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -30395,6 +30797,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30414,7 +30818,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30444,6 +30851,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30463,7 +30872,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30493,6 +30905,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30512,7 +30926,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30536,6 +30953,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30555,7 +30974,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30585,6 +31007,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30604,7 +31028,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30634,6 +31061,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30653,7 +31082,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30776,6 +31208,8 @@ export namespace Prisma {
     title: string
     description: string
     category: $Enums.IncidentCategory
+    disorderType?: $Enums.DisorderType
+    tags?: IncidentCreatetagsInput | string[]
     status?: $Enums.IncidentStatus
     verificationStatus?: $Enums.VerificationStatus
     electionStage?: $Enums.ElectionStage
@@ -30795,7 +31229,10 @@ export namespace Prisma {
     specificLocation?: string | null
     latitude?: number | null
     longitude?: number | null
+    geocodeStatus?: string | null
+    countryResolvedVia?: string | null
     occurredAt: Date | string
+    occurredAtPrecision?: string | null
     reportedAt?: Date | string
     injured?: number
     fatalities?: number
@@ -30841,6 +31278,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30860,7 +31299,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30890,6 +31332,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30909,7 +31353,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -30939,6 +31386,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -30958,7 +31407,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -31396,6 +31848,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -31415,7 +31869,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -31445,6 +31902,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -31464,7 +31923,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number
@@ -31494,6 +31956,8 @@ export namespace Prisma {
     title?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     category?: EnumIncidentCategoryFieldUpdateOperationsInput | $Enums.IncidentCategory
+    disorderType?: EnumDisorderTypeFieldUpdateOperationsInput | $Enums.DisorderType
+    tags?: IncidentUpdatetagsInput | string[]
     status?: EnumIncidentStatusFieldUpdateOperationsInput | $Enums.IncidentStatus
     verificationStatus?: EnumVerificationStatusFieldUpdateOperationsInput | $Enums.VerificationStatus
     electionStage?: EnumElectionStageFieldUpdateOperationsInput | $Enums.ElectionStage
@@ -31513,7 +31977,10 @@ export namespace Prisma {
     specificLocation?: NullableStringFieldUpdateOperationsInput | string | null
     latitude?: NullableFloatFieldUpdateOperationsInput | number | null
     longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    geocodeStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    countryResolvedVia?: NullableStringFieldUpdateOperationsInput | string | null
     occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    occurredAtPrecision?: NullableStringFieldUpdateOperationsInput | string | null
     reportedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     injured?: IntFieldUpdateOperationsInput | number
     fatalities?: IntFieldUpdateOperationsInput | number

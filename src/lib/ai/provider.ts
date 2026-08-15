@@ -1,4 +1,5 @@
 import type {
+  DisorderType,
   ElectionStage,
   IncidentCategory,
   WeaponType,
@@ -45,12 +46,16 @@ export interface EvidenceSpan {
 export interface ExtractedIncident {
   // Typed against the Prisma enums so an extraction result can be written to
   // the database without an unchecked cast.
+  disorderType: DisorderType
   category: IncidentCategory
   electionStage: ElectionStage
+  /** ISO date the event occurred, when the article states it. Never the byline date. */
+  occurredOn?: string
   country?: string
   region?: string
   district?: string
   community?: string
+  tags: string[]
   weaponType: WeaponType
   fatalities: number
   injured: number
@@ -91,8 +96,14 @@ export const AI_MODELS = {
   fallback: process.env.AI_FALLBACK_MODEL ?? 'gemini-2.5-flash-lite',
 } as const
 
-/** Current prompt revision. Bump whenever a prompt changes so results stay comparable. */
-export const PROMPT_VERSION = '2026-08-15.1'
+/**
+ * Current prompt revision. Bump whenever a prompt changes so results stay comparable.
+ *
+ * .2 — screening tightened to separate "electoral" from merely "political" after
+ * a Karnataka High Court ruling on caste abuse was published as election
+ * violence; extraction gained disorderType, occurredOn and tags.
+ */
+export const PROMPT_VERSION = '2026-08-15.2'
 
 /** Map an unknown thrown value onto a typed failure reason. */
 export function classifyError(err: unknown): { reason: AiFailureReason; message: string } {

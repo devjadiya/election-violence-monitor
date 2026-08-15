@@ -35,6 +35,20 @@ enum IncidentStatus {
   REJECTED
 }
 
+/// The broad class of event, following ACLED's top tier.
+///
+/// STRATEGIC_DEVELOPMENT is the important one. It records events that matter to
+/// an election without anybody being hurt — mass arrests of suspected thugs,
+/// ballot-box snatching, an INEC office burned overnight, a candidate standing
+/// down under threat. Without it those either vanish or get filed as violence,
+/// and a platform that counts 146 arrests as a violent incident is overstating
+/// harm. Violence totals are computed from POLITICAL_VIOLENCE only.
+enum DisorderType {
+  POLITICAL_VIOLENCE
+  DEMONSTRATION
+  STRATEGIC_DEVELOPMENT
+}
+
 enum IncidentCategory {
   PHYSICAL_ASSAULT
   ARMED_ATTACK
@@ -47,6 +61,17 @@ enum IncidentCategory {
   KIDNAPPING
   POST_ELECTION_VIOLENCE
   OTHER
+  // Added 2026-08-15. A mass arrest of 146 suspected mercenaries on Osun
+  // election day had to be filed as OTHER, which is how you learn a taxonomy is
+  // too small. These are the categories the live pipeline had no bucket for.
+  MASS_ARREST_DETENTION
+  ABDUCTION_THREAT
+  MOB_VIOLENCE
+  ATTACK_ON_JOURNALIST
+  ATTACK_ON_OFFICIAL
+  VOTE_BUYING_INDUCEMENT
+  BALLOT_INTEGRITY_BREACH
+  PROTEST_UNREST
 }
 
 enum ElectionStage {
@@ -285,6 +310,14 @@ model Incident {
   title              String
   description        String             @db.Text
   category           IncidentCategory
+  /// Broad class. Violence totals count POLITICAL_VIOLENCE only, so a recorded
+  /// strategic development never inflates a casualty or incident-of-violence figure.
+  disorderType       DisorderType       @default(POLITICAL_VIOLENCE)
+  /// Context-specific phenomena that must not become enum values: "vote buying",
+  /// "thuggery", "BVAS failure", "ballot box snatching", "women targeted".
+  /// ACLED's rule — keep the core taxonomy small and stable, put the volatile
+  /// things in tags, so a new phenomenon never forces a schema migration.
+  tags               String[]           @default([])
   status             IncidentStatus     @default(RAW)
   verificationStatus VerificationStatus @default(UNCONFIRMED)
   electionStage      ElectionStage      @default(UNKNOWN)
@@ -313,18 +346,28 @@ model Incident {
   promptVersion   String?
 
   // Location
-  country          String
-  countryCode      String? @db.VarChar(3)
-  region           String?
-  district         String?
-  community        String?
-  specificLocation String?
-  latitude         Float?
-  longitude        Float?
+  country            String
+  countryCode        String? @db.VarChar(3)
+  region             String?
+  district           String?
+  community          String?
+  specificLocation   String?
+  latitude           Float?
+  longitude          Float?
+  /// Why there are or are not coordinates: 'ok' | 'no_match' | 'not_attempted' |
+  /// 'error'. A null lat/lng previously said nothing about whether we tried.
+  geocodeStatus      String?
+  /// How `country` was arrived at: 'extracted' | 'election-region' | 'source' |
+  /// 'unresolved'. A derived value must be distinguishable from a stated one.
+  countryResolvedVia String?
 
   // Timing
-  occurredAt DateTime
-  reportedAt DateTime @default(now())
+  occurredAt          DateTime
+  /// 'EXACT' | 'DAY' | 'REPORTED_ON'. REPORTED_ON means the article did not say
+  /// when it happened and we are showing when it was published — which is a
+  /// different claim, and the interface must not present the two identically.
+  occurredAtPrecision String?
+  reportedAt          DateTime @default(now())
 
   // Impact
   injured         Int     @default(0)
