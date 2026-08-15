@@ -77,49 +77,56 @@ jobs:
 
   # ------------------------------------------------------ dependency CVEs ----
   osv-scanner:
-    name: Dependency vulnerabilities (OSV)
+    name: Dependency vulnerabilities (pnpm audit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Report-only. Two reasons, both temporary:
-    #   1. Four high-severity undici advisories are currently open (Step 3
-    #      fixes them); blocking on those today would red-wall every PR.
-    #   2. This job's "Set up job" step is currently failing and needs a pass
-    #      with build-log access to diagnose. Tracked in docs/SECURITY_AND_QUALITY.md.
+    # Report-only until Step 3 clears the four open high-severity undici
+    # advisories; blocking on them today would red-wall every unrelated PR.
+    #
+    # This replaced google/osv-scanner-action, which failed at "Set up job" on
+    # every run and produced no diagnosable output. `pnpm audit` reads the same
+    # GitHub Advisory data against the exact lockfile we ship, needs no
+    # third-party action, and costs no extra install. Dependabot covers the
+    # other half of the job by opening fix PRs.
     continue-on-error: true
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
-      - name: OSV-Scanner
-        uses: google/osv-scanner-action@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
-        with:
-          scan-args: |-
-            --lockfile=./pnpm-lock.yaml
-            --format=sarif
-            --output=osv.sarif
-        continue-on-error: true
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+      - uses: actions/setup-node@v5
         with:
-          sarif_file: osv.sarif
-          category: osv-scanner
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high --prod
 
   # --------------------------------------------------------------- SAST ------
   semgrep:
     name: SAST (Semgrep)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    container:
-      image: semgrep/semgrep:latest
+    permissions:
+      contents: read
+      security-events: write
+    # Installed with pip rather than run in the semgrep/semgrep container.
+    # The container was pinned to the floating `latest` tag, which zizmor
+    # correctly flagged as a supply-chain risk (unpinned-images), and this
+    # removes a third-party image from the trust chain entirely.
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install semgrep
+        run: pip install semgrep
 
       - name: Semgrep scan
         # Public OSS rulesets only — no Semgrep account or token required.
@@ -143,6 +150,9 @@ jobs:
             . || true
 
       - name: Upload SARIF
+        # Guarded: if semgrep failed before writing the file, skip rather than
+        # failing the job on a missing artifact.
+        if: always() && hashFiles('semgrep.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif

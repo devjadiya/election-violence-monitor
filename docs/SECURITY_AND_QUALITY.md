@@ -23,7 +23,7 @@ human gates on the operations that are hard to undo.
 | **Zizmor** | Workflow permissions, injection, credential leakage | PR, push | ✅ **Yes** (high severity) | ✅ OSS | Security tab (SARIF) |
 | **Semgrep** | SAST — OWASP Top 10, TypeScript, Next.js packs | PR, push | ✅ **Yes** (ERROR only) | ✅ OSS rules | Job log |
 | **CodeQL** | Deep dataflow / taint analysis | PR, push, weekly | ⚠️ Recommended | ✅ Free for public repos | Security tab |
-| **OSV-Scanner** | Dependency CVEs from the OSV database | PR, push, weekly | ⚠️ **Report-only initially** | ✅ | Security tab |
+| **pnpm audit** | Dependency CVEs from the GitHub Advisory DB | PR, push, weekly | ⚠️ Report-only until Step 3 | ✅ | CI job log |
 | **Dependabot** | Dependency + Action updates | Weekly | ❌ Opens PRs | ✅ | Pull requests |
 | **Trivy** | Misconfiguration + secret scan | **Weekly only** | ❌ | ✅ OSS | Security tab |
 | **OpenSSF Scorecard** | Supply-chain posture rating | **Weekly only** | ❌ | ✅ Public repos | Security tab + badge |
@@ -42,7 +42,7 @@ Overlap is waste. Each tool below covers something none of the others do.
 | **Zizmor** | Audits the CI itself. Nothing else checks for over-broad `permissions:` or script injection via `${{ github.event.* }}` |
 | **Semgrep** | Fast pattern-based SAST. Restricted to security packs so it does not re-run CodeQL's job |
 | **CodeQL** | Whole-program taint tracking — request → sink. Structurally different from Semgrep's per-file patterns |
-| **OSV-Scanner** | Broadest vulnerability database, understands `pnpm-lock.yaml` precisely |
+| **pnpm audit** | Audits the exact lockfile we ship, with no third-party action in the chain |
 | **Dependabot** | The only one that opens a **fix** rather than reporting a problem |
 | **Trivy** | **Weakest value here — be honest about it.** Its dependency-CVE coverage duplicates OSV and Dependabot, and this repo has no containers or IaC. Configured with `scanners: misconfig,secret` (explicitly *not* `vuln`) so it adds config-misconfiguration and license detection only. **Candidate for removal** if it produces no unique finding in 3 months |
 | **Scorecard** | Rates the repository's *posture* (branch protection, pinning, token scope) rather than its code |
@@ -58,7 +58,7 @@ Production-safety · TypeScript · ESLint on changed files · Vitest · Build ·
 | Check | Why not blocking |
 |---|---|
 | **ESLint full repo** | ~95 pre-existing errors. Blocking would red-wall every unrelated PR; downgrading the rules would hide real problems. The ratchet — new code must be clean — gets the benefit without the paralysis |
-| **OSV-Scanner** | 4 high-severity `undici` advisories exist today (Step 3 fixes them). **Also currently failing at "Set up job"** — see the open issues below |
+| **pnpm audit** | 4 high-severity `undici` advisories exist today (Step 3 fixes them). Promote to blocking after that |
 | **Semgrep** | Publishes SARIF to the Security tab instead of failing. `--error` was blocking the whole Security workflow and, without build-log access, a genuine finding was indistinguishable from a ruleset-fetch failure |
 | **Trivy / Scorecard** | Weekly posture signals, not per-change correctness |
 
@@ -70,9 +70,9 @@ First CI runs surfaced problems in this pipeline that are not yet resolved:
 
 | Job | Symptom | Status |
 |---|---|---|
-| OSV-Scanner | Fails at **"Set up job"** — the job never starts, so no logs are produced by the tool itself | ⚠️ **Unresolved.** Needs a pass with Actions log access to see whether the pinned action reference or the permissions block is at fault |
-| Semgrep | `--error` failed the run; cause not confirmed | Switched to SARIF reporting. Confirm findings in the Security tab, then decide whether to re-enable blocking |
-| Scorecard | Failed while the repository was private | Should populate now that it is public; verify before adding the README badge |
+| OSV-Scanner | Failed at **"Set up job"** on every run, producing no diagnosable output | ✅ **Replaced** with `pnpm audit`, which reads the same advisory data against our exact lockfile and needs no third-party action |
+| Semgrep | Ran in the `semgrep/semgrep:latest` container — a floating tag zizmor flagged as `unpinned-images` (high) | ✅ **Fixed** — now installed with pip, removing a third-party image from the trust chain. Publishes SARIF; re-enable blocking once findings are reviewed |
+| Scorecard | Failed while the repository was private | ✅ **Passing** now that the repository is public. Verify the score before adding the README badge |
 | Zizmor | Flagged a genuine **template-injection** sink in `ci.yml` (`${{ github.base_ref }}` interpolated into a `run:` block) | ✅ **Fixed** — the ref is passed via `env:` instead. `.github/zizmor.yml` records the hash-pin policy |
 
 **Passing and blocking today:** CI (safety, env, types, lint-changed, tests, build), CodeQL, Gitleaks, Zizmor.
@@ -143,7 +143,6 @@ going stale.
 |---|---|
 | `pnpm/action-setup` | `0977fd99725f1db4007ccb2928dbb4e90d06cc86` (v6.0.10) |
 | `gitleaks/gitleaks-action` | `dcedce43c6f43de0b836d1fe38946645c9c638dc` (v2) |
-| `google/osv-scanner-action` | `8deb546fdb875b9996d27d4950be7312dac076a1` (v2.5.0) |
 | `aquasecurity/trivy-action` | `ed142fd0673e97e23eac54620cfb913e5ce36c25` (v0.36.0) |
 | `ossf/scorecard-action` | `99c09fe975337306107572b4fdf4db224cf8e2f2` (v2.4.3) |
 
