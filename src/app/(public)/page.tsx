@@ -10,14 +10,16 @@ export const metadata = {
 
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 async function getPublicStats() {
   try {
+    const where = publicIncidentFilter()
     const [incidents, fatalities, injured, countries] = await Promise.all([
-      prisma.incident.count({ where: { status: 'PUBLISHED' } }),
-      prisma.incident.aggregate({ where: { status: 'PUBLISHED' }, _sum: { fatalities: true } }),
-      prisma.incident.aggregate({ where: { status: 'PUBLISHED' }, _sum: { injured: true } }),
-      prisma.incident.groupBy({ by: ['country'], where: { status: 'PUBLISHED' } }),
+      prisma.incident.count({ where }),
+      prisma.incident.aggregate({ where, _sum: { fatalities: true } }),
+      prisma.incident.aggregate({ where, _sum: { injured: true } }),
+      prisma.incident.groupBy({ by: ['country'], where }),
     ])
     return {
       incidents,

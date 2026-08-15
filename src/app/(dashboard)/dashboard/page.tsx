@@ -16,7 +16,7 @@ async function getDashboardStats() {
     // Group 1 — counts
     const [total, published, pending, tips] = await Promise.all([
       prisma.incident.count(),
-      prisma.incident.count({ where: { status: 'PUBLISHED' } }),
+      prisma.incident.count({ where: { status: 'PUBLISHED', isDemo: false } }),
       prisma.incident.count({ where: { status: { in: ['FLAGGED', 'UNDER_REVIEW'] } } }),
       prisma.tipSubmission.count({ where: { isReviewed: false } }),
     ])

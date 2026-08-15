@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publicApiLimiter, getClientIp, rateLimit } from '@/lib/security/rate-limit'
 import { getCachedPublicStats } from '@/lib/queue/dedup'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export async function GET(req: NextRequest) {
   // Rate limit
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
   const page = Number(searchParams.get('page') ?? 1)
   const pageSize = Math.min(Number(searchParams.get('pageSize') ?? 20), 100)
 
-  const where: any = { status: 'PUBLISHED' }
+  const where: any = { ...publicIncidentFilter() }
   if (country) where.country = { contains: country, mode: 'insensitive' }
   if (category) where.category = category
   if (from || to) {

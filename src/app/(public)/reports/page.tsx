@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS, STAGE_LABELS } from '@/constants'
 import type { IncidentCategory } from '@/lib/generated/prisma'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export const metadata: Metadata = {
   title: 'Reports — Published Incidents',
@@ -41,7 +42,7 @@ export default async function ReportsPage({
   const pageSize = 20
   const skip = (page - 1) * pageSize
 
-  const where: any = { status: 'PUBLISHED' }
+  const where: any = { ...publicIncidentFilter() }
   if (params.country) where.country = { contains: params.country, mode: 'insensitive' }
   if (params.category) where.category = params.category
   if (params.stage) where.electionStage = params.stage
@@ -64,13 +65,13 @@ export default async function ReportsPage({
     prisma.incident.count({ where }),
     prisma.incident.groupBy({
       by: ['country'],
-      where: { status: 'PUBLISHED' },
+      where: publicIncidentFilter(),
       _count: true,
       orderBy: { _count: { country: 'desc' } },
       take: 20,
     }),
     prisma.incident.aggregate({
-      where: { status: 'PUBLISHED' },
+      where: publicIncidentFilter(),
       _count: true,
       _sum: { fatalities: true, injured: true },
     }),

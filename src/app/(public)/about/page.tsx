@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export const metadata: Metadata = {
   title: 'About',
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AboutPage() {
   const stats = await prisma.incident.aggregate({
-    where: { status: 'PUBLISHED' },
+    where: publicIncidentFilter(),
     _count: true,
     _sum: { fatalities: true, injured: true },
   }).catch(() => ({ _count: 0, _sum: { fatalities: 0, injured: 0 } }))

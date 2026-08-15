@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { format, formatDistanceToNow } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
 import type { IncidentCategory } from '@/lib/generated/prisma'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,8 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function PublicReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
 
-  const incident = await prisma.incident.findUnique({
-    where: { id, status: 'PUBLISHED' },
+  // findFirst, not findUnique: the visibility filter is not a unique key, and
+  // a report must be unreachable by direct id unless it is genuinely public.
+  const incident = await prisma.incident.findFirst({
+    where: { id, ...publicIncidentFilter() },
     include: {
       sources: true,
       followUps: { where: { isConfirmed: true }, orderBy: { date: 'desc' } },

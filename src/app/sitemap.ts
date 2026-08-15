@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/db'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://election-violence-monitor.vercel.app'
@@ -14,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const incidents = await prisma.incident.findMany({
-      where: { status: 'PUBLISHED' },
+      where: publicIncidentFilter(),
       select: { id: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
       take: 500,

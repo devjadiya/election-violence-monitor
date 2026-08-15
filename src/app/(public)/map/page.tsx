@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { MapLoader } from '@/components/public/map-loader'
+import { publicIncidentFilter } from '@/lib/incidents/visibility'
 
 export const metadata: Metadata = {
   title: 'Live Incident Map',
@@ -14,7 +15,7 @@ export default async function PublicMapPage() {
   const [incidents, stats] = await Promise.all([
     prisma.incident.findMany({
       where: {
-        status: 'PUBLISHED',
+        ...publicIncidentFilter(),
         latitude:  { not: null },
         longitude: { not: null },
       },
@@ -28,7 +29,7 @@ export default async function PublicMapPage() {
       take: 500,
     }),
     prisma.incident.aggregate({
-      where: { status: 'PUBLISHED' },
+      where: publicIncidentFilter(),
       _count: true,
       _sum: { fatalities: true, injured: true },
     }),
