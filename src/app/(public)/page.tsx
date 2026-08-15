@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
-import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { publicIncidentFilter, publicViolenceFilter } from '@/lib/incidents/visibility'
 import { SiteHeader, SiteFooter, Figure, EmptyState } from '@/components/public/site-shell'
 import { IncidentRow, type IncidentSummary } from '@/components/public/incident-row'
 import { formatDateTime, relativeDays } from '@/lib/incidents/format'
@@ -31,10 +31,27 @@ export const dynamic = 'force-dynamic'
 async function getState() {
   const where = publicIncidentFilter()
 
-  const [published, totals, recent, lastRun, sources, healthySources, articles, elections, monitored, activeElections] =
-    await Promise.all([
+  const [
+    published,
+    totals,
+    recent,
+    lastRun,
+    sources,
+    healthySources,
+    articles,
+    elections,
+    monitored,
+    activeElections,
+    countries,
+  ] = await Promise.all([
       prisma.incident.count({ where }),
-      prisma.incident.aggregate({ where, _sum: { fatalities: true, injured: true } }),
+      // Summed over violent records only. A strategic development — 146 people
+      // arrested, an electoral office burned with nobody inside — belongs in
+      // the record and does not belong in a casualty total.
+      prisma.incident.aggregate({
+        where: publicViolenceFilter(),
+        _sum: { fatalities: true, injured: true },
+      }),
       prisma.incident.findMany({
         where,
         orderBy: { occurredAt: 'desc' },
@@ -66,9 +83,12 @@ async function getState() {
           registeredVoters: true, pollingUnits: true,
         },
       }),
+      // Folded into the batch. Issued separately this was a thirteenth round
+      // trip, taken after the other twelve had already returned, for a single
+      // number — and on a pooled connection every extra serialised query is
+      // time the reader spends looking at nothing.
+      prisma.election.groupBy({ by: ['country'], where: { isActive: true } }),
     ])
-
-  const countries = await prisma.election.groupBy({ by: ['country'], where: { isActive: true } })
 
   return {
     published,
