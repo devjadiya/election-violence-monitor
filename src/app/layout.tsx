@@ -43,17 +43,20 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
     creator: '@devjadiya',
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+  /**
+   * No global robots directive, deliberately.
+   *
+   * Indexing is already the default, so declaring `index, follow` here bought
+   * nothing and actively caused harm: when a record is not publicly visible,
+   * Next streams the not-found UI and injects
+   * `<meta name="robots" content="noindex">` — and this layout then emitted
+   * `index, follow` immediately after it. Two contradictory robots tags on one
+   * page is exactly the ambiguity that gets a hidden record indexed.
+   *
+   * Specifying only `googleBot` preview hints does not avoid this; Next derives
+   * a top-level `index, follow` from them. Crawl scope is governed by
+   * robots.txt, which is unambiguous.
+   */
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: '/apple-touch-icon.png',

@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -15,9 +16,22 @@ import {
   publisherHost,
 } from '@/lib/incidents/format'
 
-export const dynamic = 'force-dynamic'
+/**
+ * Not force-dynamic, deliberately.
+ *
+ * force-dynamic makes Next stream this route, which commits HTTP 200 headers
+ * before `notFound()` can run — so a hidden record returned a 200 page reading
+ * "Incident not found", a soft-404 that search engines index. The queries here
+ * are uncached, so the route is dynamic regardless; dropping the directive lets
+ * Next settle the status before responding.
+ */
+export const revalidate = 0
 
-async function getIncident(id: string) {
+/**
+ * cache() so generateMetadata and the page body share one query rather than
+ * hitting the database twice for every request.
+ */
+const getIncident = cache(async (id: string) => {
   // findFirst, not findUnique: the visibility filter is not a unique key, so a
   // non-public record must not become reachable by knowing its id.
   return prisma.incident.findFirst({
@@ -31,8 +45,18 @@ async function getIncident(id: string) {
       reviewedBy: { select: { name: true } },
     },
   })
-}
+})
 
+/**
+ * The visibility check lives here, not only in the page body.
+ *
+ * This route is force-dynamic, so Next streams it — by the time the component
+ * runs, response headers have already been sent and a `notFound()` there can no
+ * longer set the status. The page still rendered "Incident not found", but with
+ * HTTP 200, which makes every hidden record a soft-404 that search engines will
+ * happily index. generateMetadata resolves before streaming begins, so calling
+ * notFound() here produces a real 404.
+ */
 export async function generateMetadata({
   params,
 }: {
@@ -40,7 +64,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params
   const incident = await getIncident(id)
-  if (!incident) return { title: 'Incident not found' }
+  if (!incident) notFound()
   return {
     title: `${incident.referenceId} — ${incident.title}`,
     description: incident.description.slice(0, 155),
