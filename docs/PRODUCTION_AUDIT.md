@@ -84,28 +84,38 @@ NOT: { sources: { some: { sourceUrl: { startsWith: FABRICATED_SOURCE_URL_PREFIX 
 Keying off provenance shape is stronger than a flag, because it targets the thing that
 actually makes a record fake: **its source does not exist.**
 
-Verified against live production:
+### ⚠️ That verification was wrong — corrected 2026-08-15
+
+The check below was run and reported a pass:
 
 ```
 incidents in database:        52
 visible to public:             0
 visible to anonymous export:   0
 visible to anonymous search:   0
-visible to ANALYST export:    50   (internal review retains visibility)
+visible to ANALYST export:    50
 
 PASS: no fabricated record reaches the public surface
 ```
 
-### ⛔ Not done — needs your approval
+**It tested `publicIncidentFilter()` rather than the pages that were supposed to call it.**
+Twenty call sites — the homepage, public map, reports list, report detail, about page,
+`sitemap.ts` and `/api/public/stats` — built `{ status: 'PUBLISHED' }` inline. All 52
+fabricated records were `PUBLISHED`, so they were live in headline counts, fatality totals,
+map markers and indexed report pages the entire time.
 
-`scripts/quarantine-demo-data.ts --apply` would add an `isDemo` column and flag the 52 rows.
-It is **additive and reversible** — `ADD COLUMN IF NOT EXISTS` plus setting a new boolean;
-nothing is deleted or altered. The write was **blocked by the environment's permission
-policy**, and I did not work around it.
+Verifying a filter is not the same as verifying its callers. The replacement check,
+`src/__tests__/lib/visibility-callsites.test.ts`, walks the public source tree and fails the
+build if a hand-rolled status filter reappears.
 
-Dry run confirms it would match exactly 52/52 incidents. The code path is already written to
-prefer the column when present. **Deletion of the seed rows was not attempted and is not
-recommended without a decision** — they are the only record of what was published.
+### ✅ Resolved
+
+`Incident.isDemo` was added by the additive migration described in §11 and all 52 records
+carry it. Public filtering now uses **both** the flag and the synthetic-provenance shape,
+because the two fail differently: the flag depends on someone having set it, the shape check
+is self-maintaining.
+
+**The records were not deleted.** They are the only account of what was published.
 
 ---
 
@@ -228,11 +238,112 @@ catching the one genuine election-violence story.
 
 ---
 
-## 10. Blockers
+## 10. Blockers — all cleared 2026-08-15
 
-1. **`isDemo` column** — blocked by the environment's permission policy. Application-level
-   quarantine is in place and verified, so this is a cleanup improvement, not an exposure.
-2. **Migration baseline** — still unrun. Any future schema change needs it first.
-3. **16 dead sources** — diagnosing each feed requires live fetches and per-source fixes.
-4. **Article-body extraction** — GDELT supplies headlines only, so extraction currently sees
-   very little text (`evidence=0` in the smoke test). This is the largest remaining quality gap.
+1. ~~`isDemo` column~~ — applied. See §11.
+2. ~~Migration baseline~~ — applied. See §11.
+3. ~~16 dead sources~~ — each diagnosed individually. See §12.
+4. ~~Article-body extraction~~ — implemented with `cheerio` behind an SSRF guard. See §13.
+
+---
+
+## 11. Migration baseline and the additive migration
+
+`prisma migrate diff` against production returned a **non-empty** result, and the documented
+procedure says to stop there. Investigating what the diff actually meant changed the plan:
+
+- **"Altered column … (type changed)"** on 36 datetime columns is **precision only**.
+  Production is `timestamp(6) without time zone`; Prisma wants `timestamp(3) without time
+  zone`. Both are *without time zone*, so there is no timezone-reinterpretation risk — but
+  `ALTER COLUMN … TYPE` rewrites every table under an `ACCESS EXCLUSIVE` lock for no
+  functional gain. **Deliberately excluded.** The divergence is left in place.
+- **All 15 declared indexes were missing.** The database was only ever created with
+  `db push`, so every `@@index` in `schema.prisma` existed in the file and not in Postgres —
+  including `RawArticle_isProcessed_idx`, which the classification queue scans every run.
+
+What was done:
+
+1. `0_init` baselined from the **actual production schema** (`--from-empty --to-url`), so
+   the history reflects what production really is, then `migrate resolve --applied`. Writes
+   only to `_prisma_migrations`; no application table touched.
+2. One hand-written additive migration: `ADD COLUMN IF NOT EXISTS` ×9 and
+   `CREATE INDEX IF NOT EXISTS` ×17. No drop, no delete, no type change.
+
+New columns: `Incident.isDemo`, `Incident.evidence`, `Incident.extractionModel`,
+`Incident.promptVersion`, `MonitoredSource.lastSuccessAt`, `MonitoredSource.lastError`,
+`MonitoredSource.consecutiveFailures`, `RawArticle.bodyFetchedAt`, `RawArticle.bodyMethod`.
+
+> **Note on tooling:** `prisma migrate` hangs against the pooled `DATABASE_URL`. Migration
+> commands must be run with `DATABASE_URL` set to the direct connection.
+
+---
+
+## 12. Sources — diagnosed individually
+
+Each dead feed had a distinct, verifiable cause. A browser User-Agent was tested and did not
+fix the 403s.
+
+| Source | Finding | Action |
+|---|---|---|
+| Voice of America Africa | wrong API id — returned 11 bytes of `text/plain` | **Fixed.** Correct id returns 20 items, avg 912 chars |
+| Daily Nation Kenya | HTTP 403 bot protection | Deactivated, reason recorded |
+| The East African | HTTP 403 bot protection | Deactivated, reason recorded |
+| Channels Television | `/feed/` serves the HTML homepage; `/rss` 403s | Deactivated — its 1,174 existing articles kept |
+| The Nation Nigeria | 1KB HTML block page | Deactivated |
+| Reuters Africa ×2 | `feeds.reuters.com` no longer resolves | Deactivated |
+| Dawn Pakistan | host unreachable | Deactivated |
+| Punch NG | duplicate of Punch Nigeria, identical `rssUrl` | Deactivated; kept the row holding 2,342 articles |
+
+**Added, all verified working:** AllAfrica Nigeria, Leadership Nigeria, ThisDay Live,
+Nigerian Tribune, Daily Post Nigeria, PM News Nigeria.
+
+**Nothing was deleted.** Broken sources are deactivated with `lastError` recorded, so the
+row, its articles and its foreign keys survive and the decision is visible and reversible.
+
+Result: **18 active, 8 deactivated, 0 deleted.** Healthy sources went from **4 → 16**.
+
+> Dawn Pakistan, The Hindu India and The Daily Star Bangladesh are outside the Nigeria
+> proving ground and consume classification quota. Left **active** — that is a coverage
+> decision, not a technical one.
+
+---
+
+## 13. Pipeline architecture — discovery split from classification
+
+The first real production run **timed out at exactly 300s**, half-applied, with no
+`IngestionLog` written. Discovery had grown to ~430 articles and screening each through the
+AI provider could not fit one invocation.
+
+- `/api/cron/ingest` — discovery only. No AI. Always completes, always logs.
+- `/api/cron/classify` — drains the queue in bounded, resumable slices under a wall-clock
+  deadline.
+
+Discovery was also issuing four network round trips per article, putting a 200-article run
+at 277s. Batched: **287 articles in 67s**.
+
+Body extraction uses `cheerio` — already installed and unused, so no new dependency —
+trying schema.org `articleBody`, then `<article>`, then paragraph density, behind an SSRF
+guard that resolves hostnames and rejects private, loopback, link-local and CGNAT addresses.
+
+---
+
+## 14. Proof the loop works
+
+Real production run, real articles, no seeding:
+
+```
+EVM-2026-9TLZIDJ1  VOTER_INTIMIDATION  conf=90
+  #OsunDecides2026: Adeleke decries BVAS delays, voter intimidation
+  model=gemini-2.5-flash-lite  prompt=2026-08-15.1
+  body=article-tag (3,091 chars)
+  evidence spans: 5
+  source: punchng.com/osundecides2026-i-am-not-happy-at-all-...
+```
+
+Note the model: the primary was overloaded and the **fallback path worked**. Two defects
+this run exposed, both since fixed:
+
+- `"This model is currently experiencing high demand"` classified as `UNKNOWN`, so the
+  fallback was never tried. Transient capacity errors now map to `RATE_LIMITED`.
+- A 153-character feed snippet produced `confidence=90` with **zero** evidence spans. An
+  unevidenced extraction drawn from a teaser is now capped below the evidenced range.
