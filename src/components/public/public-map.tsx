@@ -1,16 +1,34 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import Map, {
+import { useCallback, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import MapGL, {
   Source, Layer, NavigationControl, ScaleControl, AttributionControl,
 } from 'react-map-gl/maplibre'
 import type { MapRef, MapLayerMouseEvent, CircleLayerSpecification } from 'react-map-gl/maplibre'
-import { CATEGORY_COLORS, CATEGORY_LABELS } from '@/constants'
-import type { IncidentCategory } from '@/lib/generated/prisma'
-import { formatDistanceToNow } from 'date-fns'
+import type { IncidentCategory, VerificationPathway } from '@/lib/generated/prisma'
+import { CATEGORY_FAMILIES, familyOf, type CategoryFamilyId } from '@/lib/incidents/category-family'
+import { CATEGORY_LABEL, casualtySummary, confidenceBand, formatDate } from '@/lib/incidents/format'
+import { pathwayLabel } from '@/lib/incidents/publication'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Incident {
+/**
+ * The public map, in the same design system as the rest of the public site.
+ *
+ * The previous version was the old prototype: floating rounded pills, heavy
+ * shadows, a colour per category, and a pulsing ring around fatal incidents.
+ * The pulse had to go on honesty grounds — collection runs on a schedule, and
+ * an animation that reads as "happening now" is a claim the infrastructure
+ * cannot support. Colour now encodes one legible distinction (the family of
+ * harm), size encodes reported deaths, and everything else is text.
+ *
+ * Filtering rebuilds the GeoJSON source rather than filtering layers. With
+ * source-level clustering a layer filter hides points but not the clusters
+ * they were counted into, so a "violence against people" view would still
+ * have shown cluster bubbles inflated by protest records. Rebuilding the
+ * source keeps every rendered number true under every filter.
+ */
+
+export interface MapIncident {
   id: string
   referenceId: string
   title: string
@@ -18,17 +36,15 @@ interface Incident {
   latitude: number | null
   longitude: number | null
   country: string
+  region: string | null
   occurredAt: Date
   fatalities: number
   injured: number
   confidenceScore: number
-  status: string
+  verificationPathway: VerificationPathway | null
+  corroboratingSources: number | null
 }
 
-// ─── Map Style ────────────────────────────────────────────────────────────────
-// Inline raster tiles — zero external deps (no glyphs, no sprites, no JSON).
-// CartoDB Voyager tiles are CDN-served PNGs. Browser loads them like <img>.
-// No WebGL shader compilation, no font PBF downloads → loads in <1 second.
 const MAP_STYLE = {
   version: 8 as const,
   sources: {
@@ -52,81 +68,29 @@ const MAP_STYLE = {
   }],
 }
 
-// ─── GeoJSON ──────────────────────────────────────────────────────────────────
-// Null-coerce every numeric field. MapLibre expressions run per-feature on the
-// GPU — a single null in 'radius' throws "Expected number, found null" for
-// every feature on every frame.
-function buildGeoJSON(incidents: Incident[]) {
-  return {
-    type: 'FeatureCollection' as const,
-    features: incidents
-      .filter(i => i.latitude != null && i.longitude != null)
-      .map(i => {
-        const fat = Number(i.fatalities ?? 0)
-        return {
-          type: 'Feature' as const,
-          geometry: {
-            type: 'Point' as const,
-            coordinates: [i.longitude!, i.latitude!] as [number, number],
-          },
-          properties: {
-            id:              i.id,
-            referenceId:     i.referenceId,
-            title:           i.title,
-            category:        i.category ?? 'OTHER',
-            country:         i.country ?? '',
-            occurredAt:      String(i.occurredAt),
-            fatalities:      fat,
-            injured:         Number(i.injured ?? 0),
-            confidenceScore: Number(i.confidenceScore ?? 0),
-            status:          i.status ?? '',
-            color:           CATEGORY_COLORS[i.category as IncidentCategory] ?? '#6b7280',
-            // Pre-compute so expressions never do arithmetic on null
-            radius:          fat > 5 ? 9 : fat > 0 ? 7 : 5,
-            hasFatalities:   fat > 0 ? 1 : 0,
-          },
-        }
-      }),
-  }
-}
+const TIME_WINDOWS = [
+  { id: 'all', label: 'All time', days: null },
+  { id: '12m', label: 'Past 12 months', days: 365 },
+  { id: '90d', label: 'Past 90 days', days: 90 },
+  { id: '30d', label: 'Past 30 days', days: 30 },
+  { id: '7d', label: 'Past 7 days', days: 7 },
+] as const
 
-// ─── Layer specs ─────────────────────────────────────────────────────────────
-// ZERO symbol/text layers → zero glyph font downloads → load event fires fast.
-// Cluster counts shown via circle color + size coding (industry standard).
+type TimeWindowId = (typeof TIME_WINDOWS)[number]['id']
 
+// Clusters are counts, not severity, so they stay neutral: a red cluster would
+// read as danger when it may hold thirty protest records.
 const clusterLayer: CircleLayerSpecification = {
   id: 'clusters',
   type: 'circle',
   source: 'incidents',
   filter: ['has', 'point_count'],
   paint: {
-    'circle-color': [
-      'step', ['get', 'point_count'],
-      '#3b82f6', 10, '#f97316', 30, '#dc2626',
-    ],
-    'circle-radius':       ['step', ['get', 'point_count'], 18, 10, 24, 30, 30],
-    'circle-stroke-width': 3,
+    'circle-color': '#3d434d',
+    'circle-radius': ['step', ['get', 'point_count'], 14, 10, 19, 30, 25],
+    'circle-stroke-width': 2,
     'circle-stroke-color': '#ffffff',
-    'circle-opacity':      0.9,
-  },
-}
-
-const pulseLayer: CircleLayerSpecification = {
-  id: 'incidents-pulse',
-  type: 'circle',
-  source: 'incidents',
-  filter: ['all', ['!', ['has', 'point_count']],
-           ['==', ['coalesce', ['get', 'hasFatalities'], 0], 1]],
-  paint: {
-    'circle-radius': [
-      'interpolate', ['linear'], ['zoom'],
-      2, ['+', ['coalesce', ['get', 'radius'], 5], 6],
-      9, ['+', ['*', ['coalesce', ['get', 'radius'], 5], 1.8], 9],
-    ],
-    'circle-color':          'rgba(0,0,0,0)',
-    'circle-stroke-width':   1.5,
-    'circle-stroke-color':   ['coalesce', ['get', 'color'], '#6b7280'],
-    'circle-stroke-opacity': 0.28,
+    'circle-opacity': 0.85,
   },
 }
 
@@ -141,149 +105,163 @@ const pointLayer: CircleLayerSpecification = {
       2, ['coalesce', ['get', 'radius'], 5],
       9, ['*', ['coalesce', ['get', 'radius'], 5], 1.8],
     ],
-    'circle-color':         ['coalesce', ['get', 'color'], '#6b7280'],
-    'circle-stroke-width':  2,
-    'circle-stroke-color':  '#ffffff',
-    'circle-opacity':       0.92,
-    'circle-stroke-opacity': 1,
+    'circle-color': ['coalesce', ['get', 'color'], '#6b7280'],
+    'circle-stroke-width': 1.5,
+    'circle-stroke-color': '#ffffff',
+    'circle-opacity': 0.92,
   },
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-export default function PublicMap({ incidents }: { incidents: Incident[] }) {
-  const mapRef        = useRef<MapRef>(null)
-  const animRef       = useRef<number | null>(null)
-  const [filter,      setFilter]    = useState('ALL')
-  const [selected,    setSelected]  = useState<Incident | null>(null)
-  const [mapLoaded,   setMapLoaded] = useState(false)
-
-  const withCoords = incidents.filter(i => i.latitude != null && i.longitude != null)
-  const totFat     = withCoords.reduce((s, i) => s + Number(i.fatalities ?? 0), 0)
-  const countries  = new Set(withCoords.map(i => i.country)).size
-  const categories = ['ALL', ...Array.from(new Set(withCoords.map(i => i.category)))]
-  const filtered   = filter === 'ALL' ? withCoords : withCoords.filter(i => i.category === filter)
-
-  // GeoJSON is stable — only rebuilt if incidents array reference changes
-  const geojson = buildGeoJSON(withCoords)
-
-  // Layer filter expression derived from UI filter
-  const catExpr = filter === 'ALL' ? null : ['==', ['get', 'category'], filter] as any
-
-  const activePoint: CircleLayerSpecification = {
-    ...pointLayer,
-    filter: catExpr
-      ? ['all', ['!', ['has', 'point_count']], catExpr]
-      : pointLayer.filter,
-  }
-  const activePulse: CircleLayerSpecification = {
-    ...pulseLayer,
-    filter: catExpr
-      ? ['all',
-          ['!', ['has', 'point_count']],
-          ['==', ['coalesce', ['get', 'hasFatalities'], 0], 1],
-          catExpr,
-        ]
-      : pulseLayer.filter,
-  }
-
-  // Animate pulse ring once — single rAF loop, no state updates
-  useEffect(() => {
-    if (!mapLoaded) return
-    let dir = -1, op = 0.28
-    const tick = () => {
-      op += dir * 0.007
-      if (op <= 0.04) dir = 1
-      if (op >= 0.3)  dir = -1
-      const m = mapRef.current?.getMap()
-      if (m?.getLayer('incidents-pulse')) {
-        m.setPaintProperty('incidents-pulse', 'circle-stroke-opacity', op)
+function buildGeoJSON(incidents: MapIncident[]) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: incidents.map((i) => {
+      const fat = Number(i.fatalities ?? 0)
+      return {
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [i.longitude!, i.latitude!] as [number, number],
+        },
+        properties: {
+          id: i.id,
+          // Size is the one visual weight given to severity: more reported
+          // deaths, larger mark. Precomputed so expressions never see null.
+          radius: fat > 5 ? 9 : fat > 0 ? 7 : 5,
+          color: familyOf(i.category).color,
+        },
       }
-      animRef.current = requestAnimationFrame(tick)
-    }
-    animRef.current = requestAnimationFrame(tick)
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
-  }, [mapLoaded])
+    }),
+  }
+}
 
-  // Fit bounds without Math.min/max spread (stack overflows on 500+ items)
+function readParam(name: string): string | null {
+  if (typeof window === 'undefined') return null
+  return new URLSearchParams(window.location.search).get(name)
+}
+
+function writeParams(family: CategoryFamilyId | 'ALL', since: TimeWindowId) {
+  if (typeof window === 'undefined') return
+  const params = new URLSearchParams(window.location.search)
+  if (family === 'ALL') params.delete('type')
+  else params.set('type', family.toLowerCase())
+  if (since === 'all') params.delete('since')
+  else params.set('since', since)
+  const qs = params.toString()
+  window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+}
+
+export default function PublicMap({ incidents }: { incidents: MapIncident[] }) {
+  const mapRef = useRef<MapRef>(null)
+
+  // Filters are readable from and written to the URL, so a filtered view can
+  // be linked, cited, and reopened as seen.
+  const [family, setFamily] = useState<CategoryFamilyId | 'ALL'>(() => {
+    const p = readParam('type')?.toUpperCase()
+    return CATEGORY_FAMILIES.some((f) => f.id === p) ? (p as CategoryFamilyId) : 'ALL'
+  })
+  const [since, setSince] = useState<TimeWindowId>(() => {
+    const p = readParam('since')
+    return TIME_WINDOWS.some((w) => w.id === p) ? (p as TimeWindowId) : 'all'
+  })
+  const [selected, setSelected] = useState<MapIncident | null>(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
+
+  const mapped = useMemo(
+    () => incidents.filter((i) => i.latitude != null && i.longitude != null),
+    [incidents]
+  )
+
+  const familyCounts = useMemo(() => {
+    const counts = new Map<CategoryFamilyId, number>()
+    for (const i of mapped) {
+      const id = familyOf(i.category).id
+      counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+    return counts
+  }, [mapped])
+
+  const filtered = useMemo(() => {
+    const window = TIME_WINDOWS.find((w) => w.id === since)
+    const cutoff = window?.days ? Date.now() - window.days * 86_400_000 : null
+    return mapped.filter((i) => {
+      if (family !== 'ALL' && familyOf(i.category).id !== family) return false
+      if (cutoff && new Date(i.occurredAt).getTime() < cutoff) return false
+      return true
+    })
+  }, [mapped, family, since])
+
+  const byId = useMemo(() => new Map(mapped.map((i) => [i.id, i])), [mapped])
+  const geojson = useMemo(() => buildGeoJSON(filtered), [filtered])
+
+  const setFamilyFilter = useCallback((next: CategoryFamilyId | 'ALL') => {
+    setFamily(next)
+    setSelected(null)
+    writeParams(next, since)
+  }, [since])
+
+  const setSinceFilter = useCallback((next: TimeWindowId) => {
+    setSince(next)
+    setSelected(null)
+    writeParams(family, next)
+  }, [family])
+
+  const clearFilters = useCallback(() => {
+    setFamily('ALL')
+    setSince('all')
+    setSelected(null)
+    writeParams('ALL', 'all')
+  }, [])
+
   const handleLoad = useCallback(() => {
     setMapLoaded(true)
     const map = mapRef.current?.getMap()
-    if (!map || !withCoords.length) return
-    let w = withCoords[0].longitude!, e = w, s = withCoords[0].latitude!, n = s
-    for (const p of withCoords) {
+    if (!map || !mapped.length) return
+    let w = mapped[0].longitude!, e = w, s = mapped[0].latitude!, n = s
+    for (const p of mapped) {
       if (p.longitude! < w) w = p.longitude!
       if (p.longitude! > e) e = p.longitude!
-      if (p.latitude!  < s) s = p.latitude!
-      if (p.latitude!  > n) n = p.latitude!
+      if (p.latitude! < s) s = p.latitude!
+      if (p.latitude! > n) n = p.latitude!
     }
-    map.fitBounds([[w - 2, s - 2], [e + 2, n + 2]],
-      { padding: 60, maxZoom: 6, duration: 800 })
-  }, [withCoords]) // eslint-disable-line react-hooks/exhaustive-deps
+    map.fitBounds([[w - 2, s - 2], [e + 2, n + 2]], { padding: 60, maxZoom: 6, duration: 800 })
+  }, [mapped]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cluster click → zoom in
   const handleClusterClick = useCallback((e: MapLayerMouseEvent) => {
     const f = e.features?.[0]
     if (!f) return
     const map = mapRef.current?.getMap()
     if (!map) return
     const src = map.getSource('incidents') as any
-    src?.getClusterExpansionZoom(
-      f.properties?.cluster_id,
-      (err: any, zoom: number) => {
-        if (err || !zoom) return
-        map.easeTo({
-          center: (f.geometry as any).coordinates,
-          zoom: zoom + 0.5,
-          duration: 350,
-        })
-      }
-    )
-  }, [])
-
-  // Point click → popup
-  const handlePointClick = useCallback((e: MapLayerMouseEvent) => {
-    const f = e.features?.[0]
-    if (!f) return
-    const p = f.properties!
-    setSelected({
-      id:              p.id,
-      referenceId:     p.referenceId,
-      title:           p.title,
-      category:        p.category,
-      latitude:        (f.geometry as any).coordinates[1],
-      longitude:       (f.geometry as any).coordinates[0],
-      country:         p.country,
-      occurredAt:      new Date(p.occurredAt),
-      fatalities:      p.fatalities,
-      injured:         p.injured,
-      confidenceScore: p.confidenceScore,
-      status:          p.status,
+    src?.getClusterExpansionZoom(f.properties?.cluster_id, (err: any, zoom: number) => {
+      if (err || !zoom) return
+      map.easeTo({
+        center: (f.geometry as any).coordinates,
+        zoom: zoom + 0.5,
+        duration: 350,
+      })
     })
   }, [])
 
   const handleMapClick = useCallback((e: MapLayerMouseEvent) => {
-    const features = e.features;
-    if (!features || features.length === 0) {
-      setSelected(null);
-      return;
+    const f = e.features?.[0]
+    if (!f) {
+      setSelected(null)
+      return
     }
-    const feature = features[0];
-    if (feature.properties?.cluster_id) {
-      // It's a cluster
-      handleClusterClick(e);
-    } else {
-      // It's a point
-      handlePointClick(e);
+    if (f.properties?.cluster_id) {
+      handleClusterClick(e)
+      return
     }
-  }, [handleClusterClick, handlePointClick])
+    setSelected(byId.get(f.properties?.id) ?? null)
+  }, [byId, handleClusterClick])
 
-  const catColor = (cat: string) => CATEGORY_COLORS[cat as IncidentCategory] ?? '#6b7280'
+  const selectedFamily = selected ? familyOf(selected.category) : null
+  const selectedBand = selected ? confidenceBand(selected.confidenceScore) : null
 
   return (
-    <div className="relative w-full h-full">
-
-      {/* ── Map ──────────────────────────────────────────────────────────────── */}
-      <Map
+    <div className="relative h-full w-full">
+      <MapGL
         ref={mapRef}
         mapStyle={MAP_STYLE as any}
         initialViewState={{ longitude: 20, latitude: 5, zoom: 2.5 }}
@@ -296,16 +274,16 @@ export default function PublicMap({ incidents }: { incidents: Incident[] }) {
         onLoad={handleLoad}
         onClick={handleMapClick}
         onMouseEnter={() => {
-          if (mapRef.current?.getCanvas())
-            mapRef.current.getCanvas().style.cursor = 'pointer'
+          const canvas = mapRef.current?.getCanvas()
+          if (canvas) canvas.style.cursor = 'pointer'
         }}
         onMouseLeave={() => {
-          if (mapRef.current?.getCanvas())
-            mapRef.current.getCanvas().style.cursor = ''
+          const canvas = mapRef.current?.getCanvas()
+          if (canvas) canvas.style.cursor = ''
         }}
       >
         <NavigationControl position="top-right" showCompass={false} />
-        <ScaleControl    position="bottom-left" unit="metric" />
+        <ScaleControl position="bottom-left" unit="metric" />
         <AttributionControl position="bottom-right" compact />
 
         <Source
@@ -316,206 +294,193 @@ export default function PublicMap({ incidents }: { incidents: Incident[] }) {
           clusterMaxZoom={10}
           clusterRadius={45}
         >
-          {/* Order: pulse behind point, cluster on top */}
-          <Layer {...activePulse}  />
-          <Layer {...activePoint} />
+          <Layer {...pointLayer} />
           <Layer {...clusterLayer} />
         </Source>
-      </Map>
+      </MapGL>
 
-      {/* ── Loading overlay ───────────────────────────────────────────────────
-          pointer-events-none so map is responsive the moment it mounts.
-          opacity transition fades it out when mapLoaded = true.          */}
+      {/* Loading overlay. pointer-events-none so the map responds immediately. */}
       <div
         aria-hidden={mapLoaded}
-        className="absolute inset-0 z-20 flex items-center justify-center
-                   bg-zinc-50 pointer-events-none transition-opacity duration-500"
+        className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[var(--paper-2)] transition-opacity duration-500"
         style={{ opacity: mapLoaded ? 0 : 1 }}
       >
-        <div className="text-center">
-          <div className="w-9 h-9 border-2 border-[#1a1a2e] border-t-transparent
-                          rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-zinc-500 font-medium">Loading map…</p>
-          <p className="text-xs text-zinc-400 mt-1">{withCoords.length} locations</p>
-        </div>
+        <p className="text-[0.875rem] text-[var(--ink-3)]" role="status">
+          Loading map — {mapped.length.toLocaleString('en-US')} located records
+        </p>
       </div>
 
-      {/* ── Category filter pills ─────────────────────────────────────────────
-          max-w truncates on very small phones; hidden pills still filterable
-          via the legend below.                                              */}
-      <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5
-                      max-w-[calc(100vw-180px)] md:max-w-[calc(100%-200px)]">
-        {categories.map(cat => {
-          const active = filter === cat
-          const bg     = cat !== 'ALL' ? catColor(cat) : undefined
-          return (
+      {/* The legend is the filter: each family both explains its colour and
+          narrows the map to it. One panel, so meaning and control live in
+          the same place. */}
+      <section
+        aria-label="Filter mapped records"
+        className="absolute left-3 top-3 z-10 max-h-[62dvh] w-[min(17rem,calc(100vw-5.5rem))] overflow-y-auto rounded border border-[var(--rule)] bg-white/[0.97] p-3 shadow-[0_1px_3px_rgba(16,38,63,0.08)]"
+      >
+        <p className="eyebrow">Kind of incident</p>
+        <ul className="mt-2 space-y-0.5">
+          <li>
             <button
-              key={cat}
-              onClick={() => { setFilter(cat); setSelected(null) }}
-              className={`text-[11px] px-2.5 py-1 rounded-full font-medium
-                          transition-all border shrink-0 ${
-                active
-                  ? 'text-white border-transparent shadow-md'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+              type="button"
+              onClick={() => setFamilyFilter('ALL')}
+              aria-pressed={family === 'ALL'}
+              className={`flex w-full items-baseline justify-between gap-2 rounded-sm px-1.5 py-1 text-left text-[0.8125rem] transition-colors ${
+                family === 'ALL'
+                  ? 'bg-[var(--navy-tint)] font-medium text-[var(--navy)]'
+                  : 'text-[var(--ink-2)] hover:bg-[var(--paper-2)]'
               }`}
-              style={active ? { backgroundColor: bg ?? '#1a1a2e' } : undefined}
             >
-              {cat === 'ALL'
-                ? `All (${withCoords.length})`
-                : CATEGORY_LABELS[cat as IncidentCategory]}
+              <span>All kinds</span>
+              <span className="tnum text-[0.75rem] text-[var(--ink-3)]">{mapped.length}</span>
             </button>
-          )
-        })}
-      </div>
-
-      {/* ── Stats pill ────────────────────────────────────────────────────────*/}
-      <div className="absolute top-3 right-14 z-10">
-        <div className="bg-white rounded-2xl px-3 md:px-4 py-2.5
-                        shadow-lg border border-zinc-100">
-          <div className="flex items-center gap-3 text-xs">
-            <div className="text-center">
-              <div className="font-bold text-sm tabular-nums text-[#1a1a2e]">
-                {filtered.length}
-              </div>
-              <div className="text-zinc-400 text-[10px]">Shown</div>
-            </div>
-            <div className="w-px h-5 bg-zinc-200" />
-            <div className="text-center">
-              <div className="font-bold text-sm tabular-nums text-red-600">{totFat}</div>
-              <div className="text-zinc-400 text-[10px]">Deaths</div>
-            </div>
-            <div className="w-px h-5 bg-zinc-200 hidden sm:block" />
-            <div className="text-center hidden sm:block">
-              <div className="font-bold text-sm tabular-nums text-blue-600">
-                {countries}
-              </div>
-              <div className="text-zinc-400 text-[10px]">Countries</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Legend ───────────────────────────────────────────────────────────
-          hidden on smallest phones (filters above cover it), shown md+     */}
-      <div className="absolute bottom-8 right-3 z-10 bg-white rounded-xl p-3
-                      shadow-md border border-zinc-100 hidden sm:block">
-        <div className="text-[10px] font-semibold text-zinc-400 uppercase
-                        tracking-wider mb-2">Type</div>
-        {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
-          <button
-            key={cat}
-            onClick={() => setFilter(filter === cat ? 'ALL' : cat)}
-            className="flex items-center gap-2 mb-1 w-full text-left
-                       hover:opacity-70 transition-opacity"
-          >
-            <div
-              className={`w-2.5 h-2.5 rounded-full shrink-0 border-2 border-white
-                          shadow-sm transition-transform
-                          ${filter === cat ? 'scale-125' : ''}`}
-              style={{ backgroundColor: color }}
-            />
-            <span className={`text-[10px] ${
-              filter === cat ? 'text-zinc-800 font-semibold' : 'text-zinc-500'
-            }`}>
-              {CATEGORY_LABELS[cat as IncidentCategory]}
-            </span>
-          </button>
-        ))}
-        <div className="border-t border-zinc-100 mt-2 pt-2 space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-blue-500 border-2 border-white
-                            shadow-sm text-white text-[7px] font-bold
-                            flex items-center justify-center shrink-0">N</div>
-            <span className="text-[10px] text-zinc-400">Cluster — tap to expand</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-zinc-300
-                            border-2 border-white shrink-0" />
-            <span className="text-[10px] text-zinc-400">Larger = more deaths</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative w-4 h-4 shrink-0">
-              <div className="absolute inset-0.5 rounded-full bg-red-500" />
-              <div className="absolute inset-0 rounded-full border
-                              border-red-400 animate-ping opacity-40" />
-            </div>
-            <span className="text-[10px] text-zinc-400">Pulsing = fatalities</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Incident popup ────────────────────────────────────────────────────
-          Bottom-left on desktop, bottom-centre on mobile               */}
-      {selected && (
-        <div className="absolute bottom-4 left-3 right-3 sm:right-auto sm:w-72
-                        z-10 bg-white rounded-2xl shadow-2xl
-                        border border-zinc-100 overflow-hidden">
-          <div className="h-1.5 w-full"
-               style={{ backgroundColor: catColor(selected.category) }} />
-          <div className="p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="text-[10px] font-mono text-zinc-400">
-                  {selected.referenceId}
-                </div>
-                <div
-                  className="text-[10px] px-1.5 py-0.5 rounded-full
-                             font-medium mt-0.5 inline-block"
-                  style={{
-                    backgroundColor: catColor(selected.category) + '18',
-                    color: catColor(selected.category),
-                  }}
+          </li>
+          {CATEGORY_FAMILIES.map((f) => {
+            const count = familyCounts.get(f.id) ?? 0
+            if (count === 0) return null
+            const active = family === f.id
+            return (
+              <li key={f.id}>
+                <button
+                  type="button"
+                  onClick={() => setFamilyFilter(active ? 'ALL' : f.id)}
+                  aria-pressed={active}
+                  title={f.note}
+                  className={`flex w-full items-baseline justify-between gap-2 rounded-sm px-1.5 py-1 text-left text-[0.8125rem] transition-colors ${
+                    active
+                      ? 'bg-[var(--navy-tint)] font-medium text-[var(--navy)]'
+                      : 'text-[var(--ink-2)] hover:bg-[var(--paper-2)]'
+                  }`}
                 >
-                  {CATEGORY_LABELS[selected.category as IncidentCategory]}
-                </div>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-zinc-300 hover:text-zinc-700 text-xl
-                           leading-none ml-2 shrink-0 transition-colors"
-              >×</button>
-            </div>
+                  <span className="flex min-w-0 items-baseline gap-2">
+                    <span
+                      className="dot shrink-0 self-center"
+                      style={{ background: f.color }}
+                      aria-hidden
+                    />
+                    <span className="truncate">{f.label}</span>
+                  </span>
+                  <span className="tnum text-[0.75rem] text-[var(--ink-3)]">{count}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
 
-            <h3 className="font-semibold text-sm text-zinc-800 mb-3
-                           leading-snug line-clamp-2">
-              {selected.title}
-            </h3>
-
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {[
-                { v: selected.fatalities,      lbl: 'Deaths',  cls: 'text-red-600',    bg: 'bg-red-50' },
-                { v: selected.injured,         lbl: 'Injured', cls: 'text-orange-500', bg: 'bg-orange-50' },
-                { v: `${Math.round(selected.confidenceScore)}%`, lbl: 'Conf.', cls: 'text-blue-600', bg: 'bg-blue-50' },
-              ].map(({ v, lbl, cls, bg }) => (
-                <div key={lbl} className={`text-center p-2 ${bg} rounded-lg`}>
-                  <div className={`text-base font-bold tabular-nums ${cls}`}>{v}</div>
-                  <div className="text-[10px] text-zinc-400">{lbl}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-xs text-zinc-400 mb-3 flex items-center gap-1.5">
-              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24"
-                   stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827
-                     0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {selected.country} &middot;{' '}
-              {formatDistanceToNow(new Date(selected.occurredAt), { addSuffix: true })}
-            </div>
-
-            <a href={`/reports/${selected.id}`}
-               className="block w-full text-center bg-[#1a1a2e] text-white
-                          py-2 rounded-lg text-xs font-medium
-                          hover:bg-[#16213e] active:scale-95 transition-all">
-              Read Full Report &rarr;
-            </a>
-          </div>
+        <div className="rule-t mt-2.5 pt-2.5">
+          <label
+            htmlFor="map-window"
+            className="eyebrow block"
+          >
+            Occurred within
+          </label>
+          <select
+            id="map-window"
+            value={since}
+            onChange={(e) => setSinceFilter(e.target.value as TimeWindowId)}
+            className="mt-1.5 w-full rounded-sm border border-[var(--rule-2)] bg-white px-2 py-1 text-[0.8125rem] text-[var(--ink)]"
+          >
+            {TIME_WINDOWS.map((w) => (
+              <option key={w.id} value={w.id}>{w.label}</option>
+            ))}
+          </select>
         </div>
-      )}
+
+        <p className="rule-t mt-2.5 pt-2.5 text-[0.75rem] leading-relaxed text-[var(--ink-3)]">
+          {filtered.length === mapped.length ? (
+            <>Showing all <span className="tnum">{mapped.length}</span> located records.</>
+          ) : filtered.length > 0 ? (
+            <>
+              Showing <span className="tnum">{filtered.length}</span> of{' '}
+              <span className="tnum">{mapped.length}</span> located records.{' '}
+              <button type="button" onClick={clearFilters} className="link-underline">
+                Clear filters
+              </button>
+            </>
+          ) : (
+            <>
+              No located records match these filters. That means nothing matching was
+              published — not that nothing happened.{' '}
+              <button type="button" onClick={clearFilters} className="link-underline">
+                Clear filters
+              </button>
+            </>
+          )}
+        </p>
+
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-[var(--ink-4)]">
+          Larger marks report more deaths. Grey circles are clusters — select one to
+          expand it.
+        </p>
+      </section>
+
+      {/* Record preview. A summary with its provenance, not a mini report. */}
+      {selected && selectedFamily && selectedBand ? (
+        <aside
+          aria-label="Selected record"
+          className="absolute bottom-4 left-3 right-3 z-10 rounded border border-[var(--rule)] bg-white p-4 shadow-[0_1px_3px_rgba(16,38,63,0.08)] sm:right-auto sm:w-[21rem]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-[var(--ink-3)]">
+              <span className="chip chip-mono">{selected.referenceId}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="dot" style={{ background: selectedFamily.color }} aria-hidden />
+                {CATEGORY_LABEL[selected.category as IncidentCategory] ?? selected.category}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              aria-label="Close record preview"
+              className="-mr-1 -mt-1 shrink-0 rounded-sm px-1.5 py-0.5 text-[var(--ink-4)] transition-colors hover:text-[var(--ink)]"
+            >
+              ×
+            </button>
+          </div>
+
+          <h3 className="mt-2 text-[0.9375rem] font-medium leading-snug">
+            <Link
+              href={`/incidents/${selected.id}`}
+              className="text-[var(--ink)] hover:text-[var(--link)]"
+            >
+              {selected.title}
+            </Link>
+          </h3>
+
+          <p className="mt-1.5 text-[0.75rem] text-[var(--ink-3)]">
+            {[selected.region, selected.country].filter(Boolean).join(', ')}
+            {' · '}
+            <time dateTime={new Date(selected.occurredAt).toISOString()}>
+              {formatDate(selected.occurredAt)}
+            </time>
+          </p>
+
+          <p
+            className={`mt-1.5 text-[0.8125rem] ${
+              selected.fatalities > 0 || selected.injured > 0
+                ? 'font-medium text-[var(--severity)]'
+                : 'text-[var(--ink-3)]'
+            }`}
+          >
+            {casualtySummary({ ...selected, arrested: 0 })}
+          </p>
+
+          <p className="mt-1 text-[0.75rem] text-[var(--ink-3)]">
+            {selectedBand.label}
+            {selected.verificationPathway ? (
+              <>
+                {' · '}
+                {pathwayLabel(selected.verificationPathway, selected.corroboratingSources ?? 0)}
+              </>
+            ) : null}
+          </p>
+
+          <p className="mt-3">
+            <Link href={`/incidents/${selected.id}`} className="btn btn-primary text-[0.8125rem]">
+              View record
+            </Link>
+          </p>
+        </aside>
+      ) : null}
     </div>
   )
 }

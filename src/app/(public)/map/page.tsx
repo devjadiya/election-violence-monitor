@@ -30,9 +30,9 @@ export default async function PublicMapPage() {
       where: { ...where, latitude: { not: null }, longitude: { not: null } },
       select: {
         id: true, referenceId: true, title: true, category: true,
-        latitude: true, longitude: true, country: true,
+        latitude: true, longitude: true, country: true, region: true,
         occurredAt: true, fatalities: true, injured: true,
-        confidenceScore: true, status: true,
+        confidenceScore: true, verificationPathway: true, corroboratingSources: true,
       },
       orderBy: { occurredAt: 'desc' },
       take: 500,

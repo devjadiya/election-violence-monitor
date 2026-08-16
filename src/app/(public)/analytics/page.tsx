@@ -51,9 +51,11 @@ function Distribution({
                 {r.label}
               </dt>
               <dd className="h-2 bg-[var(--paper-3)]">
+                {/* A month with no records draws no bar at all: a minimum
+                    width would print a mark where the datum is zero. */}
                 <div
                   className="h-2 bg-[var(--ink-2)]"
-                  style={{ width: `${Math.max((r.count / max) * 100, 2)}%` }}
+                  style={{ width: r.count === 0 ? 0 : `${Math.max((r.count / max) * 100, 2)}%` }}
                 />
               </dd>
               <dd className="tnum whitespace-nowrap text-[0.8125rem] text-[var(--ink-2)]">
@@ -68,10 +70,46 @@ function Distribution({
   )
 }
 
+/**
+ * Twelve calendar months ending now, each with its record count.
+ *
+ * Bucketed in application code rather than SQL: the published set is small,
+ * and a JS pass over dates costs less than a raw query that would bypass
+ * publicIncidentFilter(). Months with zero records are kept — an empty month
+ * inside the covered window is a datum, not a gap to hide.
+ */
+function monthBuckets(dates: { occurredAt: Date }[]) {
+  const now = new Date()
+  const buckets: { key: string; label: string; count: number }[] = []
+  for (let m = 11; m >= 0; m--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - m, 1))
+    buckets.push({
+      key: `${d.getUTCFullYear()}-${d.getUTCMonth()}`,
+      label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }),
+      count: 0,
+    })
+  }
+  const index = new Map(buckets.map((b, i) => [b.key, i]))
+  let earlier = 0
+  for (const { occurredAt } of dates) {
+    const d = new Date(occurredAt)
+    const i = index.get(`${d.getUTCFullYear()}-${d.getUTCMonth()}`)
+    if (i === undefined) earlier += 1
+    else buckets[i].count += 1
+  }
+  return { buckets, earlier }
+}
+
+const PATHWAY_ROW_LABEL: Record<string, string> = {
+  EDITORIAL_REVIEW: 'Checked by a reviewer',
+  AUTOMATED_CORROBORATION: 'Machine-extracted; met the automated publication criteria',
+  PENDING: 'Awaiting review',
+}
+
 export default async function AnalyticsPage() {
   const where = publicIncidentFilter()
 
-  const [total, byCategory, byRegion, byStage, totals, withCoords, multiSource] =
+  const [total, byCategory, byRegion, byStage, totals, withCoords, multiSource, occurred, byPathway, byCorroboration] =
     await Promise.all([
       prisma.incident.count({ where }),
       prisma.incident.groupBy({ by: ['category'], where, _count: true }),
@@ -80,7 +118,22 @@ export default async function AnalyticsPage() {
       prisma.incident.aggregate({ where, _sum: { fatalities: true, injured: true, arrested: true } }),
       prisma.incident.count({ where: { ...where, latitude: { not: null } } }),
       prisma.incident.count({ where: { ...where, sources: { some: {} } } }),
+      prisma.incident.findMany({ where, select: { occurredAt: true } }),
+      prisma.incident.groupBy({ by: ['verificationPathway'], where, _count: true }),
+      prisma.incident.groupBy({ by: ['corroboratingSources'], where, _count: true }),
     ])
+
+  const { buckets: months, earlier } = monthBuckets(occurred)
+
+  const corroborationRows = [
+    { label: 'One publisher', count: 0 },
+    { label: 'Two independent publishers', count: 0 },
+    { label: 'Three or more', count: 0 },
+  ]
+  for (const c of byCorroboration) {
+    const n = c.corroboratingSources ?? 0
+    corroborationRows[n >= 3 ? 2 : n === 2 ? 1 : 0].count += c._count
+  }
 
   if (total === 0) {
     return (
@@ -128,6 +181,19 @@ export default async function AnalyticsPage() {
         </section>
 
         <Distribution
+          title="When recorded incidents occurred"
+          caption={
+            earlier > 0
+              ? `The last twelve months. ${earlier.toLocaleString()} earlier record${earlier === 1 ? '' : 's'} fall outside this window.`
+              : 'The last twelve months. An empty month means nothing was published for it, not that nothing happened.'
+          }
+          rows={months.map((m) => ({ label: m.label, count: m.count }))}
+          total={total}
+        />
+
+        <div className="rule-t" />
+
+        <Distribution
           title="By incident type"
           rows={byCategory
             .map((c) => ({
@@ -141,7 +207,7 @@ export default async function AnalyticsPage() {
         <div className="rule-t" />
 
         <Distribution
-          title="By state"
+          title="By state or region"
           caption="Reflects where reporting exists as much as where incidents occurred."
           rows={byRegion
             .filter((r): r is typeof r & { region: string } => !!r.region)
@@ -162,6 +228,27 @@ export default async function AnalyticsPage() {
               count: s._count,
             }))
             .sort((a, b) => b.count - a.count)}
+          total={total}
+        />
+
+        <Distribution
+          title="How records reached publication"
+          caption="No machine-extracted record is presented as human-verified. Each record states its own pathway and cites the passages supporting it."
+          rows={byPathway
+            .map((p) => ({
+              label: PATHWAY_ROW_LABEL[p.verificationPathway ?? 'PENDING'] ?? 'Not stated',
+              count: p._count,
+            }))
+            .sort((a, b) => b.count - a.count)}
+          total={total}
+        />
+
+        <div className="rule-t" />
+
+        <Distribution
+          title="Independent publishers per record"
+          caption="Corroboration counts distinct publishing outlets, not articles: three stories from one outlet are one publisher."
+          rows={corroborationRows.filter((r) => r.count > 0)}
           total={total}
         />
 

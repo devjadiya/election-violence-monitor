@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import type { MapIncident } from './public-map'
 
 const PublicMap = dynamic(() => import('./public-map'), {
   ssr: false,
@@ -13,21 +14,6 @@ const PublicMap = dynamic(() => import('./public-map'), {
   ),
 })
 
-interface Incident {
-  id: string
-  referenceId: string
-  title: string
-  category: string
-  latitude: number | null
-  longitude: number | null
-  country: string
-  occurredAt: Date
-  fatalities: number
-  injured: number
-  confidenceScore: number
-  status: string
-}
-
-export function MapLoader({ incidents }: { incidents: Incident[] }) {
+export function MapLoader({ incidents }: { incidents: MapIncident[] }) {
   return <PublicMap incidents={incidents} />
 }
