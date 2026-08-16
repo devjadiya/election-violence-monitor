@@ -14,6 +14,7 @@ import {
   Status,
 } from '@/components/public/site-shell'
 import { PipelineFunnel } from '@/components/public/pipeline-funnel'
+import { ActivityStrip, dailyBuckets } from '@/components/public/activity-strip'
 import { IncidentRow, type IncidentSummary } from '@/components/public/incident-row'
 import { formatDateTime, relativeDays } from '@/lib/incidents/format'
 import {
@@ -57,6 +58,7 @@ async function getState() {
     monitored,
     activeElections,
     countries,
+    recentFetches,
   ] = await Promise.all([
       prisma.incident.count({ where }),
       // Summed over violent records only. A strategic development — 146 people
@@ -107,6 +109,10 @@ async function getState() {
       // number — and on a pooled connection every extra serialised query is
       // time the reader spends looking at nothing.
       prisma.election.groupBy({ by: ['country'], where: { isActive: true } }),
+      prisma.rawArticle.findMany({
+        where: { fetchedAt: { gte: new Date(Date.now() - 30 * 86_400_000) } },
+        select: { fetchedAt: true },
+      }),
     ])
 
   return {
@@ -125,6 +131,7 @@ async function getState() {
     monitored,
     activeElections,
     countries: countries.length,
+    collectionDays: dailyBuckets(recentFetches.map((a) => a.fetchedAt), 30),
   }
 }
 
@@ -423,6 +430,19 @@ export default async function HomePage() {
                   <dd className="text-[0.875rem] text-[var(--ink)]">English</dd>
                 </div>
               </dl>
+              <div className="mt-5">
+                <p className="mb-2 text-[0.8125rem] text-[var(--ink-3)]">
+                  Articles stored per day, last 30 days —{' '}
+                  <span className="tnum text-[var(--ink-2)]">
+                    {s.collectionDays.reduce((sum, d) => sum + d.count, 0).toLocaleString('en-US')}
+                  </span>{' '}
+                  in total
+                </p>
+                <ActivityStrip
+                  days={s.collectionDays}
+                  ariaLabel="Articles stored per day over the last 30 days"
+                />
+              </div>
               <p className="mt-3 text-[0.8125rem]">
                 <Link href="/sources/health" className="link-underline">
                   Run history and source health
