@@ -84,7 +84,18 @@ export async function GET(req: NextRequest) {
     success: true,
     data,
     meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
-    license: 'CC0 1.0 Universal',
+    // Rights differ by field class and cannot be licensed uniformly. The
+    // response previously carried a bare `license: 'CC0 1.0 Universal'`, which
+    // asserted a public-domain dedication over publisher headlines and titles
+    // that is not ours to grant.
+    license: {
+      structuredData: 'CC0-1.0',
+      sourceUrls: 'CC0-1.0',
+      titlesAndExcerpts: 'Publisher copyright — linked and attributed, not relicensed',
+      summary:
+        'The structured record is CC0. Text originating from the cited publications is not.',
+      url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    },
     attribution: 'Election Violence Monitor — election-violence-monitor.vercel.app',
     notice:
       'Records are extracted automatically from published reporting. ' +

@@ -5,7 +5,7 @@ import { SiteHeader, SiteFooter, PageHeader } from '@/components/public/site-she
 export const metadata: Metadata = {
   title: 'API',
   description:
-    'Public REST API for published election violence records. CC0 licensed, rate limited, no key required.',
+    'Public REST API for published election violence records. Structured data under CC0, rate limited, no key required.',
 }
 
 const BASE = 'https://election-violence-monitor.vercel.app'
@@ -56,7 +56,7 @@ export default function DevelopersPage() {
       <main id="main" className="mx-auto max-w-6xl px-5 py-10">
         <PageHeader
           title="API"
-          lede="Read-only access to published records. No key, no registration, CC0 1.0."
+          lede="Read-only access to published records. No key, no registration. The structured data is CC0 1.0; text from the cited publications is not."
         />
 
         <section className="py-7">

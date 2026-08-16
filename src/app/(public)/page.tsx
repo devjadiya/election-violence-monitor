@@ -1,8 +1,19 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
-import { publicIncidentFilter, publicViolenceFilter } from '@/lib/incidents/visibility'
-import { SiteHeader, SiteFooter, Figure, EmptyState } from '@/components/public/site-shell'
+import {
+  internalIncidentFilter,
+  publicIncidentFilter,
+  publicViolenceFilter,
+} from '@/lib/incidents/visibility'
+import {
+  SiteHeader,
+  SiteFooter,
+  Figure,
+  EmptyState,
+  Status,
+} from '@/components/public/site-shell'
+import { PipelineFunnel } from '@/components/public/pipeline-funnel'
 import { IncidentRow, type IncidentSummary } from '@/components/public/incident-row'
 import { formatDateTime, relativeDays } from '@/lib/incidents/format'
 import {
@@ -39,6 +50,9 @@ async function getState() {
     sources,
     healthySources,
     articles,
+    screened,
+    relevant,
+    candidates,
     elections,
     monitored,
     activeElections,
@@ -71,6 +85,11 @@ async function getState() {
       prisma.monitoredSource.count({ where: { isActive: true } }),
       prisma.monitoredSource.count({ where: { isActive: true, lastSuccessAt: { not: null } } }),
       prisma.rawArticle.count(),
+      // The funnel. Each of these is the same table at a different stage, so
+      // the shape of the drop-off is a real measurement rather than a diagram.
+      prisma.rawArticle.count({ where: { pass1At: { not: null } } }),
+      prisma.rawArticle.count({ where: { isElectionRelated: true, isViolenceRelated: true } }),
+      prisma.incident.count({ where: internalIncidentFilter() }),
       prisma.election.count({ where: { isActive: true } }),
       prisma.election.count({ where: { isActive: true, monitoringStatus: 'ACTIVE' } }),
       prisma.election.findMany({
@@ -99,6 +118,9 @@ async function getState() {
     sources,
     healthySources,
     articles,
+    screened,
+    relevant,
+    candidates,
     elections,
     monitored,
     activeElections,
@@ -131,28 +153,20 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              href="/elections"
-              className="rounded bg-[var(--ink)] px-4 py-2 text-[0.875rem] font-medium text-white transition-opacity hover:opacity-90"
-            >
+            <Link href="/elections" className="btn btn-primary">
               Browse elections
             </Link>
-            <Link
-              href="/incidents"
-              className="rounded border border-[var(--rule-2)] px-4 py-2 text-[0.875rem] text-[var(--ink-2)] transition-colors hover:border-[var(--ink-3)] hover:text-[var(--ink)]"
-            >
+            <Link href="/incidents" className="btn btn-secondary">
               Incident records
             </Link>
-            <Link
-              href="/methodology"
-              className="rounded border border-[var(--rule-2)] px-4 py-2 text-[0.875rem] text-[var(--ink-2)] transition-colors hover:border-[var(--ink-3)] hover:text-[var(--ink)]"
-            >
-              How it works
+            <Link href="/methodology" className="btn btn-secondary">
+              How records are made
             </Link>
           </div>
         </section>
 
-        {/* 2. Scope versus coverage, stated as two different numbers. */}
+        {/* 2. Scope versus coverage, stated as two different numbers, each one
+               a way into the data behind it rather than a decorative counter. */}
         <section className="rule-t rule-b bg-[var(--paper-2)]">
           <div className="mx-auto max-w-6xl px-5 py-8">
             <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4">
@@ -160,18 +174,27 @@ export default async function HomePage() {
                 value={s.elections}
                 label="Elections registered"
                 note={`${s.monitored} currently monitored`}
+                href="/elections"
               />
-              <Figure value={s.countries} label="Countries in scope" />
+              <Figure value={s.countries} label="Countries in scope" href="/elections" />
               <Figure
                 value={`${s.healthySources}/${s.sources}`}
                 label="Sources returning articles"
+                href="/sources/health"
               />
-              <Figure value={s.articles} label="Articles collected" />
+              <Figure
+                value={s.articles}
+                label="Articles collected"
+                note="all time"
+                href="/sources"
+              />
             </div>
             <p className="prose-measure mt-6 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
-              The platform is built to work in any country. Current collection is
-              concentrated where sources are configured, so coverage is uneven by design
-              rather than complete. Each election states its own monitoring status.
+              The platform is built to work in any country. Coverage follows wherever
+              monitoring has been configured, so it is uneven by design rather than
+              complete — and a country with no records here is a gap in our collection,
+              not evidence that nothing happened. Every election states its own monitoring
+              status.
             </p>
           </div>
         </section>
@@ -189,15 +212,19 @@ export default async function HomePage() {
             <div className="rule-t">
               {s.activeElections.map((e) => (
                 <article key={e.id} className="rule-b py-5">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.75rem] text-[var(--ink-3)]">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.75rem] text-[var(--ink-3)]">
+                    <Status kind={e.currentStage === 'ELECTION_DAY' ? 'live' : 'active'}>
+                      {MONITORING_LABEL[e.monitoringStatus]}
+                    </Status>
                     <span>{electionPlace(e)}</span>
                     <span aria-hidden>·</span>
                     <span>{electionTypeLabel(e.electionType)}</span>
-                    <span aria-hidden>·</span>
-                    <span className="text-[var(--ok)]">{MONITORING_LABEL[e.monitoringStatus]}</span>
                   </div>
-                  <h3 className="mt-1.5 text-[1.125rem] font-medium leading-snug">
-                    <Link href={`/elections/${e.id}`} className="text-[var(--ink)] hover:underline">
+                  <h3 className="mt-2 text-[1.125rem] font-medium leading-snug">
+                    <Link
+                      href={`/elections/${e.id}`}
+                      className="text-[var(--ink)] hover:text-[var(--link)]"
+                    >
                       {e.name}
                     </Link>
                   </h3>
@@ -263,40 +290,91 @@ export default async function HomePage() {
           )}
         </section>
 
-        {/* 5. How a record is made — the trust model, on the front page. */}
+        {/* 5. How a record is made — the trust model, drawn from real counts so
+               the drop-off between stages is a measurement, not an illustration. */}
         <section className="rule-t bg-[var(--paper-2)]">
           <div className="mx-auto max-w-6xl px-5 py-9">
-            <h2 className="headline">How a record is made</h2>
-            <p className="prose-measure mt-1.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
-              Automation collects and structures. It does not decide what is true.
-            </p>
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+              <div>
+                <h2 className="headline">From reporting to record</h2>
+                <p className="prose-measure mt-1.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
+                  Every figure below is a live count from the same database, at a different
+                  stage. Automation collects and structures; it does not decide what is true.
+                </p>
 
-            <ol className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                ['Collect', 'Configured feeds are read once a day and new articles stored. Nothing is judged at this stage.'],
-                ['Screen', 'Each article is assessed for whether it concerns both an election and violence.'],
-                ['Extract', 'Structured fields are pulled from the published article, each tied to a verbatim quotation.'],
-                ['Assemble', 'Several outlets reporting one event produce one record with several sources, not several records.'],
-                ['Publish', 'A record reaches the public site only if it cites a real article and quotes it.'],
-                ['Reuse', 'Published records are open data under CC0, available as files and through an API.'],
-              ].map(([name, detail], i) => (
-                <li key={name} className="flex items-baseline gap-3">
-                  <span className="tnum text-[0.75rem] text-[var(--ink-4)]">{i + 1}</span>
-                  <div>
-                    <span className="text-[0.875rem] font-medium text-[var(--ink)]">{name}</span>
-                    <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
-                      {detail}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+                <div className="mt-6">
+                  <PipelineFunnel
+                    stages={[
+                      {
+                        label: 'Articles collected',
+                        value: s.articles,
+                        detail:
+                          'Everything the configured feeds published, stored before anything is judged.',
+                        href: '/sources',
+                      },
+                      {
+                        label: 'Screened',
+                        value: s.screened,
+                        detail:
+                          'Read and assessed for whether they concern both an election and violence. The remainder are queued.',
+                      },
+                      {
+                        label: 'Election-violence related',
+                        value: s.relevant,
+                        detail:
+                          'Most published reporting is about something else. This drop is the screening working, not coverage failing.',
+                      },
+                      {
+                        label: 'Structured as incidents',
+                        value: s.candidates,
+                        detail:
+                          'Several outlets covering one event become one record with several sources, not several records.',
+                      },
+                      {
+                        label: 'Published',
+                        value: s.published,
+                        emphasis: true,
+                        detail:
+                          'Held back unless the record cites a resolvable article and quotes the passage supporting it. Most of the gap above is articles our reader could not retrieve in full.',
+                        href: '/incidents',
+                      },
+                    ]}
+                    caption="A narrowing funnel is the expected shape. A record that cannot quote its source is not published, and that is a deliberate cost."
+                  />
+                </div>
 
-            <p className="mt-6 text-[0.875rem]">
-              <Link href="/methodology" className="link-underline">
-                Full methodology, including what this method cannot do
-              </Link>
-            </p>
+                <p className="mt-6 text-[0.875rem]">
+                  <Link href="/methodology" className="link-underline">
+                    Full methodology, including what this method cannot do
+                  </Link>
+                </p>
+              </div>
+
+              <div>
+                <h2 className="headline">What each stage does</h2>
+                <ol className="mt-5 space-y-4">
+                  {[
+                    ['Collect', 'Configured feeds are read on a schedule and new articles stored. Nothing is judged at this stage.'],
+                    ['Screen', 'Each article is assessed for whether it reports an actual incident at an electoral process — not merely political news.'],
+                    ['Extract', 'Structured fields are pulled from the published article, each tied to a verbatim quotation from it.'],
+                    ['Assemble', 'Reports of the same event are matched by headline, place and date, and attached to one record.'],
+                    ['Publish', 'A record reaches the public site only if it can cite a real article and quote it. How it was checked is stated on the record.'],
+                  ].map(([name, detail], i) => (
+                    <li key={name} className="flex items-baseline gap-3">
+                      <span className="tnum text-[0.6875rem] text-[var(--ink-4)]">{i + 1}</span>
+                      <div>
+                        <span className="text-[0.875rem] font-medium text-[var(--ink)]">
+                          {name}
+                        </span>
+                        <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
+                          {detail}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -321,8 +399,24 @@ export default async function HomePage() {
                   </div>
                 ) : null}
                 <div className="rule-b flex items-baseline justify-between gap-4 py-2.5">
-                  <dt className="text-[0.875rem] text-[var(--ink-2)]">Frequency</dt>
-                  <dd className="text-[0.875rem] text-[var(--ink)]">Daily, 09:00 UTC</dd>
+                  <dt className="text-[0.875rem] text-[var(--ink-2)]">Collection frequency</dt>
+                  <dd className="text-right text-[0.875rem] text-[var(--ink)]">
+                    {s.monitored > 0 ? (
+                      <>
+                        Every 15 minutes
+                        <span className="block text-[0.75rem] text-[var(--ink-3)]">
+                          while an election is being monitored
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Daily, 09:00 UTC
+                        <span className="block text-[0.75rem] text-[var(--ink-3)]">
+                          no election currently in its window
+                        </span>
+                      </>
+                    )}
+                  </dd>
                 </div>
                 <div className="rule-b flex items-baseline justify-between gap-4 py-2.5">
                   <dt className="text-[0.875rem] text-[var(--ink-2)]">Languages collected</dt>
@@ -341,7 +435,9 @@ export default async function HomePage() {
               <ul className="prose-measure mt-4 space-y-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
                 <li>
                   <strong className="font-medium text-[var(--ink)]">Not real-time.</strong>{' '}
-                  Sources are read once a day.
+                  Sources are polled on a schedule — more often while an election is being
+                  monitored, daily otherwise. An incident appears here only once a publisher
+                  has reported it, which is usually hours later and sometimes days.
                 </li>
                 <li>
                   <strong className="font-medium text-[var(--ink)]">Not complete.</strong>{' '}
@@ -370,14 +466,22 @@ export default async function HomePage() {
           <div className="mx-auto max-w-6xl px-5 py-9">
             <h2 className="headline">Open data</h2>
             <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
-              Published records are released under CC0 1.0 — no permission or attribution
-              required — as CSV, JSON, and a public API. Source articles remain the property
-              of their publishers and are linked, not reproduced.
+              The structured record of each incident — what happened, where, when, how many
+              were affected, and which articles report it — is offered under CC0 1.0, as CSV,
+              JSON and a public API. No permission or attribution required.
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-[0.875rem]">
+            {/* Rights differ by field class. Claiming CC0 over the whole payload
+                would assert a licence over publisher headlines and quoted
+                excerpts that is not ours to give. */}
+            <p className="prose-measure mt-2.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
+              Article text, headlines and the quoted excerpts held as evidence remain the
+              property of their publishers. They are linked and, where quoted, kept short and
+              attributed — never relicensed or redistributed in bulk.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-4 text-[0.875rem]">
               <Link href="/data" className="link-underline">Download the dataset</Link>
               <Link href="/developers" className="link-underline">API reference</Link>
-              <Link href="/sources" className="link-underline">Source directory</Link>
+              <Link href="/data#licensing" className="link-underline">Licensing in full</Link>
             </div>
           </div>
         </section>

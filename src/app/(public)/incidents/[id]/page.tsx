@@ -345,11 +345,15 @@ export default async function IncidentDetailPage({
             <div className="mt-8">
               <h2 className="eyebrow mb-2">Reuse</h2>
               <p className="text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
-                This record is CC0 1.0. Cite it as{' '}
+                The structured fields of this record are CC0 1.0. Quoted passages and the
+                headline belong to the cited publication. Cite it as{' '}
                 <span className="chip chip-mono">{incident.referenceId}</span>.
               </p>
-              <Link href="/data" className="link-underline mt-2 inline-block text-[0.8125rem]">
-                Download the dataset
+              <Link
+                href="/data#licensing"
+                className="link-underline mt-2 inline-block text-[0.8125rem]"
+              >
+                Licensing and reuse
               </Link>
             </div>
           </aside>

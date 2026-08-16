@@ -49,12 +49,17 @@ export default async function DataPage() {
       <main id="main" className="mx-auto max-w-6xl px-5 py-10">
         <PageHeader
           title="Data"
-          lede="Published incident records, free to use for any purpose without permission or attribution."
+          lede="The structured record of each published incident, free to use for any purpose without permission or attribution. Text belonging to the cited publications is linked rather than relicensed."
         />
 
         <section className="rule-b grid grid-cols-2 gap-x-6 gap-y-7 py-7 sm:grid-cols-4">
           <Figure value={count} label="Records available" />
-          <Figure value="CC0 1.0" label="Licence" note="Public domain dedication" />
+          <Figure
+            value="CC0 1.0"
+            label="Licence, structured data"
+            note="publisher text excluded"
+            href="#licensing"
+          />
           <Figure
             value={oldest?.occurredAt ? formatDate(oldest.occurredAt) : '—'}
             label="Earliest incident"
@@ -155,17 +160,103 @@ export default async function DataPage() {
           </div>
         </section>
 
+        {/* Rights differ by field class and cannot be licensed uniformly. A
+            blanket CC0 claim over the whole payload would be asserting a
+            public-domain dedication over publisher headlines and quoted
+            excerpts, which is not ours to grant. */}
+        <section id="licensing" className="rule-t scroll-mt-24 py-7">
+          <h2 className="headline">Licensing and reuse</h2>
+          <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
+            A record here combines two things with different owners: facts we structured, and
+            text somebody else wrote. They are licensed separately.
+          </p>
+
+          <div className="scroll-x mt-5">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">What</th>
+                  <th scope="col">Examples</th>
+                  <th scope="col">Rights</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="font-medium text-[var(--ink)]">Structured record</td>
+                  <td className="text-[var(--ink-3)]">
+                    category, date, location, casualty counts, reference id, coordinates,
+                    verification pathway
+                  </td>
+                  <td>
+                    <span className="status status-active">CC0 1.0</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-medium text-[var(--ink)]">Source URLs</td>
+                  <td className="text-[var(--ink-3)]">the link to each cited article</td>
+                  <td>
+                    <span className="status status-active">CC0 1.0</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-medium text-[var(--ink)]">Headlines and titles</td>
+                  <td className="text-[var(--ink-3)]">the publisher&rsquo;s own wording</td>
+                  <td>
+                    <span className="status status-caution">Publisher copyright</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-medium text-[var(--ink)]">Quoted evidence</td>
+                  <td className="text-[var(--ink-3)]">
+                    the passage each extracted field was taken from
+                  </td>
+                  <td>
+                    <span className="status status-caution">Publisher copyright</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-medium text-[var(--ink)]">Article text</td>
+                  <td className="text-[var(--ink-3)]">the body of the published article</td>
+                  <td>
+                    <span className="status status-none">Never redistributed</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="prose-measure mt-5 space-y-2.5 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+            <p>
+              Publisher text is held only so a reviewer can check a claim against its source.
+              It is quoted briefly, always attributed, and never offered as a bulk download.
+              If you are redistributing anything derived from this dataset, the structured
+              fields and the URLs are yours to use freely; the wording is not.
+            </p>
+            <p>
+              Records may also carry attributes about people who were harmed — role, and
+              where reported, gender and age band. These are kept as counts per incident.
+              No individual is named, and no personal detail is published or exported at
+              individual granularity, under any licence.
+            </p>
+          </div>
+        </section>
+
         <section className="rule-t py-7">
           <h2 className="headline">Citation</h2>
           <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
-            No attribution is required under CC0, but it helps others trace a figure back.
-            Cite individual records by their reference identifier.
+            No attribution is required for the structured data, but it helps others trace a
+            figure back to its source. Cite individual records by their reference identifier.
           </p>
           <pre className="scroll-x mt-3 rounded border border-[var(--rule)] bg-[var(--paper-2)] p-3 text-[0.8125rem] text-[var(--ink-2)]">
 {`Election Violence Monitor. Incident records [dataset].
-Retrieved ${formatDate(new Date())}. CC0 1.0.
+Retrieved ${formatDate(new Date())}. Structured data CC0 1.0.
 https://election-violence-monitor.vercel.app/data`}
           </pre>
+          <p className="prose-measure mt-3 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
+            The dataset is revised as reporting develops. Records carry the time they were
+            last updated, so a figure quoted from this dataset should be quoted with the date
+            it was retrieved.
+          </p>
         </section>
       </main>
 

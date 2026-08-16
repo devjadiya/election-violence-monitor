@@ -7,41 +7,90 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================================================================
+   One design system.
+   --------------------------------------------------------------------------
+   This file used to hold two: a glassmorphism prototype and an editorial layer
+   added on top of it, which is why the public site read as a monochrome
+   document while the dashboard still looked like a 2021 SaaS template.
+
+   The prototype's CLASS NAMES are kept — .glass-card and friends are used in
+   28 dashboard files, and rewriting all of them to fix a palette would be a
+   large diff with real regression risk for no user-visible gain. What each
+   class RENDERS is redefined below: bordered institutional surfaces instead of
+   blurred translucent ones. The dashboard modernises without being rewritten.
+
+   Colour is a data channel. The chrome is a warm neutral ramp so that charts,
+   status and severity are the only saturated things on a page. The one
+   institutional accent is a deep navy, used for interactive affordance —
+   because a reader must be able to tell what is clickable, which was the
+   substantive complaint about the editorial layer.
+   ========================================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
-  --card: rgba(255, 255, 255, 0.85);
-  --card-foreground: #0a0a0a;
-  --popover: rgba(255, 255, 255, 0.95);
-  --popover-foreground: #0a0a0a;
-  --primary: #1a1a2e;
+  /* Neutral ramp. Warm rather than pure grey; pure grey reads as unfinished. */
+  --ink:        #14161a;
+  --ink-2:      #3d434d;
+  --ink-3:      #6b7280;
+  --ink-4:      #9aa1ab;
+  --rule:       #e5e7eb;
+  --rule-2:     #d3d7dd;
+  --paper:      #ffffff;
+  --paper-2:    #f8f9fa;
+  --paper-3:    #eef0f3;
+
+  /* Institutional accent. Interactive affordance and masthead. */
+  --navy:       #10263f;
+  --navy-2:     #1c3d5f;
+  --navy-3:     #2f5f8a;
+  --navy-tint:  #eef3f8;
+
+  /* Semantic. Reserved for meaning, never decoration. */
+  --link:       #1c4f82;
+  --severity:   #a5241d;
+  --severity-tint: #fbeceb;
+  --caution:    #8a5a09;
+  --caution-tint:  #fdf4e3;
+  --ok:         #14663f;
+  --ok-tint:    #e8f4ee;
+  --info-tint:  #eaf1f8;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--navy);
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #1a1a2e;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #e8f4fd;
-  --accent-foreground: #1a1a2e;
-  --destructive: #ef4444;
+  --secondary: var(--paper-3);
+  --secondary-foreground: var(--navy);
+  --muted: var(--paper-3);
+  --muted-foreground: var(--ink-3);
+  --accent: var(--navy-tint);
+  --accent-foreground: var(--navy);
+  --destructive: var(--severity);
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.08);
-  --input: rgba(0, 0, 0, 0.06);
-  --ring: #1a1a2e;
-  --radius: 0.75rem;
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --brand-blue: #1a1a2e;
-  --brand-accent: #16213e;
-  --brand-highlight: #0f3460;
-  --sidebar: rgba(255,255,255,0.92);
-  --sidebar-foreground: #0a0a0a;
-  --sidebar-primary: #1a1a2e;
+  --border: var(--rule);
+  --input: var(--rule-2);
+  --ring: var(--navy-3);
+  --radius: 0.375rem;
+
+  /* Kept so the dashboard's existing markup resolves; no longer translucent. */
+  --glass-bg: #ffffff;
+  --glass-border: var(--rule);
+  --glass-shadow: 0 1px 2px rgba(16, 38, 63, 0.04);
+  --brand-blue: var(--navy);
+  --brand-accent: var(--navy-2);
+  --brand-highlight: var(--navy-3);
+  --sidebar: var(--paper-2);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--navy);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
-  --sidebar-accent-foreground: #1a1a2e;
-  --sidebar-border: rgba(0,0,0,0.08);
-  --sidebar-ring: #1a1a2e;
+  --sidebar-accent: var(--navy-tint);
+  --sidebar-accent-foreground: var(--navy);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--navy-3);
 }
 
 @theme inline {
@@ -97,50 +146,36 @@ body {
   min-height: 100vh;
 }
 
+/* The former glassmorphism set, redefined as flat institutional surfaces.
+   Same names so the dashboard keeps working; no blur, no lift, no gradient. */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  background: var(--paper);
+  border: 1px solid var(--rule);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  background: var(--paper);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .glass-card:hover {
-  box-shadow: 0 8px 40px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
-  transform: translateY(-1px);
+  border-color: var(--rule-2);
 }
 
 .glass-nav {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(24px) saturate(200%);
-  -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 
 .glass-sidebar {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(0,0,0,0.06);
+  background: var(--paper-2);
+  border-right: 1px solid var(--rule);
 }
 
 .bg-mesh {
-  background-color: #ffffff;
-  background-image:
-    radial-gradient(at 20% 50%, rgba(59,130,246,0.05) 0px, transparent 50%),
-    radial-gradient(at 80% 20%, rgba(139,92,246,0.04) 0px, transparent 50%),
-    radial-gradient(at 40% 80%, rgba(16,185,129,0.03) 0px, transparent 50%);
+  background-color: var(--paper-2);
   min-height: 100vh;
 }
 
@@ -173,29 +208,14 @@ body {
 *:focus-visible { outline: 2px solid var(--brand-highlight); outline-offset: 2px; border-radius: 4px; }
 
 /* ==========================================================================
-   Editorial layer
+   Public surface
    --------------------------------------------------------------------------
-   The glass/gradient styles above are the prototype's. This layer is the
-   public product: a record of who was hurt during an election. It is meant to
-   read like a reference document, not a dashboard — rules instead of shadows,
-   type instead of decoration, and no ornament that implies data we do not have.
+   A record of who was hurt during an election. It reads like a reference work
+   rather than a dashboard — but a reference work a person can navigate, which
+   the first version was not: everything was the same weight, so nothing looked
+   clickable. Interactive affordance is treated as a correctness requirement
+   here, not a decoration.
    ========================================================================== */
-
-:root {
-  --ink:        #111114;
-  --ink-2:      #3f3f46;
-  --ink-3:      #71717a;
-  --ink-4:      #a1a1aa;
-  --rule:       #e4e4e7;
-  --rule-2:     #d4d4d8;
-  --paper:      #ffffff;
-  --paper-2:    #fafafa;
-  --paper-3:    #f4f4f5;
-  --link:       #1d4ed8;
-  --severity:   #b91c1c;
-  --caution:    #a16207;
-  --ok:         #15803d;
-}
 
 .prose-measure { max-width: 68ch; }
 
@@ -277,6 +297,131 @@ body {
   text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
 }
 .link-underline:hover { text-decoration-color: var(--link); }
+
+/* --------------------------------------------------------------------------
+   Interactive affordance
+   --------------------------------------------------------------------------
+   A reader has to be able to tell a destination from a paragraph without
+   hovering to find out. These carry that job.
+   -------------------------------------------------------------------------- */
+
+/* Primary action. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--navy-2); }
+.btn-secondary {
+  border: 1px solid var(--rule-2);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+.btn-secondary:hover { border-color: var(--navy-3); color: var(--navy); }
+
+/* A whole row that is a link. The left rule appears on hover, so the target
+   reads as one object rather than a headline that happens to be blue. */
+.row-link {
+  display: block;
+  position: relative;
+  transition: background-color 0.12s ease;
+}
+.row-link::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--navy-3);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.row-link:hover { background: var(--paper-2); }
+.row-link:hover::before { opacity: 1; }
+.row-link:hover .row-link-title { color: var(--link); }
+.row-link-title { transition: color 0.12s ease; }
+
+/* Navigation. Active state is a rule under the label, not a colour change —
+   it survives being read in greyscale and does not compete with the content. */
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+  transition: color 0.12s ease;
+}
+.nav-link:hover { color: var(--ink); }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.6875rem;
+  height: 2px;
+  background: var(--navy);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.nav-link:hover::after { opacity: 0.28; }
+.nav-link[aria-current='page'] { color: var(--ink); font-weight: 550; }
+.nav-link[aria-current='page']::after { opacity: 1; }
+
+/* Status. Meaning, never decoration. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 3px;
+  padding: 0.125rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.status-live      { background: var(--severity-tint); color: var(--severity); }
+.status-active    { background: var(--ok-tint);       color: var(--ok); }
+.status-scheduled { background: var(--info-tint);     color: var(--navy-2); }
+.status-none      { background: var(--paper-3);       color: var(--ink-3); }
+.status-caution   { background: var(--caution-tint);  color: var(--caution); }
+
+/* A dot that marks something as currently happening. It does NOT pulse: the
+   collection cadence is minutes at best, and an animation implying a live feed
+   would be a claim the infrastructure cannot support. */
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.dot-live { background: var(--severity); }
+.dot-ok { background: var(--ok); }
+.dot-idle { background: var(--ink-4); }
+
+/* Proportion bars for the pipeline funnel. Bar length is the datum. */
+.bar-track {
+  height: 6px;
+  border-radius: 2px;
+  background: var(--paper-3);
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--navy-3);
+}
+.bar-fill-strong { background: var(--navy); }
+.bar-fill-muted { background: var(--ink-4); }
 
 /* Data tables: dense, ruled, scannable. */
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
