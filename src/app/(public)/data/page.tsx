@@ -74,9 +74,9 @@ export default async function DataPage() {
           <h2 className="headline">Download</h2>
           {count === 0 ? (
             <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
-              There are no published records to download yet. The endpoints below are live
-              and will return an empty result set rather than an error, so they are safe to
-              build against now.
+              There are no published records to download yet. The endpoints below already
+              respond and will return an empty result set rather than an error, so they are
+              safe to build against now.
             </p>
           ) : (
             <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">

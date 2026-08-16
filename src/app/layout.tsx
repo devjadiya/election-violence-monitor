@@ -11,12 +11,13 @@ export const metadata: Metadata = {
     template: '%s | Election Violence Monitor',
   },
   description:
-    'A community-based platform for structured, ethical documentation of election-related violence incidents — supporting democracy, accountability, and research worldwide.',
+    'Open infrastructure for documenting election-related violence: published reporting turned into structured, source-linked records that anyone can verify and reuse.',
+  // Global identity only. Countries appear in page-level metadata where the
+  // page actually shows that country's data, never in the product's own.
   keywords: [
     'election violence',
     'election monitoring',
     'democracy',
-    'Nigeria elections',
     'electoral violence',
     'human rights',
     'open data',
@@ -71,7 +72,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#1a1a2e',
+  themeColor: '#10263f',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -149,7 +149,7 @@ export default function SettingsPage() {
               {[
                 { label: 'New incident detected by AI', desc: 'Get notified when AI flags a new incident' },
                 { label: 'Incident needs review', desc: 'Alert when an incident enters review queue' },
-                { label: 'Incident published', desc: 'Confirmation when an incident goes live' },
+                { label: 'Incident published', desc: 'Confirmation when an incident is published' },
                 { label: 'Ingestion completed', desc: 'Daily report of ingestion results' },
                 { label: 'System errors', desc: 'Critical system and database errors' },
               ].map((item, i) => (

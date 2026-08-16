@@ -10,7 +10,7 @@ import type { IncidentCategory, Prisma } from '@/lib/generated/prisma'
 export const metadata: Metadata = {
   title: 'Incidents',
   description:
-    'Browse published records of election-related violence, filtered by category, state and date.',
+    'Browse published records of election-related violence, filtered by category, region and date.',
 }
 
 export const dynamic = 'force-dynamic'
@@ -78,7 +78,7 @@ function Toolbar({
       {regions.length > 0 ? (
         <div className="scroll-x">
           <div className="flex items-center gap-1.5 whitespace-nowrap">
-            <span className="eyebrow mr-1">State</span>
+            <span className="eyebrow mr-1">Region</span>
             <Link
               href={buildHref({ region: undefined, page: undefined })}
               className={`rounded px-2 py-1 text-[0.8125rem] ${
