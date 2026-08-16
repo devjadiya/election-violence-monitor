@@ -1,23 +1,42 @@
-﻿import Link from 'next/link'
+import Link from 'next/link'
+import { Wordmark } from '@/components/public/site-shell'
 
+/**
+ * The global 404. Hidden or unpublished records land here too, so the copy
+ * allows for both possibilities without confirming either. It offers public
+ * destinations only — the previous version suggested "Dashboard" to every
+ * anonymous visitor, which is exactly the auth-first posture this product
+ * must not have.
+ */
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="text-center max-w-md">
-        <div className="text-6xl font-bold text-zinc-100 mb-2">404</div>
-        <h1 className="text-xl font-bold text-zinc-800 mb-2">Page not found</h1>
-        <p className="text-sm text-zinc-500 mb-6">
-          The page you are looking for does not exist or has been moved.
+    <div className="flex min-h-screen flex-col bg-[var(--paper)]">
+      <header className="rule-b">
+        <div className="mx-auto max-w-6xl px-5 py-3">
+          <Wordmark />
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-xl flex-1 px-5 py-16">
+        <p className="eyebrow">404</p>
+        <h1 className="display mt-2">This page does not exist.</h1>
+        <p className="prose-measure mt-3 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
+          It may have moved, it may never have existed, or it may not be publicly
+          visible. If a citation brought you here, the record behind it may have been
+          withdrawn or not yet published.
         </p>
-        <div className="flex gap-3 justify-center">
-          <Link href="/" className="bg-[#1a1a2e] text-white px-5 py-2.5 rounded-lg text-sm font-medium">
-            Go Home
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link href="/" className="btn btn-primary">
+            Home
           </Link>
-          <Link href="/dashboard" className="border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-lg text-sm font-medium">
-            Dashboard
+          <Link href="/incidents" className="btn btn-secondary">
+            Incident records
+          </Link>
+          <Link href="/elections" className="btn btn-secondary">
+            Elections
           </Link>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

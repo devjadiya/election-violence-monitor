@@ -26,7 +26,7 @@ const NAV = [
   { href: '/data', label: 'Data' },
 ]
 
-function Wordmark() {
+export function Wordmark() {
   return (
     <Link href="/" className="group flex shrink-0 items-center gap-2.5">
       {/* A mark, not a logo: three stacked rules of decreasing length — the

@@ -63,7 +63,8 @@ export default async function SourcesPage() {
         <section className="py-7">
           <h2 className="headline">Active</h2>
           <p className="mt-1.5 text-[0.8125rem] text-[var(--ink-3)]">
-            Read once a day. &ldquo;Last article&rdquo; is the last time the feed actually
+            Read on a schedule — more often while an election is being monitored, daily
+            otherwise. &ldquo;Last article&rdquo; is the last time the feed actually
             returned something, which is not the same as the last time we tried.
           </p>
 
