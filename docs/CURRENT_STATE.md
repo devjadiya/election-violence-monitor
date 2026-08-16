@@ -130,6 +130,8 @@ high-frequency pass costs nothing on an ordinary day.
 
 **Incident status enum (implemented):** `RAW → FLAGGED → UNDER_REVIEW → VERIFIED → PUBLISHED`, plus `REJECTED`. Note this differs from the conceptual state list in [PROJECT_VISION.md](PROJECT_VISION.md) — there is no `duplicate`, `disputed`, or `updated` state yet.
 
+**Who may move between those states** — [src/lib/incidents/transitions.ts](../src/lib/incidents/transitions.ts) holds the legal edges and the minimum role for each, as a pure module. Verifying is `REVIEWER`; publishing is `EDITOR`, one rank higher, because deciding the reporting supports a record and deciding to put it in front of the public are different acts. `PUBLISHED → REJECTED` exists so a bad record can be retracted through the interface rather than by hand against the database. See D9.
+
 **Public API** — `/api/public/incidents` and `/api/public/stats`. Filters to `status: 'PUBLISHED'` only, rate-limited to 100 req/hour per IP, `Access-Control-Allow-Origin: *`, and stamps every response `license: 'CC0 1.0 Universal'`.
 
 **Rate limits** — [src/lib/security/rate-limit.ts](../src/lib/security/rate-limit.ts): public API 100/h, search 30/min, tips 5/h, ingest 10/day.
@@ -268,6 +270,39 @@ renumbered after any deletion.
 - Nigeria keywords are hard-coded as module constants (`ELECTION_VIOLENCE_KEYWORDS`, `NIGERIA_SPECIFIC_KEYWORDS`) rather than configuration — conflicts with "country must be configurable."
 - Both ECharts and Recharts ship in the bundle.
 - `prisma/schema.prisma` has UTF-8 mojibake in several comments (lines 2, 305).
+
+### ✅ D9 — RESOLVED 2026-08-16 — `PATCH /api/incidents/[id]` let any signed-in account publish
+
+The route gated on `if (!session)` and then spread the request body straight into
+`prisma.incident.update`. Two consequences, both of which broke rules the project treats as
+settled:
+
+- **Any authenticated account could publish.** An `OBSERVER` — the lowest logged-in role —
+  could send `{"status":"PUBLISHED"}` and put a record into the public archive without
+  review. The state machine existed only in
+  [src/components/incidents/incidents-action.tsx](../src/components/incidents/incidents-action.tsx),
+  which decided which buttons to draw. A boundary enforced by which buttons are drawn is not
+  a boundary.
+- **Arbitrary field write, including provenance.** The body spread allowed a caller to set
+  `isDemo`, rewrite `referenceId`, inflate `confidenceScore`, forge `extractionModel`, or
+  stamp `verificationPathway: EDITORIAL_REVIEW` on a record no person had read — every one of
+  which is a claim the system makes, not the user.
+
+The route now requires `ANALYST` to edit at all, narrows the body to an explicit
+`EDITABLE_FIELDS` allowlist (reporting refused keys rather than dropping them silently), and
+rank-checks every status change against `TRANSITIONS`. `reviewedById` is stamped on review
+outcomes only — it previously landed on every edit, crediting whoever last fixed a typo as
+the reviewer.
+
+**Still open, and separate:** the operations UI posts to `/api/manage/incidents/[id]`, which
+does not exist — there is no `src/app/api/manage/` route, no rewrite in `next.config.ts`, and
+`src/middleware.ts` is a pass-through (D7). Those review buttons 404 today. The hardened route
+is reachable by any client holding a session, which is why this mattered regardless. When the
+UI is wired up, `incidents-action.tsx` will also need to filter its buttons by role, or a
+`REVIEWER` will be shown "Publish" and get a 403.
+
+`transitions.ts` is pure — no Prisma, no NextAuth — so the policy can be tested directly. That
+test does not exist yet.
 
 ---
 
