@@ -22,6 +22,17 @@ interface Notification {
   createdAt: string
 }
 
+/** One row from `GET /api/incidents/search`. */
+interface SearchHit {
+  id: string
+  referenceId: string
+  title: string
+  category: string
+  country: string
+  status: string
+  occurredAt: string
+}
+
 // Short typographic kind labels. The previous version used emoji as interface
 // icons, which reads as decoration on a monitoring system about violence.
 const NOTIFICATION_KIND: Record<string, string> = {
@@ -34,10 +45,10 @@ const NOTIFICATION_KIND: Record<string, string> = {
   system: 'System',
 }
 
-export function TopBar({ user }: Props) {
+export function TopBar({ user: _user }: Props) {
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [searchResults, setSearchResults] = useState<SearchHit[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -80,8 +91,8 @@ export function TopBar({ user }: Props) {
     const timer = setTimeout(async () => {
       setSearchLoading(true)
       try {
-        const res = await fetch(`/api/manage/incidents/search?q=${encodeURIComponent(search)}`)
-        const data = await res.json()
+        const res = await fetch(`/api/incidents/search?q=${encodeURIComponent(search)}`)
+        const data = await res.json().catch(() => ({}))
         setSearchResults(data.data ?? [])
         setSearchOpen(true)
       } finally {
@@ -129,7 +140,7 @@ export function TopBar({ user }: Props) {
         {searchOpen && (
           <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-xl z-50 overflow-hidden">
             {searchLoading && <div className="px-4 py-3 text-xs text-zinc-400">Searching...</div>}
-            {!searchLoading && searchResults.length === 0 && <div className="px-4 py-3 text-xs text-zinc-400">No results for "{search}"</div>}
+            {!searchLoading && searchResults.length === 0 && <div className="px-4 py-3 text-xs text-zinc-400">No results for &ldquo;{search}&rdquo;</div>}
             {!searchLoading && searchResults.map(r => (
               <button key={r.id} onClick={() => { router.push(`/manage/incidents/${r.id}`); setSearchOpen(false); setSearch('') }}
                 className="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0">

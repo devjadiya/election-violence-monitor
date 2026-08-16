@@ -3,10 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Link2, ExternalLink, Search } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Props {
   incidentId: string
   currentWikidataId?: string | null
+}
+
+/** One entity returned by `GET /api/wikidata`. */
+interface WikidataHit {
+  id: string
+  label: string
+  description?: string
 }
 
 export function WikidataLink({ incidentId, currentWikidataId }: Props) {
@@ -15,7 +23,7 @@ export function WikidataLink({ incidentId, currentWikidataId }: Props) {
   const [qid, setQid] = useState(currentWikidataId ?? '')
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<WikidataHit[]>([])
   const [searching, setSearching] = useState(false)
 
   async function search() {
@@ -33,11 +41,22 @@ export function WikidataLink({ incidentId, currentWikidataId }: Props) {
   async function save() {
     setLoading(true)
     try {
-      await fetch(`/api/manage/incidents/${incidentId}`, {
+      const res = await fetch(`/api/incidents/${incidentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wikidataId: qid || null }),
       })
+
+      // Leaving the panel open on failure keeps the typed QID recoverable.
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast.error('Could not save the Wikidata link', {
+          description: d.error ?? `The server refused the change (${res.status}).`,
+        })
+        return
+      }
+
+      toast.success(qid ? 'Wikidata link saved' : 'Wikidata link removed')
       setEditing(false)
       router.refresh()
     } finally {

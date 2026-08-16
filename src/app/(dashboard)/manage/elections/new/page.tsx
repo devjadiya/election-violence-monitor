@@ -6,12 +6,19 @@ import { Search } from 'lucide-react'
 
 const ELECTION_TYPES = ['general', 'presidential', 'parliamentary', 'gubernatorial', 'local', 'referendum', 'by-election']
 
+/** One entity from Wikidata's `wbsearchentities` response. */
+interface WikidataHit {
+  id: string
+  label: string
+  description?: string
+}
+
 export default function NewElectionPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [wikidataSearch, setWikidataSearch] = useState('')
-  const [wikidataResults, setWikidataResults] = useState<any[]>([])
+  const [wikidataResults, setWikidataResults] = useState<WikidataHit[]>([])
   const [searching, setSearching] = useState(false)
 
   const [form, setForm] = useState({
@@ -24,7 +31,7 @@ export default function NewElectionPage() {
     isActive: true,
   })
 
-  function update(key: string, value: any) {
+  function update(key: string, value: string | boolean) {
     setForm(f => ({ ...f, [key]: value }))
   }
 
@@ -49,7 +56,7 @@ export default function NewElectionPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/manage/elections', {
+      const res = await fetch('/api/elections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -57,11 +64,11 @@ export default function NewElectionPage() {
           electionDate: new Date(form.electionDate).toISOString(),
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? `Failed to create the election (${res.status})`)
       router.push('/manage/elections')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unexpected error')
       setLoading(false)
     }
   }

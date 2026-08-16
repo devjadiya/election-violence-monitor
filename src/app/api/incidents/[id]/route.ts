@@ -1,42 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { notifyUser } from '@/lib/notifications'
 import { prisma } from '@/lib/db'
-import { requireRole } from '@/lib/auth/guard'
+import { getActor, requireRole } from '@/lib/auth/guard'
 import { hasPermission } from '@/lib/auth/roles'
+import { searchVisibilityFilter } from '@/lib/incidents/visibility'
 import {
   findTransition,
   isReviewOutcome,
   pathwayFor,
   pickEditableFields,
 } from '@/lib/incidents/transitions'
-import type { IncidentStatus } from '@/lib/generated/prisma'
+import type { IncidentStatus, Prisma } from '@/lib/generated/prisma'
 
+/**
+ * Fetch one record, scoped to what the caller may see.
+ *
+ * This handler had no authentication and no visibility filter, so an anonymous
+ * caller who knew an id could read an unpublished record together with its
+ * audit trail — which carries the names and email addresses of the people who
+ * reviewed it. `findFirst` with the visibility filter is used rather than
+ * `findUnique` so an out-of-scope record is a genuine 404 and the endpoint
+ * cannot be used to confirm that an id exists.
+ */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    const incident = await prisma.incident.findUnique({
-      where: { id },
+    const actor = await getActor()
+    const privileged = !!actor && hasPermission(actor.role, 'ANALYST')
+
+    const incident = await prisma.incident.findFirst({
+      where: { AND: [{ id }, searchVisibilityFilter(actor)] },
       include: {
-        victims: true,
-        actors: true,
+        victims: privileged,
+        actors: privileged,
         sources: true,
         followUps: true,
-        auditLogs: {
-          include: { user: { select: { name: true, email: true } } },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
+        // Process metadata: who reviewed what, and the quotes an extraction
+        // rested on. Internal to the people doing the work.
+        auditLogs: privileged
+          ? {
+              include: { user: { select: { name: true, email: true } } },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+            }
+          : false,
         election: true,
-        createdBy: { select: { id: true, name: true, email: true } },
-        reviewedBy: { select: { id: true, name: true, email: true } },
+        createdBy: privileged ? { select: { id: true, name: true, email: true } } : false,
+        reviewedBy: privileged ? { select: { id: true, name: true, email: true } } : false,
       },
     })
 
     if (!incident) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     return NextResponse.json({ success: true, data: incident })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -137,13 +156,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         incidentId: id,
         userId: actor.userId,
         action: data.status ? 'STATUS_CHANGED' : 'UPDATED',
-        previousData: existing as any,
-        newData: updated as any,
+        previousData: existing as unknown as Prisma.InputJsonValue,
+        newData: updated as unknown as Prisma.InputJsonValue,
       },
     })
 
     return NextResponse.json({ success: true, data: updated })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

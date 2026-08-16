@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { requireRole } from '@/lib/auth/guard'
 
 export async function GET() {
   const elections = await prisma.election.findMany({
@@ -10,9 +10,10 @@ export async function GET() {
   return NextResponse.json({ success: true, data: elections })
 }
 
+/** An election drives the monitoring cadence and country resolution — ANALYST. */
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireRole('ANALYST')
+  if (!guard.ok) return guard.response
 
   const body = await req.json()
   const election = await prisma.election.create({

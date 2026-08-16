@@ -63,9 +63,19 @@ export default function DevelopersPage() {
           <h2 className="headline">Scope</h2>
           <div className="prose-measure mt-2.5 space-y-3 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
             <p>
-              These endpoints return only records that have been reviewed by a person and
-              published. Records still in review, rejected records and any internal
-              processing metadata are not reachable through the public API.
+              These endpoints return published records only. Records still in review and
+              rejected records are not reachable through the public API.
+            </p>
+            <p>
+              Published does not mean a person checked it. Most records reach publication
+              through the automated pathway, which requires a resolvable source URL, a
+              verbatim quotation supporting the extraction, the full article text rather
+              than a feed summary, and a confidence score of at least 65 — but no human
+              reviewer. Every record carries a{' '}
+              <code className="chip-mono">verificationPathway</code> field saying which
+              route it took: <code className="chip-mono">EDITORIAL_REVIEW</code> if a person
+              decided, <code className="chip-mono">AUTOMATED_CORROBORATION</code> if not.
+              Check it before relying on a record.
             </p>
             <p>
               Requests are rate limited per IP. If you need bulk data, use the export

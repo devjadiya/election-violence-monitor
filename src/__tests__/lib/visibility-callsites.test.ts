@@ -57,6 +57,49 @@ describe('public surfaces never hand-roll the visibility filter', () => {
   )
 })
 
+/**
+ * The same bug class, one directory over.
+ *
+ * The walk above stops at `src/app/api/public`, so it never looked at
+ * `src/app/api/incidents` — where `GET /` and `GET /[id]` ran with no
+ * authentication and no visibility filter at all, serving REJECTED records and
+ * reviewer email addresses to anonymous callers. Policing only the surfaces we
+ * already knew about is how it survived.
+ *
+ * File-level granularity on purpose: a route module that reads incidents must
+ * mention a filter from `lib/incidents/visibility`. That is coarse, but it
+ * cannot be satisfied by accident and it does not break when a handler is
+ * refactored.
+ */
+const INCIDENT_API_SURFACES = ['src/app/api/incidents']
+
+const READS_INCIDENTS =
+  /prisma\.incident\.(findMany|findFirst|findUnique|count|aggregate|groupBy)/
+const USES_A_FILTER =
+  /(publicIncidentFilter|publicViolenceFilter|internalIncidentFilter|searchVisibilityFilter|exportVisibilityFilter)\s*\(/
+
+function stripComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+}
+
+describe('incident API routes scope what they read', () => {
+  const files = INCIDENT_API_SURFACES.flatMap(walk)
+
+  it('finds the API route files it is meant to police', () => {
+    expect(files.length).toBeGreaterThan(0)
+  })
+
+  it.each(files.map((f) => [f]))('%s filters incident reads by caller scope', (file) => {
+    const src = stripComments(readFileSync(file, 'utf8'))
+    if (!READS_INCIDENTS.test(src)) return
+
+    expect(
+      USES_A_FILTER.test(src),
+      `${file} reads incidents without any filter from lib/incidents/visibility`
+    ).toBe(true)
+  })
+})
+
 describe('the filter excludes fabricated records both ways', () => {
   it('checks the isDemo flag', () => {
     expect(JSON.stringify(publicIncidentFilter())).toContain('isDemo')

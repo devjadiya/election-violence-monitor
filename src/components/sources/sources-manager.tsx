@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Globe, Rss, Plus, Play, CheckCircle, XCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { toast } from 'sonner'
 
 interface Source {
   id: string
@@ -21,10 +22,19 @@ interface Source {
 
 interface Props { sources: Source[] }
 
+/** The summary `POST /api/ingest` returns for a discovery run. */
+interface IngestResult {
+  success?: boolean
+  articlesFound?: number
+  incidentsCreated?: number
+  duration?: string
+  error?: string
+}
+
 export function SourcesManager({ sources }: Props) {
   const router = useRouter()
   const [ingesting, setIngesting] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<IngestResult | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', url: '', rssUrl: '', country: '', language: 'en' })
 
@@ -43,11 +53,22 @@ export function SourcesManager({ sources }: Props) {
 
   async function addSource(e: React.FormEvent) {
     e.preventDefault()
-    await fetch('/api/manage/sources', {
+    const res = await fetch('/api/sources', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, sourceType: form.rssUrl ? 'RSS_FEED' : 'API' }),
     })
+
+    // Keep the form open on failure so the entered feed URL is not lost.
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      toast.error('Could not add the source', {
+        description: d.error ?? `The server refused the change (${res.status}).`,
+      })
+      return
+    }
+
+    toast.success(`${form.name} added`)
     setShowAdd(false)
     setForm({ name: '', url: '', rssUrl: '', country: '', language: 'en' })
     router.refresh()

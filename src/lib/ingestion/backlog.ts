@@ -5,6 +5,7 @@ import {
   maybeAutoPublish,
   type ProcessOutcome,
 } from '@/lib/ingestion/pipeline'
+import { AUTO_PUBLISH_MIN_CONFIDENCE } from '@/lib/incidents/publication'
 
 export interface BacklogReport {
   claimed: number
@@ -75,6 +76,59 @@ export async function enrichPending(opts: {
       }
     } catch {
       report.failed++
+    }
+  }
+
+  return report
+}
+
+export interface RepublishReport {
+  examined: number
+  published: number
+}
+
+/**
+ * Re-applies the automated publication criteria to records that already hold
+ * everything they need.
+ *
+ * `maybeAutoPublish` runs at incident creation and when a new publisher
+ * corroborates one — both one-shot events. Nothing re-ran it afterwards. So
+ * when the criteria themselves were corrected (755ef1c replaced a
+ * `rawArticles[0]` lookup that decided the body criterion on Postgres row
+ * order), the records that fix should have released stayed FLAGGED, because
+ * their one evaluation had already happened under the old rule.
+ *
+ * `enrichPending` does not reach them either: it selects incidents where *some*
+ * article lacks a body, which is exactly the set a fully-bodied record is not
+ * in. Without this sweep, "eligible" and "published" drift apart permanently
+ * and the only correction is running a script by hand.
+ *
+ * Cheap because the query pre-filters on the criteria stored as columns; the
+ * rest are evaluated per record by the single authority, `maybeAutoPublish`,
+ * so this can never publish something the pipeline would not.
+ */
+export async function republishPending(opts: { limit: number }): Promise<RepublishReport> {
+  const report: RepublishReport = { examined: 0, published: 0 }
+
+  const rows = await prisma.incident.findMany({
+    where: {
+      isDemo: false,
+      status: { in: ['FLAGGED', 'VERIFIED'] },
+      confidenceScore: { gte: AUTO_PUBLISH_MIN_CONFIDENCE },
+      sources: { some: {} },
+    },
+    select: { id: true },
+    orderBy: { occurredAt: 'desc' },
+    take: Math.max(1, Math.min(opts.limit, 200)),
+  })
+
+  for (const row of rows) {
+    report.examined++
+    try {
+      if (await maybeAutoPublish(row.id)) report.published++
+    } catch {
+      // A record that cannot be evaluated stays unpublished — the safe
+      // outcome — and is reconsidered on the next run.
     }
   }
 

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, CheckCircle, Clock } from 'lucide-react'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 interface FollowUp {
   id: string
@@ -43,7 +44,7 @@ export function FollowUpActions({ incidentId, followUps }: Props) {
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch(`/api/manage/incidents/${incidentId}/followup`, {
+      const res = await fetch(`/api/incidents/${incidentId}/followup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,6 +52,18 @@ export function FollowUpActions({ incidentId, followUps }: Props) {
           date: form.date ? new Date(form.date).toISOString() : null,
         }),
       })
+
+      // The form stays open and populated on failure — a follow-up is typed
+      // prose, and silently discarding it was the worst of the four outcomes.
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast.error('Could not record the follow-up', {
+          description: d.error ?? `The server refused the change (${res.status}).`,
+        })
+        return
+      }
+
+      toast.success('Follow-up recorded')
       setShowForm(false)
       setForm({ actionType: 'investigation', description: '', date: '', isConfirmed: true })
       router.refresh()

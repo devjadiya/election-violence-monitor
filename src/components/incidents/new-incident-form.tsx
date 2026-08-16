@@ -54,7 +54,7 @@ export function NewIncidentForm({ elections }: Props) {
     sourceName: '',
   })
 
-  function update(key: string, value: any) {
+  function update(key: string, value: string | boolean) {
     setForm(f => ({ ...f, [key]: value }))
   }
 
@@ -71,7 +71,7 @@ export function NewIncidentForm({ elections }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/manage/incidents', {
+      const res = await fetch('/api/incidents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -97,15 +97,18 @@ export function NewIncidentForm({ elections }: Props) {
             : null,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to create incident')
+      // A non-JSON body means the request never reached the handler; parsing it
+      // blind turned that into an opaque SyntaxError.
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? `Failed to create incident (${res.status})`)
       toast.success('Incident created successfully', {
         description: 'Flagged for review by your team.',
       })
       router.push(`/manage/incidents/${data.id}`)
-    } catch (err: any) {
-      setError(err.message)
-      toast.error('Failed to create incident', { description: err.message })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unexpected error'
+      setError(message)
+      toast.error('Failed to create incident', { description: message })
       setLoading(false)
     }
   }

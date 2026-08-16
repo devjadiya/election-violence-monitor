@@ -60,7 +60,10 @@ async function main() {
       confidenceScore: c.confidenceScore,
       evidence: c.evidence,
       sources: c.sources,
-      bodyMethod: c.rawArticles[0]?.bodyMethod ?? null,
+      // Must match maybeAutoPublish: ANY article read in full satisfies the
+      // criterion. Reading [0] of an unordered many-to-many made this script
+      // disagree with the pipeline about the same record.
+      bodyMethod: c.rawArticles.find((a) => a.bodyMethod)?.bodyMethod ?? null,
     })
     if (decision.publish) {
       willPublish.push(c)

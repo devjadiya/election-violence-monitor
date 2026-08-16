@@ -97,6 +97,13 @@ RSS × 27 feeds      ─┴─→ storeArticles()   batched: one Redis mget + on
                         a feed teaser, and clears confidence ≥ 65
 ```
 
+**Publication is re-evaluated, not decided once.** `/api/cron/classify` runs three passes in
+order: `enrichPending()` (fetch the article body for records that only ever had a teaser, then
+re-extract), `republishPending()` (re-apply the criteria to records that already satisfy them),
+and `drainBacklog()` (screen unprocessed articles). The middle pass exists because eligibility
+used to be checked only at creation, so a later correction to the criteria never reached the
+records it should have released — see D12.
+
 Core logic: [src/lib/ingestion/pipeline.ts](../src/lib/ingestion/pipeline.ts),
 [backlog.ts](../src/lib/ingestion/backlog.ts),
 [normalise.ts](../src/lib/ingestion/normalise.ts),
@@ -294,15 +301,80 @@ rank-checks every status change against `TRANSITIONS`. `reviewedById` is stamped
 outcomes only — it previously landed on every edit, crediting whoever last fixed a typo as
 the reviewer.
 
-**Still open, and separate:** the operations UI posts to `/api/manage/incidents/[id]`, which
-does not exist — there is no `src/app/api/manage/` route, no rewrite in `next.config.ts`, and
-`src/middleware.ts` is a pass-through (D7). Those review buttons 404 today. The hardened route
-is reachable by any client holding a session, which is why this mattered regardless. When the
-UI is wired up, `incidents-action.tsx` will also need to filter its buttons by role, or a
-`REVIEWER` will be shown "Publish" and get a 403.
+`transitions.ts` is pure — no Prisma, no NextAuth — so the policy can be tested directly:
+`src/__tests__/lib/incident-transitions.test.ts` asserts that no edge reaches `PUBLISHED`
+without passing through `VERIFIED`, that publishing outranks verifying, and that the editable
+allowlist excludes every provenance field.
 
-`transitions.ts` is pure — no Prisma, no NextAuth — so the policy can be tested directly. That
-test does not exist yet.
+### ✅ D10 — RESOLVED 2026-08-16 — The management UI was disconnected from its API
+
+Eight write actions posted to `/api/manage/*`. **That route tree never existed** — no
+`src/app/api/manage/` directory, no `rewrites()` in `next.config.ts`, and `src/middleware.ts`
+is a pass-through (D7). Every one returned Next's 404 HTML page.
+
+Worse than a visible error: five of the eight never checked `res.ok`. `WikidataLink`,
+`FollowUpActions`, `SourcesManager` and both creation forms closed the form, reset state and
+called `router.refresh()` regardless of outcome — the operator watched the page reload and
+believed the write had landed. **There was no working human review path in the product**, so
+anything the automated criteria declined stayed `FLAGGED` permanently.
+
+All eight now point at the real endpoints, and every one reports failure with the server's own
+message rather than discarding the operator's input. Forms stay open and populated on failure.
+
+`incidents-action.tsx` also carried its own copy of the state machine, which had drifted: it
+offered no way to retract a published record, and it ignored the `userRole` prop it accepted,
+so every button rendered for every role. It now imports `TRANSITIONS` and filters by
+`hasPermission`, so a `REVIEWER` is not shown "Publish".
+
+### ✅ D11 — RESOLVED 2026-08-16 — `GET /api/incidents` had no auth and no visibility filter
+
+`where` was built directly from query parameters, so `?status=REJECTED` served rejected
+allegations — with `victims` and `actors` attached — to anonymous callers.
+`GET /api/incidents/[id]` was the same, and additionally returned `auditLogs` including the
+names and email addresses of reviewers.
+
+Both now resolve the caller with `getActor()` and AND `searchVisibilityFilter(actor)` **first**,
+so a caller-supplied `status` can only narrow the scope. Victim, actor, audit-trail and
+reviewer fields are restricted to `ANALYST`+. The detail route uses `findFirst` rather than
+`findUnique` so an out-of-scope record is a genuine 404 and the endpoint cannot be used to
+confirm an id exists. Unknown enum values return 400 instead of a 500 that echoed the enum's
+members back.
+
+`src/__tests__/lib/visibility-callsites.test.ts` now walks `src/app/api/incidents` as well as
+the public tree: a route module that reads incidents without naming a filter from
+`lib/incidents/visibility` fails CI. The original guard covered only the surfaces we already
+knew about, which is how this survived.
+
+Hardened alongside, same defect class: `POST /api/incidents`, `POST /api/sources` and
+`POST /api/elections` each gated on `if (!session)`, so any `OBSERVER` could author the
+archive. All three now require `ANALYST`. `POST /api/incidents` also built `referenceId` from
+`count() + 1` — the racy scheme the pipeline abandoned — and now uses
+`EVM-{UTCyear}-{nanoid(8)}`.
+
+### ✅ D12 — RESOLVED 2026-08-16 — Eligibility was evaluated once and never again
+
+Measured on 2026-08-16: **23 incidents, 3 published, and 7 of the 18 candidates already met
+every automated publication criterion.** They were not held back by the rules. Nothing ever
+re-applied them.
+
+`maybeAutoPublish()` ran at incident creation and when a new publisher corroborated a record —
+both one-shot events. So when the criteria themselves were corrected in `755ef1c` (which
+replaced a `rawArticles[0]` lookup that decided the body criterion on Postgres row order), the
+records that fix should have released stayed `FLAGGED`: their single evaluation had already
+happened under the old rule. `enrichPending()` did not reach them either, because it selects
+incidents where *some* article lacks a body — precisely the set a fully-bodied record is not in.
+
+`republishPending()` (`src/lib/ingestion/backlog.ts`) now runs in the classify cron after
+enrichment. It pre-filters on the criteria stored as columns and hands each candidate to
+`maybeAutoPublish`, so it can never publish something the pipeline would not. No AI, no network.
+
+**No threshold was changed.** `AUTO_PUBLISH_MIN_CONFIDENCE` is still 65,
+`AUTO_PUBLISH_MIN_EVIDENCE` still 1, and the `bodyMethod` requirement stands.
+
+Fixed alongside: `enrichIncident()` read `rawArticles: { take: 1 }` with no `orderBy` and
+returned `'unchanged'` if that arbitrary row already had a body. Against `enrichPending`'s
+"some article lacks a body" selection, a multi-source incident could be selected every run and
+enriched never. It now picks the first article actually lacking a body.
 
 ---
 

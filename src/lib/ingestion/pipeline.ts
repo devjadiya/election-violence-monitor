@@ -428,12 +428,15 @@ export async function enrichIncident(incidentId: string): Promise<'enriched' | '
       id: true, title: true,
       rawArticles: {
         select: { id: true, url: true, content: true, bodyMethod: true, publishedAt: true, fetchedAt: true },
-        take: 1,
       },
     },
   })
-  const article = row?.rawArticles[0]
-  if (!row || !article || article.bodyMethod) return 'unchanged'
+  // The one to enrich is the first article WITHOUT a body, not whichever row
+  // Postgres returned first. `enrichPending` selects incidents where *some*
+  // article lacks a body, so a `take: 1` that landed on an already-fetched row
+  // returned 'unchanged' and the incident was re-selected, and skipped, forever.
+  const article = row?.rawArticles.find((a) => !a.bodyMethod)
+  if (!row || !article) return 'unchanged'
 
   const fetched = await fetchArticleBody(article.url)
   if (!fetched || fetched.chars <= (article.content?.length ?? 0)) return 'failed'

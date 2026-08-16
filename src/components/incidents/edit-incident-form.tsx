@@ -4,12 +4,26 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORY_LABELS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
 import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
-import type { IncidentStatus } from '@/lib/generated/prisma'
+import type {
+  Actor,
+  Incident,
+  IncidentSource,
+  IncidentStatus,
+  Victim,
+} from '@/lib/generated/prisma'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 interface Props {
-  incident: any
+  // `victims` and `actors` are optional because the edit page does not include
+  // them (it selects `sources` only), so the victim and actor fields below are
+  // always blank today. The optional chaining at `firstVictim` already assumed
+  // this; the type now says so out loud rather than hiding it behind `any`.
+  incident: Incident & {
+    sources: IncidentSource[]
+    victims?: Victim[]
+    actors?: Actor[]
+  }
   elections: { id: string; name: string; country: string }[]
 }
 
@@ -55,7 +69,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
     partyName: firstActor?.partyName ?? '',
   })
 
-  function update(key: string, value: any) {
+  function update(key: string, value: string | boolean) {
     setForm(f => ({ ...f, [key]: value }))
   }
 
@@ -64,7 +78,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/manage/incidents/${incident.id}`, {
+      const res = await fetch(`/api/incidents/${incident.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,9 +114,10 @@ export function EditIncidentForm({ incident, elections }: Props) {
       })
       router.push(`/manage/incidents/${incident.id}`)
       router.refresh()
-    } catch (err: any) {
-      setError(err.message)
-      toast.error('Update failed', { description: err.message })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unexpected error'
+      setError(message)
+      toast.error('Update failed', { description: message })
       setLoading(false)
     }
   }

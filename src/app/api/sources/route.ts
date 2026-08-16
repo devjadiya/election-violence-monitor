@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { requireRole } from '@/lib/auth/guard'
 
 export async function GET() {
   const sources = await prisma.monitoredSource.findMany({
@@ -10,9 +10,10 @@ export async function GET() {
   return NextResponse.json({ success: true, data: sources })
 }
 
+/** Registering a feed decides what the pipeline ingests, so it needs ANALYST. */
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const guard = await requireRole('ANALYST')
+  if (!guard.ok) return guard.response
 
   const body = await req.json()
   const source = await prisma.monitoredSource.create({

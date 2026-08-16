@@ -1,23 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { nanoid } from 'nanoid'
-import { notifyReviewers, notifyAdmins } from '@/lib/notifications'
+import { notifyReviewers } from '@/lib/notifications'
+import { getActor, requireRole } from '@/lib/auth/guard'
+import { hasPermission } from '@/lib/auth/roles'
+import { searchVisibilityFilter } from '@/lib/incidents/visibility'
+import { IncidentCategory, IncidentStatus, type Prisma } from '@/lib/generated/prisma'
 
+const MAX_PAGE_SIZE = 100
 
+/**
+ * List incidents, scoped to what the caller may see.
+ *
+ * This route previously had no authentication and no visibility filter: `where`
+ * was built directly from query params, so `?status=REJECTED` served rejected
+ * allegations — with victim and actor rows attached — to anonymous callers.
+ * Every other read path goes through `src/lib/incidents/visibility.ts`; this one
+ * did not, and it is the reason that module now has a call-site guard test.
+ *
+ * The visibility filter is ANDed first so a caller-supplied `status` can only
+ * ever narrow the scope, never widen it.
+ */
 export async function GET(req: NextRequest) {
   try {
+    const actor = await getActor()
+    const privileged = !!actor && hasPermission(actor.role, 'ANALYST')
+
     const { searchParams } = new URL(req.url)
     const status = searchParams.get('status')
     const category = searchParams.get('category')
     const country = searchParams.get('country')
-    const page = Number(searchParams.get('page') ?? 1)
-    const pageSize = Number(searchParams.get('pageSize') ?? 20)
 
-    const where: any = {}
-    if (status) where.status = status
-    if (category) where.category = category
-    if (country) where.country = { contains: country, mode: 'insensitive' }
+    const page = Math.max(1, Number(searchParams.get('page') ?? 1) || 1)
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, Number(searchParams.get('pageSize') ?? 20) || 20)
+    )
+
+    const filters: Prisma.IncidentWhereInput[] = [searchVisibilityFilter(actor)]
+
+    // An unrecognised value is rejected rather than passed to Prisma, which
+    // would otherwise raise a 500 that reports the enum's members back.
+    if (status) {
+      if (!(status in IncidentStatus)) {
+        return NextResponse.json({ success: false, error: 'Unknown status' }, { status: 400 })
+      }
+      filters.push({ status: status as IncidentStatus })
+    }
+    if (category) {
+      if (!(category in IncidentCategory)) {
+        return NextResponse.json({ success: false, error: 'Unknown category' }, { status: 400 })
+      }
+      filters.push({ category: category as IncidentCategory })
+    }
+    if (country) filters.push({ country: { contains: country, mode: 'insensitive' } })
+
+    const where: Prisma.IncidentWhereInput = { AND: filters }
 
     const [incidents, total] = await Promise.all([
       prisma.incident.findMany({
@@ -26,8 +64,10 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * pageSize,
         orderBy: { createdAt: 'desc' },
         include: {
-          victims: true,
-          actors: true,
+          // Victims and actors describe identifiable people. They stay behind
+          // the same rank that can see unpublished records.
+          victims: privileged,
+          actors: privileged,
           sources: true,
           election: { select: { id: true, name: true, country: true } },
         },
@@ -43,21 +83,29 @@ export async function GET(req: NextRequest) {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }
 
+/**
+ * Create an incident by hand.
+ *
+ * Requires ANALYST for the same reason `PATCH` does: creating a record is
+ * authoring the archive, not merely holding an account.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const guard = await requireRole('ANALYST')
+    if (!guard.ok) return guard.response
+    const { actor } = guard
 
     const body = await req.json()
 
-    // Generate reference ID
-    const count = await prisma.incident.count()
-    const referenceId = `EVM-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`
+    // `count() + 1` raced the @unique column and renumbered after any deletion.
+    // Same scheme the pipeline uses (see pipeline.ts).
+    const referenceId = `EVM-${new Date().getUTCFullYear()}-${nanoid(8).toUpperCase()}`
 
     const incident = await prisma.incident.create({
       data: {
@@ -83,7 +131,7 @@ export async function POST(req: NextRequest) {
         status: 'FLAGGED',
         isAutoDetected: false,
         confidenceScore: 70,
-        createdById: (session.user as any).id,
+        createdById: actor.userId,
         // ✅ NEW: victims
         victims: body.victim
           ? {
@@ -127,7 +175,8 @@ export async function POST(req: NextRequest) {
       link: `/incidents/${incident.id}`,
     })
     return NextResponse.json({ success: true, id: incident.id, referenceId })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unexpected error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

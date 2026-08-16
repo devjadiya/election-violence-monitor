@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { isAuthorisedCron } from '@/lib/auth/cron'
-import { backlogSize, drainBacklog, enrichPending } from '@/lib/ingestion/backlog'
+import {
+  backlogSize,
+  drainBacklog,
+  enrichPending,
+  republishPending,
+} from '@/lib/ingestion/backlog'
 import { notifyAdmins } from '@/lib/notifications'
 
 export const maxDuration = 300
@@ -34,6 +39,11 @@ export async function GET(req: NextRequest) {
   // are closer to publishable than an unscreened article is, so they get the
   // first slice of the budget.
   const enriched = await enrichPending({ limit: 25, deadlineMs: 90_000 })
+
+  // Then records that already satisfy the criteria but were evaluated once,
+  // under an earlier version of them, and never looked at again. No AI, no
+  // network — a bounded query and the same publication check the pipeline uses.
+  const republished = await republishPending({ limit: 100 })
 
   // Leave headroom inside the 300s budget for the closing writes.
   const report = await drainBacklog({ limit, deadlineMs: 145_000, pauseMs: 150 })
@@ -89,6 +99,7 @@ export async function GET(req: NextRequest) {
     stoppedEarly: report.stoppedEarly,
     failures: report.failures.slice(0, 10),
     enrichment: enriched,
+    republication: republished,
     durationMs,
     healthy: !allErrored,
   })
