@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { IncidentMap } from '@/components/map/incident-map'
+import { IncidentMapLoader } from '@/components/map/incident-map-loader'
 import { internalIncidentFilter } from '@/lib/incidents/visibility'
 import { relativeDays } from '@/lib/incidents/format'
 
@@ -55,7 +55,7 @@ export default async function InternalMapPage() {
         </p>
       </div>
       <div className="glass-card overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
-        <IncidentMap incidents={incidents} />
+        <IncidentMapLoader incidents={incidents} />
       </div>
     </div>
   )

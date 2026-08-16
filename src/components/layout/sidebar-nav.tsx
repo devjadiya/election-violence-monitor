@@ -4,24 +4,39 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, MapPin, AlertTriangle, CheckSquare,
-  BarChart3, Settings, Users, Database, Download,
+  BarChart3, Settings, Users, Download,
   Globe, Calendar, MessageSquare, Menu, X
 } from 'lucide-react'
 import { useState } from 'react'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/manage/incidents', label: 'Incidents', icon: AlertTriangle },
-  { href: '/review', label: 'Review Queue', icon: CheckSquare },
+/**
+ * The operational sidebar.
+ *
+ * Same institution as the public site: the shared wordmark, the navy accent
+ * for the active destination, ruled sections instead of floating groups. The
+ * previous version carried the prototype's #1a1a2e pills, an "EV" tile in
+ * place of the wordmark, and an orphaned JSX block that was never rendered.
+ *
+ * Grouped by what the person is doing: reviewing (the daily work), the data
+ * surfaces, then administration for the roles that have it.
+ */
+
+const WORK_ITEMS = [
+  { href: '/dashboard', label: 'Operations', icon: LayoutDashboard },
+  { href: '/review', label: 'Review queue', icon: CheckSquare },
   { href: '/tips', label: 'Tips', icon: MessageSquare },
+]
+
+const DATA_ITEMS = [
+  { href: '/manage/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/manage/elections', label: 'Elections', icon: Calendar },
+  { href: '/manage/sources', label: 'Sources', icon: Globe },
   { href: '/livemap', label: 'Incident map', icon: MapPin },
   { href: '/manage/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/manage/sources', label: 'Sources', icon: Globe },
   { href: '/export', label: 'Export', icon: Download },
 ]
 
-const adminItems = [
+const ADMIN_ITEMS = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
@@ -34,124 +49,146 @@ export function SidebarNav({ user }: Props) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+
   const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: any }) => {
-    const active = pathname === href || pathname.startsWith(href + '/')
+    const active = isActive(href)
     return (
       <Link
         href={href}
         onClick={() => setMobileOpen(false)}
-        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${active ? 'bg-[#1a1a2e] text-white font-medium' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900'
-          }`}
+        aria-current={active ? 'page' : undefined}
+        className={`flex items-center gap-2.5 rounded-sm px-3 py-1.5 text-[0.8125rem] transition-colors ${
+          active
+            ? 'bg-[var(--navy-tint)] font-medium text-[var(--navy)]'
+            : 'text-[var(--ink-2)] hover:bg-[var(--paper-3)] hover:text-[var(--ink)]'
+        }`}
       >
-        <Icon size={15} strokeWidth={active ? 2.5 : 2} />
+        <Icon size={15} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
         {label}
       </Link>
     )
   }
 
+  const Group = ({ title, items }: { title: string; items: typeof WORK_ITEMS }) => (
+    <div>
+      <p className="eyebrow px-3 pb-1.5">{title}</p>
+      <div className="space-y-0.5">
+        {items.map((item) => (
+          <NavLink key={item.href} {...item} />
+        ))}
+      </div>
+    </div>
+  )
+
   const SidebarContent = () => (
     <>
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-zinc-100">
-        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-          <div className="w-7 h-7 rounded-lg bg-[#1a1a2e] flex items-center justify-center shrink-0">
-            <span className="text-white text-[10px] font-bold">EV</span>
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-[#1a1a2e] leading-tight">Election Violence</div>
-            <div className="text-[10px] text-zinc-400 leading-tight">Monitor</div>
-          </div>
+      <div className="rule-b px-4 py-3.5">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2.5"
+          onClick={() => setMobileOpen(false)}
+        >
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden className="shrink-0">
+            <rect width="22" height="22" rx="3" fill="var(--navy)" />
+            <rect x="5" y="6.5" width="12" height="1.75" rx="0.875" fill="#fff" opacity="0.95" />
+            <rect x="5" y="10.25" width="8.5" height="1.75" rx="0.875" fill="#fff" opacity="0.7" />
+            <rect x="5" y="14" width="5" height="1.75" rx="0.875" fill="#fff" opacity="0.45" />
+          </svg>
+          <span className="leading-tight">
+            <span className="block text-[0.8125rem] font-semibold tracking-tight text-[var(--ink)]">
+              Election Violence Monitor
+            </span>
+            <span className="block text-[0.625rem] text-[var(--ink-3)]">Operations</span>
+          </span>
         </Link>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(item => <NavLink key={item.href} {...item} />)}
-
-        {(user.role === 'ADMIN' || user.role === 'EDITOR') && (
-          <>
-            <div className="pt-4 pb-1 px-3">
-              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Admin</span>
-            </div>
-            {adminItems.map(item => <NavLink key={item.href} {...item} />)}
-          </>
-        )}
+      <nav aria-label="Operations" className="flex-1 space-y-5 overflow-y-auto px-2 py-4">
+        <Group title="Work" items={WORK_ITEMS} />
+        <Group title="Data" items={DATA_ITEMS} />
+        {user.role === 'ADMIN' || user.role === 'EDITOR' ? (
+          <Group title="Admin" items={ADMIN_ITEMS} />
+        ) : null}
       </nav>
 
-      {/* User */}
-      <div className="px-4 py-4 border-t border-zinc-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-zinc-200 flex items-center justify-center shrink-0">
-            <span className="text-xs font-medium text-zinc-600">
-              {user.name?.[0] ?? user.email?.[0] ?? '?'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-zinc-800 truncate">{user.name ?? user.email}</div>
-            <div className="text-[10px] text-zinc-400 truncate">{user.role}</div>
-          </div>
-        </div>
+      <div className="rule-t px-4 py-3">
+        <p className="truncate text-[0.75rem] font-medium text-[var(--ink)]">
+          {user.name ?? user.email}
+        </p>
+        <p className="text-[0.6875rem] text-[var(--ink-3)]">{user.role}</p>
+        <Link
+          href="/"
+          onClick={() => setMobileOpen(false)}
+          className="mt-1.5 inline-block text-[0.6875rem] text-[var(--ink-3)] hover:text-[var(--link)]"
+        >
+          Public site
+        </Link>
       </div>
     </>
   )
 
-  {/* Developer credit */ }
-  <div className="px-4 py-2 border-t border-zinc-50">
-
-    <a
-      href="https://github.com/devjadiya"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-[10px] text-zinc-300 hover:text-zinc-500 transition-colors block text-center"
-    >
-      Built by Dev Jadiya
-    </a>
-</div >
-
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="glass-sidebar w-60 flex flex-col h-full shrink-0 hidden lg:flex">
+      <aside className="glass-sidebar hidden h-full w-60 shrink-0 flex-col lg:flex">
         <SidebarContent />
       </aside>
 
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 w-9 h-9 bg-white border border-zinc-200 rounded-lg flex items-center justify-center shadow-sm"
+        aria-label="Open navigation"
+        className="fixed left-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-sm border border-[var(--rule-2)] bg-white lg:hidden"
       >
-        <Menu size={16} className="text-zinc-700" />
+        <Menu size={16} className="text-[var(--ink-2)]" aria-hidden />
       </button>
 
       {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="relative glass-sidebar w-72 flex flex-col h-full shadow-2xl">
-            <button onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
-              <X size={14} className="text-zinc-600" />
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/30"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden
+          />
+          <aside className="glass-sidebar relative flex h-full w-72 flex-col">
+            <button
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation"
+              className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-sm text-[var(--ink-3)] hover:bg-[var(--paper-3)] hover:text-[var(--ink)]"
+            >
+              <X size={14} aria-hidden />
             </button>
             <SidebarContent />
           </aside>
         </div>
-      )}
+      ) : null}
 
-      {/* Mobile bottom nav (quick access) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-zinc-200 flex items-center justify-around px-2 py-2">
+      {/* Mobile bottom nav */}
+      <nav
+        aria-label="Quick navigation"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-[var(--rule)] bg-white/95 px-2 py-1.5 lg:hidden"
+      >
         {[
-          { href: '/dashboard', icon: LayoutDashboard },
-          { href: '/manage/incidents', icon: AlertTriangle },
-          { href: '/review', icon: CheckSquare },
-          { href: '/livemap', icon: MapPin },
-          { href: '/manage/analytics', icon: BarChart3 },
-        ].map(({ href, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/')
+          { href: '/dashboard', icon: LayoutDashboard, label: 'Operations' },
+          { href: '/review', icon: CheckSquare, label: 'Review queue' },
+          { href: '/manage/incidents', icon: AlertTriangle, label: 'Incidents' },
+          { href: '/livemap', icon: MapPin, label: 'Incident map' },
+          { href: '/manage/analytics', icon: BarChart3, label: 'Analytics' },
+        ].map(({ href, icon: Icon, label }) => {
+          const active = isActive(href)
           return (
-            <Link key={href} href={href}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${active ? 'text-[#1a1a2e]' : 'text-zinc-400'
-                }`}>
-              <Icon size={20} strokeWidth={active ? 2.5 : 1.5} />
+            <Link
+              key={href}
+              href={href}
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+              className={`flex flex-col items-center rounded-sm p-2 transition-colors ${
+                active ? 'text-[var(--navy)]' : 'text-[var(--ink-4)] hover:text-[var(--ink-2)]'
+              }`}
+            >
+              <Icon size={19} strokeWidth={active ? 2.25 : 1.5} aria-hidden />
             </Link>
           )
         })}

@@ -1,6 +1,7 @@
 import type {
   DisorderType,
   IncidentCategory,
+  IncidentStatus,
   ElectionStage,
   WeaponType,
 } from '@/lib/generated/prisma'
@@ -54,6 +55,31 @@ export const DISORDER_NOTE: Record<DisorderType, string> = {
     'Consequential to the election, but no one was reported harmed — arrests, ' +
     'seizures, materials destroyed, or an electoral facility attacked. Counted ' +
     'separately from violence so that recording it does not overstate harm.',
+}
+
+/**
+ * Workflow status, in operational language. "Candidate" for FLAGGED is
+ * deliberate: a machine-extracted record awaiting review is a proposal, and
+ * calling it anything stronger on an internal screen trains reviewers to
+ * trust it before they have checked it.
+ */
+export const STATUS_LABEL: Record<IncidentStatus, string> = {
+  RAW: 'Raw',
+  FLAGGED: 'Candidate',
+  UNDER_REVIEW: 'Under review',
+  VERIFIED: 'Verified',
+  PUBLISHED: 'Published',
+  REJECTED: 'Rejected',
+}
+
+/** Workflow status → the design system's status tone classes. */
+export const STATUS_TONE: Record<IncidentStatus, string> = {
+  RAW: 'status-none',
+  FLAGGED: 'status-caution',
+  UNDER_REVIEW: 'status-scheduled',
+  VERIFIED: 'status-active',
+  PUBLISHED: 'status-active',
+  REJECTED: 'status-none',
 }
 
 export const STAGE_LABEL: Record<ElectionStage, string> = {

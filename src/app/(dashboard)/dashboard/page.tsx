@@ -3,7 +3,13 @@ import { prisma } from '@/lib/db'
 import { internalIncidentFilter, publicIncidentFilter } from '@/lib/incidents/visibility'
 import { Figure, EmptyState } from '@/components/public/site-shell'
 import { PipelineFunnel } from '@/components/public/pipeline-funnel'
-import { STAGE_LABEL, formatDateTime, relativeDays } from '@/lib/incidents/format'
+import {
+  STAGE_LABEL,
+  STATUS_LABEL,
+  STATUS_TONE,
+  formatDateTime,
+  relativeDays,
+} from '@/lib/incidents/format'
 import {
   MONITORING_LABEL,
   electionPlace,
@@ -33,25 +39,6 @@ const STALE_RUN_MS = 26 * 60 * 60 * 1000
 
 /** A candidate that has waited longer than this deserves a flag. */
 const QUEUE_AGE_FLAG_DAYS = 14
-
-const STATUS_LABEL: Record<IncidentStatus, string> = {
-  RAW: 'Raw',
-  FLAGGED: 'Candidate',
-  UNDER_REVIEW: 'Under review',
-  VERIFIED: 'Verified',
-  PUBLISHED: 'Published',
-  REJECTED: 'Rejected',
-}
-
-/** Workflow status → the design system's status tones. */
-const STATUS_TONE: Record<IncidentStatus, string> = {
-  RAW: 'status-none',
-  FLAGGED: 'status-caution',
-  UNDER_REVIEW: 'status-scheduled',
-  VERIFIED: 'status-active',
-  PUBLISHED: 'status-active',
-  REJECTED: 'status-none',
-}
 
 interface RunErrors {
   failedSources?: { name: string; error: string }[]
