@@ -16,6 +16,7 @@ import {
   relativeElectionDate,
 } from '@/lib/elections/format'
 import { STAGE_LABEL, formatDate, formatDateTime, relativeDays } from '@/lib/incidents/format'
+import { ActivityStrip, dailyBucketsFrom } from '@/components/public/activity-strip'
 
 export const revalidate = 0
 
@@ -90,6 +91,8 @@ export default async function ElectionDetailPage({
     lastRun,
     articles,
     screened,
+    located,
+    occurrences,
   ] = await Promise.all([
     prisma.incident.count({ where: publicWhere }),
     prisma.incident.count({
@@ -118,10 +121,25 @@ export default async function ElectionDetailPage({
     }),
     prisma.rawArticle.count(),
     prisma.rawArticle.count({ where: { pass1At: { not: null } } }),
+    prisma.incident.count({ where: { ...publicWhere, latitude: { not: null } } }),
+    prisma.incident.findMany({ where: publicWhere, select: { occurredAt: true } }),
   ])
 
   const tone = monitoringTone(election.monitoringStatus)
   const isMonitored = election.monitoringStatus === 'ACTIVE'
+
+  // The platform's own collection window: 21 days before polling to 30 after.
+  // Bucketing the records across it turns "12 published records" into a shape —
+  // where in the electoral cycle the documented incidents actually fall.
+  const windowStart = new Date(election.electionDate.getTime() - 21 * 86_400_000)
+  const windowDays = 52
+  const timeline = dailyBucketsFrom(
+    occurrences.map((o) => o.occurredAt),
+    windowStart,
+    windowDays
+  )
+  const inWindow = timeline.reduce((sum, d) => sum + d.count, 0)
+  const outsideWindow = published - inWindow
 
   return (
     <>
@@ -260,8 +278,36 @@ export default async function ElectionDetailPage({
           </section>
         ) : null}
 
+        {/* When the documented incidents happened, across the platform's own
+            collection window — 21 days before polling to 30 after. */}
+        {inWindow > 0 ? (
+          <section className="rule-t py-7">
+            <h2 className="headline">When recorded incidents occurred</h2>
+            <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-[var(--ink-3)]">
+              Published records per day across the monitoring window, from three weeks
+              before polling day ({formatDate(election.electionDate)}) to thirty days after.
+              {outsideWindow > 0
+                ? ` ${outsideWindow} record${outsideWindow === 1 ? '' : 's'} fall outside this window.`
+                : ''}
+            </p>
+            <div className="mt-4 max-w-2xl">
+              <ActivityStrip
+                days={timeline}
+                ariaLabel="Published records per day across the monitoring window"
+              />
+            </div>
+          </section>
+        ) : null}
+
         <section className="rule-t py-7">
-          <h2 className="headline">Records</h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="headline">Records</h2>
+            {located > 0 ? (
+              <Link href="/map" className="link-underline text-[0.8125rem]">
+                {located} located record{located === 1 ? '' : 's'} on the map
+              </Link>
+            ) : null}
+          </div>
           {incidents.length > 0 ? (
             <div className="mt-3 rule-t">
               {(incidents as IncidentSummary[]).map((i) => (
@@ -307,9 +353,11 @@ export default async function ElectionDetailPage({
             <div>
               <dt className="text-[0.75rem] text-[var(--ink-3)]">Collection frequency</dt>
               <dd className="mt-0.5 text-[0.875rem] text-[var(--ink)]">
-                Daily
+                {isMonitored ? 'Every 15 minutes' : 'Daily'}
                 <span className="mt-0.5 block text-[0.75rem] text-[var(--ink-4)]">
-                  09:00 UTC. Not continuous.
+                  {isMonitored
+                    ? 'While monitoring is active. Not continuous.'
+                    : '09:00 UTC. Not continuous.'}
                 </span>
               </dd>
             </div>

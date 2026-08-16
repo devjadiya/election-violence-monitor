@@ -47,12 +47,15 @@ export function ActivityStrip({
   )
 }
 
-/** Bucket timestamps into one entry per UTC day for the trailing `n` days. */
-export function dailyBuckets(dates: Date[], n: number): { label: string; count: number }[] {
+/** Bucket timestamps into one entry per UTC day, starting at `start`. */
+export function dailyBucketsFrom(
+  dates: Date[],
+  start: Date,
+  n: number
+): { label: string; count: number }[] {
   const days: { key: string; label: string; count: number }[] = []
-  const now = new Date()
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i))
+  for (let i = 0; i < n; i++) {
+    const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + i))
     days.push({
       key: d.toISOString().slice(0, 10),
       label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }),
@@ -65,4 +68,13 @@ export function dailyBuckets(dates: Date[], n: number): { label: string; count: 
     if (i !== undefined) days[i].count += 1
   }
   return days.map(({ label, count }) => ({ label, count }))
+}
+
+/** Bucket timestamps into one entry per UTC day for the trailing `n` days. */
+export function dailyBuckets(dates: Date[], n: number): { label: string; count: number }[] {
+  const now = new Date()
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (n - 1))
+  )
+  return dailyBucketsFrom(dates, start, n)
 }

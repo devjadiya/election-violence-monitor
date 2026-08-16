@@ -27,7 +27,7 @@
 | Styling | Tailwind v4, shadcn/Radix, Base UI |
 | Deploy | Vercel — one cron, security headers (`vercel.json`) |
 
-**Scale:** 24 pages, 20 API routes, 47 components, 14 Prisma models, ~9 hand-written lib modules.
+**Scale:** 32 pages, 22 API routes, 47 components, 14 Prisma models, ~9 hand-written lib modules. Counted 2026-08-16.
 
 ### Environment variables actually referenced in code
 
@@ -262,7 +262,7 @@ renumbered after any deletion.
   `catch` turned that into "not relevant", which is why 3,919 real articles scored 0.
   Models are configuration now, and a provider failure is a distinct outcome from a
   negative classification.
-- ~~**No tests exist.**~~ — **resolved.** 138 tests across 9 files.
+- ~~**No tests exist.**~~ — **resolved.** 183 tests across 11 files as of 2026-08-16.
 - ~~Both `package-lock.json` and `pnpm-lock.yaml` are present~~ — **resolved.** pnpm.
 - Nominatim is called with no delay; its usage policy expects ≤1 req/sec.
 - Nigeria keywords are hard-coded as module constants (`ELECTION_VIOLENCE_KEYWORDS`, `NIGERIA_SPECIFIC_KEYWORDS`) rather than configuration — conflicts with "country must be configurable."
