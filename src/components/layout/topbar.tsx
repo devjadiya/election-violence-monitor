@@ -1,10 +1,12 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { Bell, LogOut, Search, X, Check, CheckCheck } from 'lucide-react'
+import { Bell, LogOut, Search, X, CheckCheck } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
+import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
+import type { IncidentStatus } from '@/lib/generated/prisma'
 
 interface Props {
   user: { name?: string | null; email?: string | null; role?: string }
@@ -20,14 +22,16 @@ interface Notification {
   createdAt: string
 }
 
-const NOTIFICATION_ICONS: Record<string, string> = {
-  new_incident: '🚨',
-  review_needed: '🔍',
-  incident_published: '✅',
-  incident_rejected: '❌',
-  new_tip: '📬',
-  ingestion_complete: '⚙️',
-  system: '🔔',
+// Short typographic kind labels. The previous version used emoji as interface
+// icons, which reads as decoration on a monitoring system about violence.
+const NOTIFICATION_KIND: Record<string, string> = {
+  new_incident: 'Candidate',
+  review_needed: 'Review',
+  incident_published: 'Published',
+  incident_rejected: 'Rejected',
+  new_tip: 'Tip',
+  ingestion_complete: 'Ingestion',
+  system: 'System',
 }
 
 export function TopBar({ user }: Props) {
@@ -131,7 +135,9 @@ export function TopBar({ user }: Props) {
                 className="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[10px] font-mono text-zinc-400">{r.referenceId}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium status-${r.status.toLowerCase()}`}>{r.status}</span>
+                  <span className={`status ${STATUS_TONE[r.status as IncidentStatus] ?? 'status-none'}`}>
+                    {STATUS_LABEL[r.status as IncidentStatus] ?? r.status}
+                  </span>
                 </div>
                 <div className="text-sm font-medium text-zinc-800 truncate">{r.title}</div>
                 <div className="text-xs text-zinc-400 mt-0.5">{r.country} · {formatDistanceToNow(new Date(r.occurredAt), { addSuffix: true })}</div>
@@ -183,14 +189,20 @@ export function TopBar({ user }: Props) {
                       className={`w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
                     >
                       <div className="flex items-start gap-2.5">
-                        <span className="text-base shrink-0">{NOTIFICATION_ICONS[n.type] ?? '🔔'}</span>
+                        <span className="chip mt-0.5 shrink-0">
+                          {NOTIFICATION_KIND[n.type] ?? 'Notice'}
+                        </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold text-zinc-800 truncate">{n.title}</span>
-                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                            <span className="truncate text-xs font-semibold text-[var(--ink)]">{n.title}</span>
+                            {!n.isRead && (
+                              <span className="dot shrink-0 bg-[var(--navy-3)]">
+                                <span className="sr-only">unread</span>
+                              </span>
+                            )}
                           </div>
-                          <div className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">{n.message}</div>
-                          <div className="text-[10px] text-zinc-400 mt-1">
+                          <div className="mt-0.5 line-clamp-2 text-[11px] text-[var(--ink-3)]">{n.message}</div>
+                          <div className="mt-1 text-[10px] text-[var(--ink-4)]">
                             {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                           </div>
                         </div>

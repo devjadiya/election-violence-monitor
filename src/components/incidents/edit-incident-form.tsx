@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORY_LABELS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
+import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
+import type { IncidentStatus } from '@/lib/generated/prisma'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -114,8 +116,8 @@ export function EditIncidentForm({ incident, elections }: Props) {
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-mono text-zinc-400">{incident.referenceId}</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium status-${incident.status.toLowerCase()}`}>
-            {incident.status}
+          <span className={`status ${STATUS_TONE[incident.status as IncidentStatus] ?? 'status-none'}`}>
+            {STATUS_LABEL[incident.status as IncidentStatus] ?? incident.status}
           </span>
         </div>
         <h1 className="text-2xl font-bold text-[#1a1a2e]">Edit Incident</h1>

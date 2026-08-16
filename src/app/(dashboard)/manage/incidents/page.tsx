@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/constants'
+import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
 import type { IncidentCategory, IncidentStatus } from '@/lib/generated/prisma'
 import { Plus, Filter } from 'lucide-react'
 
@@ -129,8 +130,8 @@ export default async function IncidentsPage({
                   </td>
                   <td className="px-5 py-3.5 text-zinc-600 text-xs">{incident.country}</td>
                   <td className="px-5 py-3.5">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium status-${incident.status.toLowerCase()}`}>
-                      {incident.status}
+                    <span className={`status ${STATUS_TONE[incident.status]}`}>
+                      {STATUS_LABEL[incident.status]}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">

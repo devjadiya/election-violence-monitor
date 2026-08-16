@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { notFound } from 'next/navigation'
 import { formatDistanceToNow, format } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS, STAGE_LABELS, WEAPON_LABELS } from '@/constants'
+import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
 import type { IncidentCategory } from '@/lib/generated/prisma'
 import { IncidentActions } from '@/components/incidents/incidents-action'
 import { FollowUpActions } from '@/components/incidents/follow-up-actions'
@@ -56,12 +57,12 @@ export default async function IncidentDetailPage({
             >
               {CATEGORY_LABELS[incident.category as IncidentCategory]}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium status-${incident.status.toLowerCase()}`}>
-              {incident.status}
+            <span className={`status ${STATUS_TONE[incident.status]}`}>
+              {STATUS_LABEL[incident.status]}
             </span>
             {incident.isAutoDetected && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 font-medium">
-                AI Detected
+              <span className="status status-none" title="Extracted by the pipeline; a person decides whether it progresses">
+                Machine-extracted
               </span>
             )}
           </div>
@@ -262,7 +263,7 @@ export default async function IncidentDetailPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Source</span>
-                <span className="font-medium text-zinc-700">{incident.isAutoDetected ? 'AI Detected' : 'Manual'}</span>
+                <span className="font-medium text-zinc-700">{incident.isAutoDetected ? 'Machine-extracted' : 'Manual entry'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Verification</span>

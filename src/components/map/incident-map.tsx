@@ -189,7 +189,7 @@ export function IncidentMap({ incidents }: { incidents: InternalMapIncident[] })
       if (p.latitude! > n) n = p.latitude!
     }
     map.fitBounds([[w - 2, s - 2], [e + 2, n + 2]], { padding: 60, maxZoom: 6, duration: 800 })
-  }, [located]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [located])
 
   const handleClusterClick = useCallback((e: MapLayerMouseEvent) => {
     const f = e.features?.[0]

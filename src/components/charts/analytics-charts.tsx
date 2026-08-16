@@ -172,7 +172,7 @@ export function AnalyticsCharts({ data }: Props) {
           {statCard(data.totals.fatalities, 'Fatalities', 'Reported deaths', 'text-red-600')}
           {statCard(data.totals.injured, 'Injured', 'Reported injuries', 'text-orange-500')}
           {statCard(data.totals.arrested, 'Arrested', 'Reported arrests', 'text-blue-600')}
-          {statCard(data.totals.aiDetected, 'AI Detected', 'Auto-classified', 'text-violet-600')}
+          {statCard(data.totals.aiDetected, 'Machine-extracted', 'Awaiting or past review', 'text-violet-600')}
           {statCard(data.totals.withResponse, 'With Response', 'Accountability actions', 'text-teal-600')}
         </div>
       </div>
