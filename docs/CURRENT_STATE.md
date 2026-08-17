@@ -376,6 +376,82 @@ returned `'unchanged'` if that arbitrary row already had a body. Against `enrich
 "some article lacks a body" selection, a multi-source incident could be selected every run and
 enriched never. It now picks the first article actually lacking a body.
 
+### ✅ D13 — RESOLVED 2026-08-16 — GDELT had never returned a single article
+
+Every ingestion run since the project began logged `GDELT Project: query returned zero
+articles`. It read as a quiet news day. It was a malformed query, and the discovery channel was
+dead for the entire life of the project.
+
+`fetchGdeltArticles` built its query with `keywords.join(' OR ')`, producing 393 characters in
+which **every multi-word term was unquoted**. DOC 2.0 reads bare spaces as implicit AND, so
+`election violence Nigeria` meant `election AND violence AND Nigeria`, not the phrase. The OR
+arms were never parenthesised, which DOC 2.0 requires, and `sourcelang:english` was
+concatenated onto the last arm rather than applied to the query — the documented token is also
+`eng`, not `english`.
+
+**Verified against the live API on 2026-08-16.** The old query returns:
+
+```
+HTTP 200 · content-type: text/html
+Your query was too short or too long.
+```
+
+A rejection arrives as **HTTP 200 with an HTML body**, so `res.ok` was true, `res.json()` threw
+a `SyntaxError`, and a bare `catch` returned `[]`. `ingest/route.ts` then printed a hard-coded
+string identical for a syntax rejection, a network failure and genuine no-news — which is why
+nobody could tell the difference.
+
+Measured with `scripts/probe-gdelt.ts` (read-only), same day, same IP:
+
+| Query | Result |
+|---|---|
+| Legacy — what production sent until today | **rejected** |
+| Rebuilt, Nigeria-scoped | **75 articles** (hit the `maxrecords` cap) |
+| Rebuilt, unscoped | **75 articles** (hit the cap) |
+
+Both rebuilt queries saturated the record limit, so real availability is higher than 75.
+
+`buildGdeltQuery()` quotes each phrase, parenthesises the OR group, ANDs a separate scope
+group, and appends `sourcelang:eng` outside the parentheses. Requests are **batched** (5
+phrases each) because DOC 2.0 has a complexity ceiling, and **throttled at 6s** because it
+allows one request every five seconds and answers 429 otherwise. A `User-Agent` and an
+`AbortSignal` timeout were both missing and are now set.
+
+`fetchGdeltArticles` returns `GdeltResult` — articles plus `ok`, `error` and per-batch detail —
+and checks `content-type` before parsing, so a rejection is reported rather than swallowed.
+
+Keyword lists restructured: topic phrases are short and quotable, place moved to
+`GDELT_SCOPE_TERMS`. `"election violence Nigeria"` as a quoted phrase is a word sequence
+essentially no journalist writes. `NIGERIA_SPECIFIC_KEYWORDS` — exported and **never imported
+once**, so the seven most Nigeria-specific terms in the codebase had never been queried — is
+folded into the topic list and deleted.
+
+Latent bug fixed alongside: `new Date(a.seendate)` on GDELT's `YYYYMMDDTHHMMSSZ` format yields
+**Invalid Date**. It would have written NaN timestamps into `RawArticle.publishedAt` the moment
+the query started working. `parseSeenDate()` handles it, with tests.
+
+**A source-discovery signal fell out of the probe.** The rebuilt queries surfaced ~30 distinct
+Nigerian domains, of which roughly ten are **not in `MonitoredSource`** — `theeagleonline.com.ng`,
+`blueprint.ng`, `opinionnigeria.com`, `thenationonlineng.net`, `nigerianeye.com`,
+`nationalaccordnewspaper.com`, `tell.ng` among them. Feeding these into
+`scripts/probe-new-sources.ts` is the cheapest coverage expansion available.
+
+### ✅ D14 — RESOLVED 2026-08-16 — The RSS reader sent no User-Agent
+
+`fetchRssArticles` constructed `new RSSParser({ timeout: 10000 })` with no headers, so it
+identified itself as the literal string `rss-parser`, which several Nigerian publishers answer
+with 403.
+
+The repo had already diagnosed this and never applied it:
+`scripts/probe-feed-candidates.ts` exists **specifically** to test whether a browser-like UA
+revives a blocked feed, and both it and `probe-new-sources.ts` set one. Production never got
+the header the probes proved was needed.
+
+It now sends a UA identifying the project, plus `Accept` and `Accept-Language`. The per-feed cap
+also rose from 20 to 60 (`RSS_ITEMS_PER_FEED`): at one run per day, an outlet publishing 60+
+items lost two thirds of its output permanently, and there is no cursor or watermark, so a
+missed item is missed for good.
+
 ---
 
 ## 5. Commands

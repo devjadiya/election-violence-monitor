@@ -6,6 +6,7 @@ import {
   fetchRssArticles,
   storeArticles,
   ELECTION_VIOLENCE_KEYWORDS,
+  parseSeenDate,
   type DiscoveredArticle,
 } from '@/lib/ingestion/gdelt'
 import { backlogSize } from '@/lib/ingestion/backlog'
@@ -82,18 +83,27 @@ export async function GET(req: NextRequest) {
       await ingest(
         'GDELT Project',
         gdeltSource.id,
-        gdelt.map((a) => ({
+        gdelt.articles.map((a) => ({
           url: a.url,
           title: a.title,
           // GDELT returns metadata only, never a body.
           content: a.title,
-          publishedAt: new Date(a.seendate),
+          publishedAt: parseSeenDate(a.seendate),
           language: a.language ?? 'en',
         }))
       )
-      if (gdelt.length === 0) {
+
+      // Report what GDELT actually said. The previous message was a hard-coded
+      // 'query returned zero articles', emitted identically for a rejected
+      // query, a network failure and a genuine quiet news day — which is why a
+      // malformed query went unnoticed for the life of the project.
+      if (!gdelt.ok) {
         perSource['GDELT Project'].ok = false
-        perSource['GDELT Project'].error = 'query returned zero articles'
+        perSource['GDELT Project'].error = (gdelt.error ?? 'no response').slice(0, 200)
+      } else if (gdelt.articles.length === 0) {
+        const tried = gdelt.batches.length
+        perSource['GDELT Project'].ok = false
+        perSource['GDELT Project'].error = `accepted, but ${tried} quer${tried === 1 ? 'y' : 'ies'} matched nothing`
       }
     } catch (e) {
       perSource['GDELT Project'].ok = false
