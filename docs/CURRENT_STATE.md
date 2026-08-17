@@ -452,6 +452,54 @@ also rose from 20 to 60 (`RSS_ITEMS_PER_FEED`): at one run per day, an outlet pu
 items lost two thirds of its output permanently, and there is no cursor or watermark, so a
 missed item is missed for good.
 
+### ✅ D15 — RESOLVED 2026-08-17 — The body font was never loaded
+
+`globals.css` set `font-family: 'Inter', -apple-system, …` in two places. **Inter is imported
+nowhere** — no `next/font/google`, no stylesheet link. So the stack fell through to Segoe UI on
+Windows and San Francisco on macOS, while `GeistSans` — self-hosted by `next/font` in
+`layout.tsx`, downloaded on every page load — was used for nothing but `.chip-mono`.
+
+It also silently broke the type scale. `.display` is weight 640 and `.headline` 620, values only
+a **variable** font can resolve; against a static system font CSS font matching snapped both to
+700, so every heading on the site rendered full bold. `--font-sans` now points at
+`var(--font-geist-sans)` and those weights render as authored.
+
+Fixed alongside, all on the public surface:
+
+- **The hero occupied ~27% of a 1920px screen.** `.prose-measure` (68ch ≈ 510px) wrapped the
+  `<h1>` inside a centred 1152px container with no right column authored, so roughly half the
+  viewport was blank and a 44px headline stacked into a narrow tower on the left. The measure is
+  correct for prose and wrong for a display heading; it now applies only to the paragraph, and
+  the hero is a two-column grid with a live monitoring panel opposite the statement.
+- **`.shell` replaces `mx-auto max-w-6xl px-5`**, which was a string literal repeated in 27
+  files with no `xl:` or `2xl:` utility anywhere on the public surface — above 1024px nothing
+  adapted except the dead margin.
+- **Section bands are visible.** `--paper-2` was `#f8f9fa` against `#ffffff`, a 1.5% luminance
+  delta invisible on most displays, so the page read as one undifferentiated scroll. Section
+  padding also rose from 32–48px to a 48–72px clamp, which is what this measure wants.
+- **Affordances.** `.link-underline` appeared 31 times against 33 hover-only affordances, so
+  about half of all public navigation was invisible until moused. `Figure` tiles that are links
+  now carry a corner marker and link colour at rest — on the homepage all four were destinations
+  and nothing said so. Added `.title-link`, `.tile-link` and `.footer-link`; the footer's
+  "Operations sign-in" was `--ink-4` on `--paper-2`, about 2.4:1 and **failing AA**.
+- **Dead CSS removed:** `.heading-display`, `.heading-xl`, `.heading-lg`, `.stat-number`,
+  `.transition-smooth`, the `pulse-ring` keyframe and `.map-marker-pulse` — verified unreferenced
+  across the whole repo. The file had shipped three competing type scales.
+- **Elections page** rebuilt as cards with a status rail, per-country flags and record counts as
+  figures. Flags are inline SVG for the six countries in scope rather than emoji, because Windows
+  does not render regional-indicator sequences and would show the bare letters "NG", and rather
+  than an npm package, because `AGENTS.md` asks that a dependency be justified against a free
+  alternative. `Election.countryCode` was already populated with ISO-3 codes.
+- **Motion** is one looping animation, `.live-dot`, allowed because it encodes a fact —
+  collection is running for that election right now — and disabled under
+  `prefers-reduced-motion`. The decorative map pulse removed on honesty grounds stays removed.
+- **Caching.** The homepage and elections page were `revalidate = 0`. The homepage issues fifteen
+  queries in one batch against a pooler at `connection_limit=1`, which is the documented cause of
+  the intermittent "Something went wrong"; both now `revalidate = 60`, turning that burst from
+  once per view into once per minute.
+
+Authorship credit added to the footer bottom bar: **Built by Dev Jadiya**, linking to GitHub.
+
 ---
 
 ## 5. Commands

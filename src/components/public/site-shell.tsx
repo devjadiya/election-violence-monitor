@@ -64,7 +64,7 @@ export function SiteHeader({ current }: { current?: string }) {
         Skip to content
       </a>
       <header className="rule-b sticky top-0 z-40 bg-[var(--paper)]/95 backdrop-blur-[2px]">
-        <div className="mx-auto flex max-w-6xl items-center gap-8 px-5 py-3">
+        <div className="shell flex items-center gap-8 py-3.5">
           <Wordmark />
 
           <nav aria-label="Primary" className="ml-auto hidden items-center gap-6 md:flex">
@@ -106,10 +106,53 @@ export function SiteHeader({ current }: { current?: string }) {
   )
 }
 
-export function SiteFooter() {
+/**
+ * Live figures for the footer.
+ *
+ * Optional, and passed in rather than queried here: the footer renders on every
+ * page, and a component that fetched its own counts would add database round
+ * trips to pages that have no reason to pay for them. Pages that already hold
+ * these numbers hand them over; the rest render the footer without the strip.
+ */
+export interface FooterStats {
+  published: number
+  articles: number
+  sources: number
+  lastRun?: Date | null
+}
+
+export function SiteFooter({ stats }: { stats?: FooterStats } = {}) {
   return (
-    <footer className="rule-t mt-16 bg-[var(--paper-2)]">
-      <div className="mx-auto max-w-6xl px-5 py-10">
+    <footer className="rule-t mt-20 bg-[var(--paper-2)]">
+      {/* Proof of life, at the bottom of every page that can afford it. A
+          reader who has scrolled this far is deciding whether to trust the
+          project; the honest answer to that is its own operating numbers. */}
+      {stats ? (
+        <div className="rule-b bg-[var(--navy-band)]">
+          <div className="shell flex flex-wrap items-center gap-x-8 gap-y-3 py-4">
+            {[
+              { v: stats.published, l: 'records published' },
+              { v: stats.articles, l: 'articles read' },
+              { v: stats.sources, l: 'sources monitored' },
+            ].map((f) => (
+              <span key={f.l} className="flex items-baseline gap-1.5">
+                <span className="tnum text-[1.0625rem] font-semibold tracking-tight text-[var(--ink)]">
+                  {f.v.toLocaleString('en-GB')}
+                </span>
+                <span className="text-[0.75rem] text-[var(--ink-3)]">{f.l}</span>
+              </span>
+            ))}
+            <Link
+              href="/sources/health"
+              className="link-underline ml-auto text-[0.75rem]"
+            >
+              Collection status
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="shell py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="text-[0.8125rem] font-semibold text-[var(--ink)]">
@@ -129,35 +172,35 @@ export function SiteFooter() {
           <nav aria-label="Records">
             <p className="eyebrow mb-2.5">Records</p>
             <ul className="space-y-1.5 text-[0.8125rem]">
-              <li><Link href="/elections" className="text-[var(--ink-2)] hover:text-[var(--link)]">Elections</Link></li>
-              <li><Link href="/incidents" className="text-[var(--ink-2)] hover:text-[var(--link)]">Incidents</Link></li>
-              <li><Link href="/map" className="text-[var(--ink-2)] hover:text-[var(--link)]">Map</Link></li>
-              <li><Link href="/analytics" className="text-[var(--ink-2)] hover:text-[var(--link)]">Analytics</Link></li>
+              <li><Link href="/elections" className="footer-link">Elections</Link></li>
+              <li><Link href="/incidents" className="footer-link">Incidents</Link></li>
+              <li><Link href="/map" className="footer-link">Map</Link></li>
+              <li><Link href="/analytics" className="footer-link">Analytics</Link></li>
             </ul>
           </nav>
 
           <nav aria-label="Transparency">
             <p className="eyebrow mb-2.5">Transparency</p>
             <ul className="space-y-1.5 text-[0.8125rem]">
-              <li><Link href="/methodology" className="text-[var(--ink-2)] hover:text-[var(--link)]">Methodology</Link></li>
-              <li><Link href="/sources" className="text-[var(--ink-2)] hover:text-[var(--link)]">Source directory</Link></li>
-              <li><Link href="/sources/health" className="text-[var(--ink-2)] hover:text-[var(--link)]">Collection status</Link></li>
-              <li><Link href="/data#licensing" className="text-[var(--ink-2)] hover:text-[var(--link)]">Licensing and reuse</Link></li>
+              <li><Link href="/methodology" className="footer-link">Methodology</Link></li>
+              <li><Link href="/sources" className="footer-link">Source directory</Link></li>
+              <li><Link href="/sources/health" className="footer-link">Collection status</Link></li>
+              <li><Link href="/data#licensing" className="footer-link">Licensing and reuse</Link></li>
             </ul>
           </nav>
 
           <nav aria-label="Reuse and contribution">
             <p className="eyebrow mb-2.5">Reuse</p>
             <ul className="space-y-1.5 text-[0.8125rem]">
-              <li><Link href="/data" className="text-[var(--ink-2)] hover:text-[var(--link)]">Download data</Link></li>
-              <li><Link href="/developers" className="text-[var(--ink-2)] hover:text-[var(--link)]">API</Link></li>
-              <li><Link href="/submit" className="text-[var(--ink-2)] hover:text-[var(--link)]">Report an incident</Link></li>
+              <li><Link href="/data" className="footer-link">Download data</Link></li>
+              <li><Link href="/developers" className="footer-link">API</Link></li>
+              <li><Link href="/submit" className="footer-link">Report an incident</Link></li>
               <li>
                 <a
                   href="https://github.com/devjadiya/election-violence-monitor"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[var(--ink-2)] hover:text-[var(--link)]"
+                  className="footer-link"
                 >
                   Source code
                 </a>
@@ -165,7 +208,7 @@ export function SiteFooter() {
               {/* Operational access. Reviewers and maintainers know to look for
                   it; nobody else needs an account to use this platform. */}
               <li>
-                <Link href="/login" className="text-[var(--ink-4)] hover:text-[var(--ink-2)]">
+                <Link href="/login" className="footer-link-muted">
                   Operations sign-in
                 </Link>
               </li>
@@ -191,7 +234,17 @@ export function SiteFooter() {
             publishers and are linked, never relicensed.
           </p>
           <p className="shrink-0">
-            <Link href="/methodology" className="hover:text-[var(--ink-2)]">
+            Built by{' '}
+            <a
+              href="https://github.com/devjadiya"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-underline"
+            >
+              Dev Jadiya
+            </a>
+            {' · '}
+            <Link href="/methodology" className="footer-link-muted">
               How records are made
             </Link>
           </p>
@@ -236,12 +289,14 @@ export function Figure({
 
   if (!href) return <div>{body}</div>
 
+  // The linked variant used to render markup byte-identical to the plain one,
+  // differing only in a 3%-off-white hover background — so on the homepage, all
+  // four figures were destinations and nothing on screen said so. The corner
+  // marker from `.tile-link` gives the rest state a signal, and the value takes
+  // the link colour so it reads as interactive before it is touched.
   return (
-    <Link
-      href={href}
-      className="group block rounded-sm transition-colors hover:bg-[var(--paper-2)]"
-    >
-      <div className="figure-value group-hover:text-[var(--link)]">
+    <Link href={href} className="tile-link group rounded-sm pr-4">
+      <div className={`figure-value text-[var(--navy-2)] transition-colors group-hover:text-[var(--link)] ${colour}`}>
         {typeof value === 'number' ? value.toLocaleString('en-US') : value}
       </div>
       <div className="figure-label mt-0.5">{label}</div>

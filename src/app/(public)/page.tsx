@@ -30,7 +30,122 @@ export const metadata: Metadata = {
     'Open infrastructure for documenting election-related violence: published reporting turned into structured, source-linked records that anyone can verify and reuse.',
 }
 
-export const dynamic = 'force-dynamic'
+/**
+ * Cached for a minute rather than rendered per request.
+ *
+ * This page issues fifteen queries in one batch against a pooler configured
+ * `connection_limit=1`, which is the documented cause of the intermittent
+ * "Something went wrong" — the later queries queue behind the earlier ones and
+ * time out. Sixty seconds is invisible to a reader and turns that burst from
+ * once per view into once per minute.
+ */
+export const revalidate = 60
+
+/**
+ * What the platform is doing right now, beside the statement of what it is.
+ *
+ * The hero's right half was empty at every viewport above 1024px. Filling it
+ * with a stock image would have been the conventional answer; filling it with
+ * live state is the honest one — and it is the claim the project most needs to
+ * make, since the objection to a monitoring platform is always "is this
+ * actually running?"
+ *
+ * Every figure here is read from the same database as the rest of the site. If
+ * nothing is being monitored, the panel says so rather than going blank.
+ */
+function LivePanel({
+  election,
+  published,
+  articles,
+  sources,
+  latest,
+  lastRun,
+}: {
+  election?: {
+    id: string
+    name: string
+    country: string
+    region: string | null
+    electionDate: Date
+    monitoringStatus: string
+  }
+  published: number
+  articles: number
+  sources: number
+  latest?: IncidentSummary
+  lastRun: Date | null
+}) {
+  const fig = (value: number, label: string) => (
+    <div>
+      <div className="tnum text-[1.5rem] font-semibold leading-none tracking-tight text-[var(--ink)]">
+        {value.toLocaleString('en-GB')}
+      </div>
+      <div className="mt-1 text-[0.6875rem] text-[var(--ink-3)]">{label}</div>
+    </div>
+  )
+
+  return (
+    <aside className="card rise overflow-hidden lg:sticky lg:top-20" aria-label="Current monitoring status">
+      <div className="flex items-center gap-2 border-b border-[var(--rule)] bg-[var(--paper)] px-4 py-2.5">
+        {election ? (
+          <>
+            <span className="live-dot" aria-hidden />
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[var(--live)]">
+              Monitoring active
+            </span>
+          </>
+        ) : (
+          <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[var(--ink-3)]">
+            No election in its collection window
+          </span>
+        )}
+      </div>
+
+      <div className="px-4 py-4">
+        {election ? (
+          <Link href={`/elections/${election.id}`} className="title-link block text-[0.9375rem] font-medium leading-snug">
+            {election.name}
+          </Link>
+        ) : (
+          <p className="text-[0.875rem] text-[var(--ink-2)]">
+            The daily baseline collection still runs. Cadence follows the election being
+            covered, not a fixed timer.
+          </p>
+        )}
+
+        {election ? (
+          <p className="mt-1 text-[0.75rem] text-[var(--ink-3)]">
+            {electionPlace(election)} · Polled {relativeElectionDate(election.electionDate)}
+          </p>
+        ) : null}
+
+        <div className="mt-4 grid grid-cols-3 gap-3 border-t border-[var(--rule)] pt-4">
+          {fig(published, 'Published records')}
+          {fig(articles, 'Articles read')}
+          {fig(sources, 'Active sources')}
+        </div>
+
+        {latest ? (
+          <div className="mt-4 border-t border-[var(--rule)] pt-3.5">
+            <p className="eyebrow">Most recent record</p>
+            <Link
+              href={`/incidents/${latest.id}`}
+              className="title-link mt-1.5 block text-[0.8125rem] font-medium leading-snug"
+            >
+              {latest.title}
+            </Link>
+          </div>
+        ) : null}
+
+        {lastRun ? (
+          <p className="mt-3.5 text-[0.6875rem] text-[var(--ink-4)]">
+            Last collection {relativeDays(lastRun)}
+          </p>
+        ) : null}
+      </div>
+    </aside>
+  )
+}
 
 /**
  * The homepage introduces the system, then exposes what it currently holds.
@@ -143,39 +258,56 @@ export default async function HomePage() {
       <SiteHeader />
 
       <main id="main">
-        {/* 1. What this is. No hero image, no badge, no gradient. */}
-        <section className="mx-auto max-w-6xl px-5 pb-9 pt-12">
-          <div className="prose-measure">
-            <p className="eyebrow">Open election-integrity infrastructure</p>
-            <h1 className="display mt-2.5">
-              Turning published reporting on election violence into structured, citable
-              records.
-            </h1>
-            <p className="mt-4 text-[1.0625rem] leading-relaxed text-[var(--ink-2)]">
-              Election violence is reported once, across scattered outlets, and then
-              effectively disappears. This platform collects that reporting, extracts a
-              structured record of each incident, keeps every record tied to the article it
-              came from, and publishes the result as open data anyone can check or reuse.
-            </p>
-          </div>
+        {/* 1. What this is, beside what it is doing right now.
+               This used to be a single column wrapped in `.prose-measure`,
+               which caps at 68ch — about 510px. Inside a centred 1152px
+               container on a 1920px display that left roughly half the screen
+               empty and stacked a 44px headline into a narrow tower on the far
+               left. The measure is right for prose and wrong for a display
+               heading, so it now applies only to the paragraph. */}
+        <section className="band-navy rule-b">
+          <div className="shell grid items-start gap-10 py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:py-16">
+            <div className="rise">
+              <p className="eyebrow">Open election-integrity infrastructure</p>
+              <h1 className="display mt-3">
+                Turning published reporting on election violence into structured, citable
+                records.
+              </h1>
+              <p className="prose-measure mt-5 text-[1.0625rem] leading-relaxed text-[var(--ink-2)]">
+                Election violence is reported once, across scattered outlets, and then
+                effectively disappears. This platform collects that reporting, extracts a
+                structured record of each incident, keeps every record tied to the article it
+                came from, and publishes the result as open data anyone can check or reuse.
+              </p>
 
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/elections" className="btn btn-primary">
-              Browse elections
-            </Link>
-            <Link href="/incidents" className="btn btn-secondary">
-              Incident records
-            </Link>
-            <Link href="/methodology" className="btn btn-secondary">
-              How records are made
-            </Link>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href="/elections" className="btn btn-primary">
+                  Browse elections
+                </Link>
+                <Link href="/incidents" className="btn btn-secondary">
+                  Incident records
+                </Link>
+                <Link href="/methodology" className="btn btn-secondary">
+                  How records are made
+                </Link>
+              </div>
+            </div>
+
+            <LivePanel
+              election={s.activeElections[0]}
+              published={s.published}
+              articles={s.articles}
+              sources={s.sources}
+              latest={s.recent[0]}
+              lastRun={s.lastRun?.startedAt ?? null}
+            />
           </div>
         </section>
 
         {/* 2. Scope versus coverage, stated as two different numbers, each one
                a way into the data behind it rather than a decorative counter. */}
         <section className="rule-t rule-b bg-[var(--paper-2)]">
-          <div className="mx-auto max-w-6xl px-5 py-8">
+          <div className="shell section-sm">
             <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:grid-cols-4">
               <Figure
                 value={s.elections}
@@ -208,7 +340,7 @@ export default async function HomePage() {
 
         {/* 3. What is being monitored right now. */}
         {s.activeElections.length > 0 ? (
-          <section className="mx-auto max-w-6xl px-5 py-10">
+          <section className="shell section">
             <div className="mb-4 flex items-baseline justify-between gap-4">
               <h2 className="headline">Currently monitoring</h2>
               <Link href="/elections" className="link-underline text-[0.8125rem]">
@@ -264,7 +396,7 @@ export default async function HomePage() {
         ) : null}
 
         {/* 4. The records themselves. */}
-        <section className="mx-auto max-w-6xl px-5 pb-10">
+        <section className="shell pb-14">
           <div className="mb-1 flex items-baseline justify-between gap-4">
             <h2 className="headline">Latest records</h2>
             {s.published > 0 ? (
@@ -300,7 +432,7 @@ export default async function HomePage() {
         {/* 5. How a record is made — the trust model, drawn from real counts so
                the drop-off between stages is a measurement, not an illustration. */}
         <section className="rule-t bg-[var(--paper-2)]">
-          <div className="mx-auto max-w-6xl px-5 py-9">
+          <div className="shell section">
             <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
               <div>
                 <h2 className="headline">From reporting to record</h2>
@@ -386,7 +518,7 @@ export default async function HomePage() {
         </section>
 
         {/* 6. Operational state and boundaries. */}
-        <section className="mx-auto max-w-6xl px-5 py-10">
+        <section className="shell section">
           <div className="grid gap-9 md:grid-cols-2">
             <div>
               <h2 className="headline">Collection status</h2>
@@ -483,7 +615,7 @@ export default async function HomePage() {
 
         {/* 7. Reuse. */}
         <section className="rule-t bg-[var(--paper-2)]">
-          <div className="mx-auto max-w-6xl px-5 py-9">
+          <div className="shell section">
             <h2 className="headline">Open data</h2>
             <p className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
               The structured record of each incident — what happened, where, when, how many
@@ -507,7 +639,14 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <SiteFooter />
+      <SiteFooter
+        stats={{
+          published: s.published,
+          articles: s.articles,
+          sources: s.sources,
+          lastRun: s.lastRun?.startedAt ?? null,
+        }}
+      />
     </>
   )
 }

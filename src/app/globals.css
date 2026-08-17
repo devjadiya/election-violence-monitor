@@ -31,19 +31,30 @@
   /* Neutral ramp. Warm rather than pure grey; pure grey reads as unfinished. */
   --ink:        #14161a;
   --ink-2:      #3d434d;
-  --ink-3:      #6b7280;
-  --ink-4:      #9aa1ab;
-  --rule:       #e5e7eb;
-  --rule-2:     #d3d7dd;
+  --ink-3:      #626974;
+  --ink-4:      #7d848f;
+  --rule:       #e2e6ec;
+  --rule-2:     #cdd3db;
   --paper:      #ffffff;
-  --paper-2:    #f8f9fa;
-  --paper-3:    #eef0f3;
+  /* Section bands. These were #f8f9fa against #ffffff — a 1.5% luminance
+     delta, invisible on most displays and gone entirely under glare, so the
+     page read as one undifferentiated scroll. Now cool enough to tie to the
+     navy spine and actually visible. */
+  --paper-2:    #f4f6f9;
+  --paper-3:    #e9edf3;
 
   /* Institutional accent. Interactive affordance and masthead. */
   --navy:       #10263f;
   --navy-2:     #1c3d5f;
   --navy-3:     #2f5f8a;
-  --navy-tint:  #eef3f8;
+  --navy-4:     #4a80ad;
+  --navy-tint:  #e9f0f7;
+  --navy-band:  #f0f5fa;
+
+  /* Reserved for a genuinely live election. Never used decoratively — if this
+     colour is on screen, something really is being collected right now. */
+  --live:       #b4341f;
+  --live-tint:  #fdeeea;
 
   /* Semantic. Reserved for meaning, never decoration. */
   --link:       #1c4f82;
@@ -125,7 +136,18 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Geist is self-hosted by next/font in layout.tsx and was, until now, being
+     downloaded on every page load and used for nothing but `.chip-mono`. The
+     stack here named 'Inter', which is never imported anywhere — so body text
+     fell through to Segoe UI on Windows and San Francisco on macOS.
+
+     That single line was the largest reason the site read as dated, and it took
+     the type scale down with it: `.display` is weight 640 and `.headline` 620,
+     values only a VARIABLE font can honour. Against a static system font, CSS
+     font matching snapped both to 700, so every heading rendered full bold.
+     Geist is variable, so those weights now render as authored. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -140,10 +162,12 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 15px;
+  /* One source of truth: the theme token, not a second hardcoded stack. */
+  font-family: var(--font-sans);
+  font-size: 15.5px;
   line-height: 1.6;
   min-height: 100vh;
+  font-feature-settings: 'cv11', 'ss01';
 }
 
 /* The former glassmorphism set, redefined as flat institutional surfaces.
@@ -186,26 +210,99 @@ body {
 .status-published    { background: #ecfdf5; color: #059669; }
 .status-rejected     { background: #fef2f2; color: #dc2626; }
 
-@keyframes pulse-ring {
-  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(239,68,68,0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-}
-
-.map-marker-pulse { animation: pulse-ring 2s cubic-bezier(0.215,0.61,0.355,1) infinite; }
-
 ::-webkit-scrollbar       { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
 
-.heading-display { font-size: clamp(2rem,5vw,3.5rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
-.heading-xl      { font-size: clamp(1.5rem,3vw,2.25rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
-.heading-lg      { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
-.stat-number     { font-size: 2.25rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-.transition-smooth { transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
-
 *:focus-visible { outline: 2px solid var(--brand-highlight); outline-offset: 2px; border-radius: 4px; }
+
+/* ==========================================================================
+   Layout scale
+   --------------------------------------------------------------------------
+   `mx-auto max-w-6xl px-5` was a string literal repeated in 27 files, and there
+   was not one `xl:` utility on the public surface — so above 1024px nothing
+   adapted and the only thing that grew was the dead margin. At 1920px that left
+   roughly half the screen empty.
+   ========================================================================== */
+
+.shell {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  max-width: 72rem;
+}
+@media (min-width: 1536px) { .shell { max-width: 80rem; padding-inline: 2rem; } }
+
+/* Vertical rhythm. Sections were 32–48px apart at a 1152px measure, which reads
+   as one continuous scroll; this measure wants 64–96px. */
+.section     { padding-block: clamp(3rem, 5vw, 4.5rem); }
+.section-sm  { padding-block: clamp(2rem, 3vw, 2.75rem); }
+.band        { background: var(--paper-2); }
+.band-navy   { background: var(--navy-band); }
+
+/* ==========================================================================
+   Motion
+   --------------------------------------------------------------------------
+   Purposeful only. The live badge is the one looping animation on the site and
+   it is allowed precisely because it encodes a fact: collection is running for
+   that election right now. A pulse that merely decorated was removed from the
+   map on exactly these grounds and is not coming back.
+   ========================================================================== */
+
+@keyframes evm-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
+}
+@keyframes evm-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.live-dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 99px;
+  background: var(--live);
+  animation: evm-live 2.4s ease-in-out infinite;
+}
+
+.rise { animation: evm-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .rise { animation: none; }
+  .rise { opacity: 1; transform: none; }
+}
+
+/* ==========================================================================
+   Surfaces
+   --------------------------------------------------------------------------
+   A card is used where an item is a discrete object a reader may act on — an
+   election, a live panel. It is NOT used for incident records: those stay rows,
+   because a list of people who were hurt should read as a register, not a
+   product grid.
+   ========================================================================== */
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.625rem;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.card-hover:hover {
+  border-color: var(--rule-2);
+  box-shadow: 0 2px 10px rgba(16, 38, 63, 0.07);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) { .card-hover:hover { transform: none; } }
+
+/* Status rail: a coloured edge encoding monitoring state. Paired with text
+   everywhere it appears, so colour is never the only channel. */
+.rail { border-left: 3px solid var(--rule-2); }
+.rail-live    { border-left-color: var(--live); }
+.rail-ok      { border-left-color: var(--ok); }
+.rail-caution { border-left-color: var(--caution); }
+.rail-idle    { border-left-color: var(--rule-2); }
 
 /* ==========================================================================
    Public surface
@@ -234,20 +331,25 @@ body {
   color: var(--ink-3);
 }
 
+/* These weights are the reason the font fix mattered. 640 and 620 are only
+   reachable on a variable font; against the static system font the browser was
+   snapping both to 700 and every heading rendered full bold. */
 .display {
-  font-size: clamp(1.875rem, 4vw, 2.75rem);
+  font-size: clamp(2.125rem, 3.6vw, 3.25rem);
   font-weight: 640;
-  letter-spacing: -0.025em;
-  line-height: 1.08;
+  letter-spacing: -0.032em;
+  line-height: 1.06;
   color: var(--ink);
+  text-wrap: balance;
 }
 
 .headline {
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-size: clamp(1.375rem, 2vw, 1.75rem);
   font-weight: 620;
-  letter-spacing: -0.015em;
-  line-height: 1.25;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   color: var(--ink);
+  text-wrap: balance;
 }
 
 /* A datum, presented as a figure with a caption rather than a card. */
@@ -327,6 +429,57 @@ body {
 }
 .btn-secondary:hover { border-color: var(--navy-3); color: var(--navy); }
 
+/* A heading that is a link. Coloured at rest, underlined on hover — the
+   inverse of what was here, where the headline of every incident and election
+   was pure --ink and indistinguishable from the text around it until moused.
+   Roughly half of all public navigation was invisible at rest. */
+.title-link {
+  color: var(--navy-2);
+  text-decoration: none;
+  transition: color 0.12s ease, text-decoration-color 0.12s ease;
+  text-decoration-color: transparent;
+}
+.title-link:hover {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* A tile that is a link. Gives the rest state a border and a corner marker so
+   it reads as a destination without hovering. */
+.tile-link {
+  position: relative;
+  display: block;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.tile-link::after {
+  content: '↗';
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--ink-4);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+.tile-link:hover::after { color: var(--link); transform: translate(1px, -1px); }
+
+/* Footer navigation. Underlined on hover rather than colour-only, and never
+   below AA — "Operations sign-in" was --ink-4 on --paper-2, about 2.4:1. */
+.footer-link {
+  color: var(--ink-2);
+  transition: color 0.12s ease;
+}
+.footer-link:hover {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.footer-link-muted { color: var(--ink-3); }
+.footer-link-muted:hover { color: var(--ink); }
+
 /* A whole row that is a link. The left rule appears on hover, so the target
    reads as one object rather than a headline that happens to be blue. */
 .row-link {
@@ -373,7 +526,7 @@ body {
   opacity: 0;
   transition: opacity 0.12s ease;
 }
-.nav-link:hover::after { opacity: 0.28; }
+.nav-link:hover::after { opacity: 0.7; }
 .nav-link[aria-current='page'] { color: var(--ink); font-weight: 550; }
 .nav-link[aria-current='page']::after { opacity: 1; }
 
