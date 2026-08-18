@@ -14,7 +14,15 @@ import { publicIncidentFilter, internalIncidentFilter } from '@/lib/incidents/vi
  * filter is not the same as verifying its callers, so this walks the source.
  */
 
-const PUBLIC_SURFACES = ['src/app/(public)', 'src/app/api/public', 'src/app/sitemap.ts']
+const PUBLIC_SURFACES = [
+  'src/app/(public)',
+  'src/app/api/public',
+  'src/app/sitemap.ts',
+  // The analytics aggregation layer reads incidents on behalf of a public page.
+  // Moving those queries out of `src/app/(public)` moved them outside this
+  // walk, so the walk follows them.
+  'src/lib/analytics',
+]
 
 function walk(path: string): string[] {
   let out: string[] = []
@@ -97,6 +105,54 @@ describe('incident API routes scope what they read', () => {
       USES_A_FILTER.test(src),
       `${file} reads incidents without any filter from lib/incidents/visibility`
     ).toBe(true)
+  })
+})
+
+/**
+ * Same rule, applied to the analytics aggregation layer.
+ *
+ * `src/lib/analytics/spine/*` are the only files there permitted to touch
+ * prisma, and any of them that reads incidents must scope that read.
+ */
+describe('the analytics layer scopes what it reads', () => {
+  const files = walk('src/lib/analytics')
+
+  it.each(files.map((f) => [f]))('%s filters incident reads', (file) => {
+    const src = stripComments(readFileSync(file, 'utf8'))
+    if (!READS_INCIDENTS.test(src)) return
+
+    expect(
+      USES_A_FILTER.test(src),
+      `${file} reads incidents without any filter from lib/incidents/visibility`
+    ).toBe(true)
+  })
+})
+
+/**
+ * Raw SQL is invisible to every check above.
+ *
+ * `publicIncidentFilter()` is a Prisma `where` object; it cannot be applied to
+ * a `$queryRaw` template, and the inline-PUBLISHED regex cannot see
+ * `WHERE status = 'PUBLISHED'` inside one. The analytics layer is the first
+ * request-path code in this repo to use raw SQL — for `LENGTH(content)` over
+ * 5,000+ articles, which Prisma cannot express — so the rule is that raw SQL
+ * may read the article corpus and may never name the Incident table.
+ *
+ * Aggregate counts of non-public records are fine and already public (the
+ * homepage funnel prints them). Per-record reads are what must stay filtered,
+ * and those go through Prisma.
+ */
+describe('raw SQL never reaches the Incident table on a public surface', () => {
+  const files = PUBLIC_SURFACES.flatMap(walk)
+
+  it.each(files.map((f) => [f]))('%s does not $queryRaw against Incident', (file) => {
+    const src = stripComments(readFileSync(file, 'utf8'))
+    const rawIncident = /\$queryRaw(Unsafe)?[\s\S]{0,400}"Incident"/.test(src)
+
+    expect(
+      rawIncident,
+      `${file} queries the Incident table in raw SQL, which bypasses publicIncidentFilter()`
+    ).toBe(false)
   })
 })
 

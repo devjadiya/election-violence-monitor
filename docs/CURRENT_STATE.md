@@ -518,6 +518,82 @@ Groundwork for the analytics rebuild. Three subtractions, no user-visible change
 Note both `package-lock.json` and `pnpm-lock.yaml` exist locally; only `pnpm-lock.yaml` is
 tracked, and it is the one that must be regenerated when a dependency changes.
 
+### D17 — `src/lib/analytics`, the aggregation layer — added 2026-08-18
+
+The public analytics page is being rebuilt around the corpus and the method rather than
+casualty counts, because `Victim`, `Actor` and `FollowUp` all hold **zero rows** and every
+incident records `0 killed, 0 injured`. A conventional casualty dashboard is not buildable
+from this database, and `/manage/analytics` currently fakes one (see D18 below). The data that
+does exist in quantity is the corpus: 5,766 articles across 38 publishers over 137 collection
+days, a measurable screening decision, and a measurable extraction failure rate.
+
+**Structure**, in [src/lib/analytics](../src/lib/analytics):
+
+| Directory | Rule |
+|---|---|
+| `spine/` | the only files that may import prisma |
+| `derive/` | pure — spine rows in, `Viz` out. No prisma, no React |
+| `options/` | pure — `Viz` in, ECharts option out. Type-only echarts imports |
+
+One narrow row spine per domain, every figure derived from it by a pure function. This is six
+queries for a thirty-chart page rather than thirty: at this size the dominant cost is
+connection acquisition, not bytes, and ten aggregates are ten chances to meet an unreachable
+pooler. The larger reason is correctness — because derivations are pure, a chart's series and
+the numbers printed beneath it are the same computation and can be asserted equal.
+
+**`Viz<T>` cannot be constructed without its `FigureTable`.** The commitment that exact figures
+are always printed is therefore a type error to violate, not a review comment.
+
+**Two visibility rules apply and must not be conflated.** Per-record detail is public only for
+`PUBLISHED` records, so `getIncidentSpine()` goes through `publicIncidentFilter()` — that is
+11 records, not 24. Aggregate counts of the wider set stay available because the funnel is
+dishonest without them ("24 structured, 11 published" is the real shape; hiding the 24 would
+imply everything structured gets published), so `getStatusCounts()` returns counts only.
+
+**Raw SQL is used once**, for the article spine, because `LENGTH(content)` is inexpressible in
+Prisma and selecting the column would move ~3 MB to compute one histogram. It may read the
+article corpus and may never name the `Incident` table — a Prisma `where` object cannot be
+applied to a template literal.
+
+The visibility guard was extended **before** this code landed, because the refactor would
+otherwise have created two blind spots at once: `src/lib/analytics` is now walked by
+`visibility-callsites.test.ts`, incident reads there must use a filter, and a new check bans
+`$queryRaw` against `"Incident"` on any public surface.
+
+Tests: the agreement invariant (rows account for their stated denominator), Sankey node
+balance (ECharts silently distorts an unbalanced Sankey, so the drawing would misstate
+proportions), layer purity, the `BigInt` guard, and the degenerate cases that actually exist —
+6 sources that have never returned an article, articles with no stored text, 1,444 never
+screened, 5,590 whose body was never fetched.
+
+**Verified against production 2026-08-18:** the layer reproduces `scripts/funnel-report.ts`
+exactly — 5,766 collected, 4,322 screened, 3,919 scored zero by the retired model, 403 scored
+by a working one, 27 relevant, 24 structured, 11 published.
+
+Two findings from that run worth recording:
+
+- **The relevance score does not discriminate.** Of 403 articles scored by a working model,
+  247 scored exactly 100 and 154 scored 90–99. Nothing downstream should be gated on it.
+- **The backlog is growing.** Never-screened rose from 1,004 to 1,444 in roughly a day.
+  Discovery is outrunning classification, which is D-throughput, not a display problem.
+
+### D18 — `/manage/analytics` draws pie charts over empty tables — OPEN
+
+`src/components/charts/analytics-charts.tsx` renders gender, age, victim-role and weapon
+charts. `Victim` and `Actor` hold zero rows. Its empty-data path substitutes
+`[{ name: 'No data', value: 1 }]` into the pie series (lines 57, 97, 110), so **an empty table
+renders as a full, complete-looking donut**. That is the interface presenting nothing as
+something, which is the fourth rule in `AGENTS.md`.
+
+The same page applies **no visibility filter at all** — not `publicIncidentFilter()`, not even
+`isDemo: false` — so its totals include demo records while every public figure excludes them,
+and the two analytics pages disagree. It is not covered by the visibility callsites test,
+which walks only `src/app/(public)`, `src/app/api/public`, `src/app/sitemap.ts` and now
+`src/lib/analytics`.
+
+Scheduled for the final phase of the analytics rebuild, when it migrates onto the shared chart
+frame.
+
 ---
 
 ## 5. Commands
