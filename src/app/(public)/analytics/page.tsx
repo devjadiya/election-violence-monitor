@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
 import { SiteHeader, SiteFooter, PageHeader, Figure, EmptyState } from '@/components/public/site-shell'
+import { Distribution } from '@/components/public/distribution'
 import { CATEGORY_LABEL, STAGE_LABEL } from '@/lib/incidents/format'
 import type { IncidentCategory, ElectionStage } from '@/lib/generated/prisma'
 
@@ -13,62 +14,6 @@ export const metadata: Metadata = {
 }
 
 export const dynamic = 'force-dynamic'
-
-/**
- * Distribution bars.
- *
- * Rendered as a definition list with proportional rules rather than a charting
- * library: no client JavaScript, readable by a screen reader, and the exact
- * number is always present. A chart that hides the count behind a hover
- * tooltip is worse than a table for a dataset this size.
- */
-function Distribution({
-  title,
-  caption,
-  rows,
-  total,
-}: {
-  title: string
-  caption?: string
-  rows: { label: string; count: number }[]
-  total: number
-}) {
-  if (rows.length === 0) return null
-  const max = Math.max(...rows.map((r) => r.count), 1)
-
-  return (
-    <section className="py-7">
-      <h2 className="headline">{title}</h2>
-      {caption ? (
-        <p className="mt-1.5 text-[0.8125rem] text-[var(--ink-3)]">{caption}</p>
-      ) : null}
-      <dl className="mt-4 space-y-2.5">
-        {rows.map((r) => {
-          const pct = total > 0 ? (r.count / total) * 100 : 0
-          return (
-            <div key={r.label} className="grid grid-cols-[minmax(0,11rem)_1fr_auto] items-center gap-3">
-              <dt className="truncate text-[0.8125rem] text-[var(--ink-2)]" title={r.label}>
-                {r.label}
-              </dt>
-              <dd className="h-2 bg-[var(--paper-3)]">
-                {/* A month with no records draws no bar at all: a minimum
-                    width would print a mark where the datum is zero. */}
-                <div
-                  className="h-2 bg-[var(--ink-2)]"
-                  style={{ width: r.count === 0 ? 0 : `${Math.max((r.count / max) * 100, 2)}%` }}
-                />
-              </dd>
-              <dd className="tnum whitespace-nowrap text-[0.8125rem] text-[var(--ink-2)]">
-                {r.count.toLocaleString()}
-                <span className="ml-1.5 text-[var(--ink-4)]">{pct.toFixed(0)}%</span>
-              </dd>
-            </div>
-          )
-        })}
-      </dl>
-    </section>
-  )
-}
 
 /**
  * Twelve calendar months ending now, each with its record count.
@@ -126,13 +71,13 @@ export default async function AnalyticsPage() {
   const { buckets: months, earlier } = monthBuckets(occurred)
 
   const corroborationRows = [
-    { label: 'One publisher', count: 0 },
-    { label: 'Two independent publishers', count: 0 },
-    { label: 'Three or more', count: 0 },
+    { label: 'One publisher', value: 0 },
+    { label: 'Two independent publishers', value: 0 },
+    { label: 'Three or more', value: 0 },
   ]
   for (const c of byCorroboration) {
     const n = c.corroboratingSources ?? 0
-    corroborationRows[n >= 3 ? 2 : n === 2 ? 1 : 0].count += c._count
+    corroborationRows[n >= 3 ? 2 : n === 2 ? 1 : 0].value += c._count
   }
 
   if (total === 0) {
@@ -187,7 +132,7 @@ export default async function AnalyticsPage() {
               ? `The last twelve months. ${earlier.toLocaleString()} earlier record${earlier === 1 ? '' : 's'} fall outside this window.`
               : 'The last twelve months. An empty month means nothing was published for it, not that nothing happened.'
           }
-          rows={months.map((m) => ({ label: m.label, count: m.count }))}
+          items={months.map((m) => ({ label: m.label, value: m.count }))}
           total={total}
         />
 
@@ -195,12 +140,12 @@ export default async function AnalyticsPage() {
 
         <Distribution
           title="By incident type"
-          rows={byCategory
+          items={byCategory
             .map((c) => ({
               label: CATEGORY_LABEL[c.category as IncidentCategory],
-              count: c._count,
+              value: c._count,
             }))
-            .sort((a, b) => b.count - a.count)}
+            .sort((a, b) => b.value - a.value)}
           total={total}
         />
 
@@ -209,10 +154,10 @@ export default async function AnalyticsPage() {
         <Distribution
           title="By state or region"
           caption="Reflects where reporting exists as much as where incidents occurred."
-          rows={byRegion
+          items={byRegion
             .filter((r): r is typeof r & { region: string } => !!r.region)
-            .map((r) => ({ label: r.region, count: r._count }))
-            .sort((a, b) => b.count - a.count)
+            .map((r) => ({ label: r.region, value: r._count }))
+            .sort((a, b) => b.value - a.value)
             .slice(0, 15)}
           total={total}
         />
@@ -222,24 +167,24 @@ export default async function AnalyticsPage() {
         <Distribution
           title="By election stage"
           caption="Stage is recorded only where a source stated it."
-          rows={byStage
+          items={byStage
             .map((s) => ({
               label: STAGE_LABEL[s.electionStage as ElectionStage],
-              count: s._count,
+              value: s._count,
             }))
-            .sort((a, b) => b.count - a.count)}
+            .sort((a, b) => b.value - a.value)}
           total={total}
         />
 
         <Distribution
           title="How records reached publication"
           caption="No machine-extracted record is presented as human-verified. Each record states its own pathway and cites the passages supporting it."
-          rows={byPathway
+          items={byPathway
             .map((p) => ({
               label: PATHWAY_ROW_LABEL[p.verificationPathway ?? 'PENDING'] ?? 'Not stated',
-              count: p._count,
+              value: p._count,
             }))
-            .sort((a, b) => b.count - a.count)}
+            .sort((a, b) => b.value - a.value)}
           total={total}
         />
 
@@ -248,7 +193,7 @@ export default async function AnalyticsPage() {
         <Distribution
           title="Independent publishers per record"
           caption="Corroboration counts distinct publishing outlets, not articles: three stories from one outlet are one publisher."
-          rows={corroborationRows.filter((r) => r.count > 0)}
+          items={corroborationRows.filter((r) => r.value > 0)}
           total={total}
         />
 

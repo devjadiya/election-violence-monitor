@@ -23,7 +23,7 @@
 | Geocoding | **Nominatim** (OpenStreetMap), unauthenticated |
 | Discovery | **GDELT** doc API + **RSS** via `rss-parser` |
 | Map | MapLibre GL + react-map-gl |
-| Charts | ECharts **and** Recharts (both installed) |
+| Charts | ECharts (`echarts-for-react`). Recharts removed 2026-08-18 — see D16 |
 | Styling | Tailwind v4, shadcn/Radix, Base UI |
 | Deploy | Vercel — one cron, security headers (`vercel.json`) |
 
@@ -275,7 +275,7 @@ renumbered after any deletion.
 - ~~Both `package-lock.json` and `pnpm-lock.yaml` are present~~ — **resolved.** pnpm.
 - Nominatim is called with no delay; its usage policy expects ≤1 req/sec.
 - Nigeria keywords are hard-coded as module constants (`ELECTION_VIOLENCE_KEYWORDS`, `NIGERIA_SPECIFIC_KEYWORDS`) rather than configuration — conflicts with "country must be configurable."
-- Both ECharts and Recharts ship in the bundle.
+- ~~Both ECharts and Recharts ship in the bundle.~~ Resolved 2026-08-18 (D16).
 - `prisma/schema.prisma` has UTF-8 mojibake in several comments (lines 2, 305).
 
 ### ✅ D9 — RESOLVED 2026-08-16 — `PATCH /api/incidents/[id]` let any signed-in account publish
@@ -499,6 +499,24 @@ Fixed alongside, all on the public surface:
   once per view into once per minute.
 
 Authorship credit added to the footer bottom bar: **Built by Dev Jadiya**, linking to GitHub.
+
+### D16 — Recharts removed; one `Distribution` instead of two — resolved 2026-08-18
+
+Groundwork for the analytics rebuild. Three subtractions, no user-visible change:
+
+- **`src/components/ui/chart.tsx` deleted** — 373 lines of shadcn Recharts wrapper with zero
+  importers anywhere in `src/`. It was the only consumer of `recharts`, so the dependency went
+  with it. ECharts is now the single charting library.
+- **`Distribution` consolidated** into [src/components/public/distribution.tsx](../src/components/public/distribution.tsx).
+  Two implementations existed with incompatible signatures: one exported from
+  `pipeline-funnel.tsx` and never imported, one private to the analytics page and used six
+  times. The surviving component keeps the analytics version's layout and its rule that a row
+  whose value is zero draws **no bar at all** — a minimum bar width prints a mark where the
+  datum is zero, which is the most common way a distribution lies — and adds the funnel
+  version's optional link and printed denominator.
+
+Note both `package-lock.json` and `pnpm-lock.yaml` exist locally; only `pnpm-lock.yaml` is
+tracked, and it is the one that must be regenerated when a dependency changes.
 
 ---
 
