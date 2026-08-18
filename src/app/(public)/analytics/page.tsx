@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { prisma } from '@/lib/db'
+import { ScreeningChapter } from './_chapters/screening'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
 import { SiteHeader, SiteFooter, PageHeader, Figure, EmptyState } from '@/components/public/site-shell'
 import { Distribution } from '@/components/public/distribution'
@@ -13,7 +15,15 @@ export const metadata: Metadata = {
     'Breakdown of published incident records by type, state and election stage — with the caveats that make them readable.',
 }
 
-export const dynamic = 'force-dynamic'
+/**
+ * Cached for five minutes.
+ *
+ * The page was `force-dynamic`, so every view re-ran its whole query set
+ * against a pooler that is intermittently unreachable. Under ISR the database
+ * sees one set of reads per five minutes regardless of traffic, which is well
+ * inside the ingestion cron's cadence — nothing here changes second to second.
+ */
+export const revalidate = 300
 
 /**
  * Twelve calendar months ending now, each with its record count.
@@ -43,6 +53,19 @@ function monthBuckets(dates: { occurredAt: Date }[]) {
     else buckets[i].count += 1
   }
   return { buckets, earlier }
+}
+
+/** Holds the space a streaming chapter will occupy, without asserting content. */
+function ChapterSkeleton() {
+  return (
+    <section className="section-sm" aria-hidden="true">
+      <div className="h-5 w-56 bg-[var(--paper-3)]" />
+      <div className="mt-5 grid gap-4">
+        <div className="card h-72" />
+        <div className="card h-56" />
+      </div>
+    </section>
+  )
 }
 
 const PATHWAY_ROW_LABEL: Record<string, string> = {
@@ -124,6 +147,14 @@ export default async function AnalyticsPage() {
           <Figure value={totals._sum.injured ?? 0} label="Injuries recorded" />
           <Figure value={totals._sum.arrested ?? 0} label="Arrests recorded" />
         </section>
+
+        {/* Streamed: the chapter reads the whole article corpus, and the
+            figures above should not wait on it. */}
+        <Suspense fallback={<ChapterSkeleton />}>
+          <ScreeningChapter />
+        </Suspense>
+
+        <div className="rule-t" />
 
         <Distribution
           title="When recorded incidents occurred"

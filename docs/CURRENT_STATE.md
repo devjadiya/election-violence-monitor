@@ -592,7 +592,54 @@ which walks only `src/app/(public)`, `src/app/api/public`, `src/app/sitemap.ts` 
 `src/lib/analytics`.
 
 Scheduled for the final phase of the analytics rebuild, when it migrates onto the shared chart
-frame.
+frame. **The bundle cost of leaving it is now measured** — see D19.
+
+### D19 — chart infrastructure, and what it actually costs — added 2026-08-18
+
+Four files carry every chart on the public analytics page:
+
+| File | Role |
+|---|---|
+| [chart-frame.tsx](../src/components/analytics/chart-frame.tsx) | the single client boundary; also exports `StaticFigure` for markup-only visuals |
+| [chart-canvas.tsx](../src/components/analytics/chart-canvas.tsx) | the only module in the repo importing the ECharts runtime |
+| [figures-table.tsx](../src/components/analytics/figures-table.tsx) | server component; the exact numbers |
+| [palette.ts](../src/components/analytics/palette.ts) | reads design tokens from the live CSS cascade |
+
+**The no-JS guarantee is structural.** The figures table is server-rendered into `ChartFrame`'s
+children and is never removed from the DOM — not collapsed, not swapped out when the chart
+mounts. The chart is `aria-hidden`; a screen reader is handed the table, not a description of a
+picture. Verified against the built output: the prerendered `/analytics` HTML contains two real
+`<table>` elements with the complete funnel figures before any JavaScript runs, and asserted in
+`src/__tests__/components/chart-frame.test.tsx` with `IntersectionObserver` stubbed to never
+fire.
+
+**Lazy loading works.** `next/dynamic` fetches a chunk when a component is first *rendered*, not
+when its module is imported, so gating the render on an `IntersectionObserver` genuinely defers
+ECharts until the first chart approaches the viewport. Confirmed by the chunk appearing in
+`react-loadable-manifest.json` rather than the route's initial load.
+
+**Bundle, measured rather than assumed** (`npm run build`, gzipped):
+
+| Configuration | Chart chunk |
+|---|---|
+| `/analytics`, modular `echarts/core`, with the barrel still in the app | 295 KB |
+| `/manage/analytics`, full barrel | 295 KB + 115 KB |
+| Modular only, barrel removed from the app entirely (A/B test) | **268 KB, one shared chunk** |
+
+So modular registration is worth ~27 KB gz on its own — less than expected, because most of
+ECharts is core and zrender rather than per-chart-type code. The larger prize is removing the
+barrel import in `analytics-charts.tsx`: it collapses two chunks into one and drops the
+dashboard route's extra 115 KB. That is D18, and this measurement is the argument for doing it.
+
+**Token bridge:** `useSyncExternalStore` reading `getComputedStyle` once, memoised at module
+scope. Not an effect — the CSS cascade is an external system being read, and an effect would
+cost an extra render pass per chart. Not a mirrored JS constant either, which is the drifting
+second source of truth `analytics-charts.tsx` already demonstrates. A renamed token now fails
+`src/__tests__/lib/analytics-tokens.test.ts` at build time instead of rendering grey.
+
+`/analytics` moved from `force-dynamic` to `revalidate = 300`, and Chapter 2 (the screening
+funnel) is streamed in a `<Suspense>` boundary with its own error containment — the first
+`<Suspense>` on the public surface.
 
 ---
 
