@@ -29,7 +29,11 @@ import {
   VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
 } from 'echarts/components'
-import { LabelLayout, ScatterJitter } from 'echarts/features'
+// ScatterJitter is deliberately not registered: its `jitter` option is absent
+// from the published ScatterSeriesOption types, and coincident points are
+// spread deterministically in the option builder instead — a chart whose marks
+// move between reloads is one a reader cannot cite.
+import { LabelLayout } from 'echarts/features'
 import type { ChartOption } from '@/lib/analytics/options/types'
 
 /**
@@ -73,7 +77,6 @@ echarts.use([
   VisualMapContinuousComponent,
   VisualMapPiecewiseComponent,
   LabelLayout,
-  ScatterJitter,
   SVGRenderer,
 ])
 

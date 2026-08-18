@@ -1,7 +1,8 @@
 import { getArticleSpine, getIngestionRuns, getSourceRegistry } from './spine/corpus'
-import { getStatusCounts } from './spine/records'
+import { getIncidentSpine, getStatusCounts } from './spine/records'
 import { deriveCorpusChapter, type CorpusChapter } from './derive/corpus'
 import { deriveScreeningChapter, type ScreeningChapter } from './derive/screening'
+import { deriveRecordsChapter, type RecordsChapter } from './derive/records'
 import type { ChapterResult } from './types'
 
 /**
@@ -63,6 +64,22 @@ export async function getScreeningChapter(): Promise<ChapterResult<{ chapter: Sc
   }
 }
 
+/**
+ * The published record set, seen ten ways.
+ *
+ * One query. Every chart in the chapter is derived from the same eleven rows,
+ * so no two of them can disagree about what is published.
+ */
+export async function getRecordsChapter(): Promise<ChapterResult<{ chapter: RecordsChapter }>> {
+  try {
+    const records = await getIncidentSpine()
+    return { ok: true, chapter: deriveRecordsChapter(records) }
+  } catch (error) {
+    return failed(error)
+  }
+}
+
 export type { ChapterResult, FigureTable, Viz } from './types'
 export type { CorpusChapter } from './derive/corpus'
 export type { ScreeningChapter } from './derive/screening'
+export type { RecordsChapter } from './derive/records'

@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import type { ArticleSpineRow, IngestionRunRow, SourceRow } from '@/lib/analytics/spine/corpus'
+import type { RecordSpineRow } from '@/lib/analytics/spine/records'
 import { deriveCorpusChapter } from '@/lib/analytics/derive/corpus'
+import { deriveRecordsChapter } from '@/lib/analytics/derive/records'
 import {
   buildFunnel,
   countScreening,
@@ -108,15 +110,82 @@ const RUNS: IngestionRunRow[] = [
 
 const NOW = new Date(T0.getTime() + 10 * DAY)
 
+function record(over: Partial<RecordSpineRow> = {}): RecordSpineRow {
+  return {
+    id: 'rec-a',
+    referenceId: 'EVM-2026-AAAAAAA1',
+    title: 'Police confront lawmaker over gathering of voters',
+    category: 'VOTER_INTIMIDATION',
+    electionStage: 'ELECTION_DAY',
+    confidenceScore: 90,
+    verificationPathway: 'AUTOMATED_CORROBORATION',
+    corroboratingSources: 1,
+    occurredAt: T0,
+    occurredAtPrecision: 'REPORTED_ON',
+    createdAt: new Date(T0.getTime() + 5 * 3_600_000),
+    publishedAt: new Date(T0.getTime() + 6 * 3_600_000),
+    latitude: 7.7,
+    longitude: 4.5,
+    geocodeStatus: 'ok',
+    countryResolvedVia: 'extracted',
+    country: 'Nigeria',
+    region: 'Osun State',
+    extractionModel: 'gemini-flash-latest',
+    promptVersion: '2026-08-15.2',
+    evidenceSpans: 2,
+    evidence: [
+      { field: 'summary', quote: 'Police operatives intercepted the vehicle at the junction.' },
+      { field: 'electionStage', quote: 'Voting was under way when the officers arrived.' },
+    ],
+    sources: [{ sourceName: 'Punch Nigeria', sourceUrl: 'https://punchng.com/a', publishedAt: T0 }],
+    ...over,
+  }
+}
+
+/** The degenerate cases that exist in the real published set. */
+const RECORDS: RecordSpineRow[] = [
+  record(),
+  record({
+    id: 'rec-b',
+    referenceId: 'EVM-2026-BBBBBBB2',
+    category: 'SECURITY_FORCE_MISCONDUCT',
+    electionStage: 'UNKNOWN',
+    confidenceScore: 55,
+    // No coordinates, location inferred, no quotes, no model recorded.
+    latitude: null,
+    longitude: null,
+    geocodeStatus: null,
+    countryResolvedVia: 'election-region',
+    region: null,
+    extractionModel: null,
+    promptVersion: null,
+    evidenceSpans: 0,
+    evidence: [],
+    sources: [
+      { sourceName: 'Leadership Nigeria', sourceUrl: 'https://leadership.ng/b', publishedAt: null },
+      { sourceName: 'Vanguard Nigeria', sourceUrl: 'https://vanguardngr.com/b', publishedAt: T0 },
+    ],
+  }),
+  record({
+    id: 'rec-c',
+    referenceId: 'EVM-2026-CCCCCCC3',
+    category: 'PROTEST_UNREST',
+    confidenceScore: 100,
+    sources: [],
+  }),
+]
+
 /** Every Viz a chapter exposes, so invariants can be asserted across all of them. */
 function allViz(): { name: string; viz: Viz<unknown> }[] {
   const corpus = deriveCorpusChapter(SPINE, SOURCES, RUNS, NOW)
   const screening = deriveScreeningChapter(SPINE, SOURCES, { structured: 3, published: 2 })
+  const records = deriveRecordsChapter(RECORDS)
 
   const out: { name: string; viz: Viz<unknown> }[] = []
   for (const [chapter, obj] of [
     ['corpus', corpus],
     ['screening', screening],
+    ['records', records],
   ] as const) {
     for (const [key, value] of Object.entries(obj)) {
       if (value && typeof value === 'object' && 'figures' in value && 'id' in value) {
@@ -130,9 +199,9 @@ function allViz(): { name: string; viz: Viz<unknown> }[] {
 describe('every visualisation carries its own figures', () => {
   const viz = allViz()
 
-  it('produces a visualisation for each chart in both chapters', () => {
-    // Ten in the corpus chapter, eight in the screening chapter.
-    expect(viz.length).toBe(18)
+  it('produces a visualisation for each chart in every chapter', () => {
+    // Ten in the corpus chapter, eight in screening, ten in records.
+    expect(viz.length).toBe(28)
   })
 
   it.each(viz.map((v) => [v.name, v.viz]))('%s has an id, title and caption', (_name, v) => {
@@ -296,6 +365,63 @@ describe('empty and degenerate inputs are stated, never faked', () => {
   it('shows a never-screened article as the longest wait, not a missing one', () => {
     const chapter = deriveScreeningChapter(SPINE, SOURCES, { structured: 3, published: 2 })
     expect(chapter.latency.series.neverScreened).toBe(1)
+  })
+})
+
+describe('the published records chapter reports gaps rather than filling them', () => {
+  const chapter = deriveRecordsChapter(RECORDS)
+
+  it('counts records, publishers and countries from the records themselves', () => {
+    expect(chapter.n.records).toBe(3)
+    // Punch, Leadership, Vanguard — the record with no sources adds none.
+    expect(chapter.n.publishers).toBe(3)
+    expect(chapter.n.withQuotes).toBe(2)
+  })
+
+  it('keeps a record with no coordinates instead of dropping it from the set', () => {
+    expect(chapter.completeness.series).toHaveLength(3)
+    const incomplete = chapter.completeness.series.find((r) => r.ref === 'BBBBBBB2')
+    expect(incomplete?.checks).toEqual([false, false, false, false, false, true])
+  })
+
+  it('distinguishes a stated location from an inferred one', () => {
+    const stated = chapter.geoPrecision.series.find((g) => g.strength === 3)
+    const inferred = chapter.geoPrecision.series.find((g) => g.strength === 1)
+    expect(stated?.value).toBe(2)
+    expect(inferred?.value).toBe(1)
+  })
+
+  it('does not invent a region for a record that has none', () => {
+    const placeless = chapter.places.series.find((p) => p.name.includes('no region stated'))
+    expect(placeless?.value).toBe(1)
+  })
+
+  it('excludes a record with no source timestamp from latency rather than assuming zero', () => {
+    // rec-b's only dated source and rec-a both have one; rec-c has no sources.
+    expect(chapter.latency.series).toHaveLength(2)
+    expect(chapter.latency.figures.omitted?.value).toBe(1)
+  })
+
+  it('marks records below the publication floor rather than hiding them', () => {
+    const below = chapter.confidence.series.filter((c) => c.confidence < 65)
+    expect(below).toHaveLength(1)
+    expect(chapter.confidence.caption).toContain('published them deliberately')
+  })
+
+  it('separates sole-source records from corroborated ones', () => {
+    const punch = chapter.publishers.series.find((p) => p.publisher === 'Punch Nigeria')
+    const vanguard = chapter.publishers.series.find((p) => p.publisher === 'Vanguard Nigeria')
+    expect(punch?.sole).toBe(1)
+    // Two publishers on that record, so neither is a sole source.
+    expect(vanguard?.sole).toBe(0)
+  })
+
+  it('states unavailability rather than drawing an empty chapter', () => {
+    const empty = deriveRecordsChapter([])
+    expect(empty.places.unavailable).toBeTruthy()
+    expect(empty.latency.unavailable).toBeTruthy()
+    expect(empty.publishers.unavailable).toBeTruthy()
+    expect(JSON.stringify(empty)).not.toContain('No data')
   })
 })
 

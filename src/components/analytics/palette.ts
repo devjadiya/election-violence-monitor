@@ -58,6 +58,38 @@ export type PaletteToken = keyof typeof PALETTE_TOKENS
  */
 const FALLBACK = '#626974'
 
+/**
+ * Per-chart colour scales.
+ *
+ * Each chart on the records chapter gets its own scale so a reader can tell at
+ * a glance that they are looking at a different measurement, rather than
+ * scanning thirty charts that all look like the same navy. They are declared
+ * here rather than inline so no chart invents a hue, and every one is a real
+ * ramp — ordered, monotonic in lightness — so position in the scale still
+ * means magnitude.
+ *
+ * These are the one place in this layer where colour is not read from CSS.
+ * They encode data, not chrome: a chrome colour must match the page, a data
+ * colour must be distinguishable from its neighbours, and those are different
+ * requirements. Chrome still comes from the tokens above.
+ */
+export const CHART_SCALES = {
+  /** Deep blue — the default, and what the chapter's structural charts use. */
+  ocean: ['#dbe7f3', '#a8c6e2', '#6f9fca', '#3f76a8', '#1f4f7d', '#10263f'],
+  /** Warm red — harm and severity. */
+  ember: ['#fbe3df', '#f4bcb2', '#e58a79', '#cf5c47', '#a5241d', '#701410'],
+  /** Amber — coercion, pressure, things short of violence. */
+  amber: ['#fdf1dc', '#f8dda6', '#eec06a', '#d99c33', '#8a5a09', '#5c3b06'],
+  /** Green — completeness, corroboration, things that went right. */
+  forest: ['#e4f2ea', '#b6ddc8', '#7fc0a1', '#4a9f79', '#14663f', '#0b3f27'],
+  /** Violet — process and procedure. */
+  violet: ['#ece7f7', '#cfc2ec', '#ab95dd', '#8568c8', '#5b3ea6', '#3a2570'],
+  /** Teal — timing and duration. */
+  teal: ['#dff1f1', '#aadedd', '#6cc4c3', '#37a4a3', '#136d6c', '#0a4544'],
+} as const
+
+export type ChartScale = keyof typeof CHART_SCALES
+
 export type Palette = {
   readonly [K in PaletteToken]: string
 } & {
@@ -65,6 +97,8 @@ export type Palette = {
   readonly families: Record<CategoryFamilyId, string>
   /** A low-to-high ramp built from tokens that already exist in the system. */
   readonly sequential: readonly string[]
+  /** Named data scales, one per chart. */
+  readonly scales: typeof CHART_SCALES
 }
 
 let cached: Palette | null = null
@@ -88,6 +122,7 @@ function readPalette(): Palette {
     families,
     // Heatmaps and calendars inherit the navy ramp rather than inventing one.
     sequential: [base.navyBand, base.navyTint, base.navy4, base.navy3, base.navy2, base.navy],
+    scales: CHART_SCALES,
   }
 }
 

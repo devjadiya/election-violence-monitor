@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/db'
 import { ScreeningChapter } from './_chapters/screening'
+import { RecordsChapter } from './_chapters/records'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
 import { SiteHeader, SiteFooter, PageHeader, Figure, EmptyState } from '@/components/public/site-shell'
 import { Distribution } from '@/components/public/distribution'
@@ -152,6 +153,12 @@ export default async function AnalyticsPage() {
             figures above should not wait on it. */}
         <Suspense fallback={<ChapterSkeleton />}>
           <ScreeningChapter />
+        </Suspense>
+
+        <div className="rule-t" />
+
+        <Suspense fallback={<ChapterSkeleton />}>
+          <RecordsChapter />
         </Suspense>
 
         <div className="rule-t" />
