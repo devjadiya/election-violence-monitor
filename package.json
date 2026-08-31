@@ -98,7 +98,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
+    "@testing-library/react": "^16.3.3",
     "@types/bcryptjs": "^3.0.0",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.19.37",
@@ -114,6 +114,6 @@
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.11"
   }
 }
