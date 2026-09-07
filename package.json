@@ -75,7 +75,7 @@
     "maplibre-gl": "^5.21.1",
     "motion": "^12.38.0",
     "nanoid": "^5.1.7",
-    "next": "16.2.2",
+    "next": "16.3.4",
     "next-auth": "^5.0.0-beta.30",
     "node-html-parser": "^7.1.0",
     "papaparse": "^5.5.3",
