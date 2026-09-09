@@ -63,3 +63,9 @@ src/lib/generated/prisma/*.tmp*
 # the operator, not repository content — and a dump of incident rows is exactly
 # the sort of thing that should not be pushed anywhere by accident.
 backups/
+
+# Confidential partnership and commercial documents. These name stakeholders,
+# describe deployment plans and discuss commercial terms; this repository is
+# public, so they stay on the operator's machine and are shared deliberately
+# rather than by being pushed.
+confidential/
