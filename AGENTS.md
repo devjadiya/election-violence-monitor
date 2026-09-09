@@ -15,6 +15,7 @@ points at are the real briefing.
 | 3 | [docs/PROJECT_VISION.md](docs/PROJECT_VISION.md) | why it exists, the two audiences, what it must never become |
 | 4 | [docs/PRODUCTION_TRANSITION_PLAN.md](docs/PRODUCTION_TRANSITION_PLAN.md) | the agreed target architecture and phased roadmap out of prototype |
 | 5 | [docs/TECHNICAL_BLUEPRINT.md](docs/TECHNICAL_BLUEPRINT.md) | **the settled technology decisions (ADRs), stack audit, and exact implementation order** |
+| 6 | [docs/USER_MANUAL.md](docs/USER_MANUAL.md) | how every role actually uses the running system, public through admin |
 
 `Project_Documentation.MD` and `Project_Documentation_2.MD` are product/pitch documents.
 They have **drifted from the code** — treat them as intent, not as fact. `docs/CURRENT_STATE.md`
