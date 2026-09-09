@@ -1,5 +1,15 @@
 'use client'
 
+// MapLibre ships its own stylesheet and will not lay out without it: the
+// canvas gets no positioning, the zoom and attribution controls render
+// unstyled, and absolutely-positioned markers detach from their coordinates.
+// It was never imported anywhere in this repository, which is why the map
+// appeared broken rather than merely unstyled.
+//
+// Imported here rather than in globals.css so it loads only on the two routes
+// that draw a map, not on every page.
+import 'maplibre-gl/dist/maplibre-gl.css'
+
 import { useCallback, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import MapGL, {
@@ -142,6 +152,26 @@ function buildGeoJSON(incidents: InternalMapIncident[]) {
   }
 }
 
+
+/**
+ * The narrow shapes we actually use from MapLibre's untyped surfaces.
+ *
+ * `react-map-gl` types `mapStyle` and the clustered `GeoJSONSource` loosely,
+ * and the file reached for `any` in four places rather than saying what it
+ * needs. These describe exactly the two methods and one property used, so a
+ * typo is a type error instead of a runtime one.
+ */
+interface ClusterSource {
+  getClusterExpansionZoom: (
+    clusterId: number,
+    callback: (error: Error | null, zoom: number | null) => void
+  ) => void
+}
+
+interface PointGeometry {
+  coordinates: [number, number]
+}
+
 export function IncidentMap({ incidents }: { incidents: InternalMapIncident[] }) {
   const mapRef = useRef<MapRef>(null)
   const [family, setFamily] = useState<CategoryFamilyId | 'ALL'>('ALL')
@@ -196,11 +226,11 @@ export function IncidentMap({ incidents }: { incidents: InternalMapIncident[] })
     if (!f) return
     const map = mapRef.current?.getMap()
     if (!map) return
-    const src = map.getSource('incidents') as any
-    src?.getClusterExpansionZoom(f.properties?.cluster_id, (err: any, zoom: number) => {
+    const src = map.getSource('incidents') as unknown as ClusterSource | undefined
+    src?.getClusterExpansionZoom(Number(f.properties?.cluster_id), (err, zoom) => {
       if (err || !zoom) return
       map.easeTo({
-        center: (f.geometry as any).coordinates,
+        center: (f.geometry as unknown as PointGeometry).coordinates,
         zoom: zoom + 0.5,
         duration: 350,
       })
@@ -227,7 +257,7 @@ export function IncidentMap({ incidents }: { incidents: InternalMapIncident[] })
     <div className="relative h-full w-full">
       <MapGL
         ref={mapRef}
-        mapStyle={MAP_STYLE as any}
+        mapStyle={MAP_STYLE as unknown as React.ComponentProps<typeof MapGL>['mapStyle']}
         initialViewState={{ longitude: 20, latitude: 5, zoom: 2.5 }}
         style={{ width: '100%', height: '100%' }}
         fadeDuration={0}
