@@ -67,7 +67,7 @@ jobs:
         run: zizmor --offline --format sarif .github/workflows > zizmor.sarif || true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: zizmor.sarif
           category: zizmor
@@ -160,7 +160,7 @@ jobs:
         # Guarded: if semgrep failed before writing the file, skip rather than
         # failing the job on a missing artifact.
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -196,7 +196,7 @@ jobs:
           skip-dirs: src/lib/generated,node_modules
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy.sarif
           category: trivy
