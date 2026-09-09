@@ -34,6 +34,24 @@ export type Session = $Result.DefaultSelection<Prisma.$SessionPayload>
  */
 export type VerificationToken = $Result.DefaultSelection<Prisma.$VerificationTokenPayload>
 /**
+ * Model LoginEvent
+ * Sign-in history.
+ * 
+ * Sessions are JWT, so no `Session` row is ever written and the database had
+ * no record of who signed in or from where. An administrator handing accounts
+ * to outside collaborators needs to see that, and a failed-attempt trail is
+ * the only way a credential-stuffing attempt is visible at all.
+ * 
+ * Deliberately append-only and separate from `AuditLog`: an audit row is
+ * about a change to an incident, and mixing sign-ins into it would mean
+ * overloading `AuditAction` with a value that has no incident.
+ * 
+ * `userId` is nullable and set null on delete, because a failed attempt on an
+ * unknown address has no user, and removing a user must not erase the history
+ * of their sign-ins. `email` records what was actually typed.
+ */
+export type LoginEvent = $Result.DefaultSelection<Prisma.$LoginEventPayload>
+/**
  * Model Election
  * 
  */
@@ -505,6 +523,16 @@ export class PrismaClient<
     * ```
     */
   get verificationToken(): Prisma.VerificationTokenDelegate<ExtArgs>;
+
+  /**
+   * `prisma.loginEvent`: Exposes CRUD operations for the **LoginEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LoginEvents
+    * const loginEvents = await prisma.loginEvent.findMany()
+    * ```
+    */
+  get loginEvent(): Prisma.LoginEventDelegate<ExtArgs>;
 
   /**
    * `prisma.election`: Exposes CRUD operations for the **Election** model.
@@ -1070,6 +1098,7 @@ export namespace Prisma {
     Account: 'Account',
     Session: 'Session',
     VerificationToken: 'VerificationToken',
+    LoginEvent: 'LoginEvent',
     Election: 'Election',
     Incident: 'Incident',
     Victim: 'Victim',
@@ -1097,7 +1126,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "account" | "session" | "verificationToken" | "election" | "incident" | "victim" | "actor" | "monitoredSource" | "rawArticle" | "incidentSource" | "followUp" | "auditLog" | "tipSubmission" | "ingestionLog" | "notification"
+      modelProps: "user" | "account" | "session" | "verificationToken" | "loginEvent" | "election" | "incident" | "victim" | "actor" | "monitoredSource" | "rawArticle" | "incidentSource" | "followUp" | "auditLog" | "tipSubmission" | "ingestionLog" | "notification"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1378,6 +1407,76 @@ export namespace Prisma {
           count: {
             args: Prisma.VerificationTokenCountArgs<ExtArgs>
             result: $Utils.Optional<VerificationTokenCountAggregateOutputType> | number
+          }
+        }
+      }
+      LoginEvent: {
+        payload: Prisma.$LoginEventPayload<ExtArgs>
+        fields: Prisma.LoginEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LoginEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LoginEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          findFirst: {
+            args: Prisma.LoginEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LoginEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          findMany: {
+            args: Prisma.LoginEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>[]
+          }
+          create: {
+            args: Prisma.LoginEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          createMany: {
+            args: Prisma.LoginEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LoginEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>[]
+          }
+          delete: {
+            args: Prisma.LoginEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          update: {
+            args: Prisma.LoginEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.LoginEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LoginEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LoginEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LoginEventPayload>
+          }
+          aggregate: {
+            args: Prisma.LoginEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLoginEvent>
+          }
+          groupBy: {
+            args: Prisma.LoginEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LoginEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LoginEventCountArgs<ExtArgs>
+            result: $Utils.Optional<LoginEventCountAggregateOutputType> | number
           }
         }
       }
@@ -2389,6 +2488,7 @@ export namespace Prisma {
     auditLogs: number
     tipSubmissions: number
     notifications: number
+    loginEvents: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2399,6 +2499,7 @@ export namespace Prisma {
     auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
     tipSubmissions?: boolean | UserCountOutputTypeCountTipSubmissionsArgs
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
+    loginEvents?: boolean | UserCountOutputTypeCountLoginEventsArgs
   }
 
   // Custom InputTypes
@@ -2459,6 +2560,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: NotificationWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountLoginEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LoginEventWhereInput
   }
 
 
@@ -2855,6 +2963,7 @@ export namespace Prisma {
     auditLogs?: boolean | User$auditLogsArgs<ExtArgs>
     tipSubmissions?: boolean | User$tipSubmissionsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
+    loginEvents?: boolean | User$loginEventsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -2892,6 +3001,7 @@ export namespace Prisma {
     auditLogs?: boolean | User$auditLogsArgs<ExtArgs>
     tipSubmissions?: boolean | User$tipSubmissionsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
+    loginEvents?: boolean | User$loginEventsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2906,6 +3016,7 @@ export namespace Prisma {
       auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
       tipSubmissions: Prisma.$TipSubmissionPayload<ExtArgs>[]
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
+      loginEvents: Prisma.$LoginEventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3289,6 +3400,7 @@ export namespace Prisma {
     auditLogs<T extends User$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany"> | Null>
     tipSubmissions<T extends User$tipSubmissionsArgs<ExtArgs> = {}>(args?: Subset<T, User$tipSubmissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TipSubmissionPayload<ExtArgs>, T, "findMany"> | Null>
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany"> | Null>
+    loginEvents<T extends User$loginEventsArgs<ExtArgs> = {}>(args?: Subset<T, User$loginEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3779,6 +3891,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: NotificationScalarFieldEnum | NotificationScalarFieldEnum[]
+  }
+
+  /**
+   * User.loginEvents
+   */
+  export type User$loginEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    where?: LoginEventWhereInput
+    orderBy?: LoginEventOrderByWithRelationInput | LoginEventOrderByWithRelationInput[]
+    cursor?: LoginEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LoginEventScalarFieldEnum | LoginEventScalarFieldEnum[]
   }
 
   /**
@@ -6619,6 +6751,997 @@ export namespace Prisma {
      * Select specific fields to fetch from the VerificationToken
      */
     select?: VerificationTokenSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LoginEvent
+   */
+
+  export type AggregateLoginEvent = {
+    _count: LoginEventCountAggregateOutputType | null
+    _min: LoginEventMinAggregateOutputType | null
+    _max: LoginEventMaxAggregateOutputType | null
+  }
+
+  export type LoginEventMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    email: string | null
+    success: boolean | null
+    reason: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type LoginEventMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    email: string | null
+    success: boolean | null
+    reason: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date | null
+  }
+
+  export type LoginEventCountAggregateOutputType = {
+    id: number
+    userId: number
+    email: number
+    success: number
+    reason: number
+    ipAddress: number
+    userAgent: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LoginEventMinAggregateInputType = {
+    id?: true
+    userId?: true
+    email?: true
+    success?: true
+    reason?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type LoginEventMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    email?: true
+    success?: true
+    reason?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+  }
+
+  export type LoginEventCountAggregateInputType = {
+    id?: true
+    userId?: true
+    email?: true
+    success?: true
+    reason?: true
+    ipAddress?: true
+    userAgent?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LoginEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LoginEvent to aggregate.
+     */
+    where?: LoginEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginEvents to fetch.
+     */
+    orderBy?: LoginEventOrderByWithRelationInput | LoginEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LoginEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LoginEvents
+    **/
+    _count?: true | LoginEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LoginEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LoginEventMaxAggregateInputType
+  }
+
+  export type GetLoginEventAggregateType<T extends LoginEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateLoginEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLoginEvent[P]>
+      : GetScalarType<T[P], AggregateLoginEvent[P]>
+  }
+
+
+
+
+  export type LoginEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LoginEventWhereInput
+    orderBy?: LoginEventOrderByWithAggregationInput | LoginEventOrderByWithAggregationInput[]
+    by: LoginEventScalarFieldEnum[] | LoginEventScalarFieldEnum
+    having?: LoginEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LoginEventCountAggregateInputType | true
+    _min?: LoginEventMinAggregateInputType
+    _max?: LoginEventMaxAggregateInputType
+  }
+
+  export type LoginEventGroupByOutputType = {
+    id: string
+    userId: string | null
+    email: string
+    success: boolean
+    reason: string | null
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: Date
+    _count: LoginEventCountAggregateOutputType | null
+    _min: LoginEventMinAggregateOutputType | null
+    _max: LoginEventMaxAggregateOutputType | null
+  }
+
+  type GetLoginEventGroupByPayload<T extends LoginEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LoginEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LoginEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LoginEventGroupByOutputType[P]>
+            : GetScalarType<T[P], LoginEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LoginEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    email?: boolean
+    success?: boolean
+    reason?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+    user?: boolean | LoginEvent$userArgs<ExtArgs>
+  }, ExtArgs["result"]["loginEvent"]>
+
+  export type LoginEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    email?: boolean
+    success?: boolean
+    reason?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+    user?: boolean | LoginEvent$userArgs<ExtArgs>
+  }, ExtArgs["result"]["loginEvent"]>
+
+  export type LoginEventSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    email?: boolean
+    success?: boolean
+    reason?: boolean
+    ipAddress?: boolean
+    userAgent?: boolean
+    createdAt?: boolean
+  }
+
+  export type LoginEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | LoginEvent$userArgs<ExtArgs>
+  }
+  export type LoginEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | LoginEvent$userArgs<ExtArgs>
+  }
+
+  export type $LoginEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LoginEvent"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string | null
+      /**
+       * The address supplied at the prompt, kept even when it matches no account.
+       */
+      email: string
+      success: boolean
+      /**
+       * Why a failed attempt failed. Never distinguishes "no such account" from
+       * "wrong password" in anything shown to an unauthenticated caller.
+       */
+      reason: string | null
+      ipAddress: string | null
+      userAgent: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["loginEvent"]>
+    composites: {}
+  }
+
+  type LoginEventGetPayload<S extends boolean | null | undefined | LoginEventDefaultArgs> = $Result.GetResult<Prisma.$LoginEventPayload, S>
+
+  type LoginEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LoginEventFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LoginEventCountAggregateInputType | true
+    }
+
+  export interface LoginEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LoginEvent'], meta: { name: 'LoginEvent' } }
+    /**
+     * Find zero or one LoginEvent that matches the filter.
+     * @param {LoginEventFindUniqueArgs} args - Arguments to find a LoginEvent
+     * @example
+     * // Get one LoginEvent
+     * const loginEvent = await prisma.loginEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LoginEventFindUniqueArgs>(args: SelectSubset<T, LoginEventFindUniqueArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LoginEvent that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LoginEventFindUniqueOrThrowArgs} args - Arguments to find a LoginEvent
+     * @example
+     * // Get one LoginEvent
+     * const loginEvent = await prisma.loginEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LoginEventFindUniqueOrThrowArgs>(args: SelectSubset<T, LoginEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LoginEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventFindFirstArgs} args - Arguments to find a LoginEvent
+     * @example
+     * // Get one LoginEvent
+     * const loginEvent = await prisma.loginEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LoginEventFindFirstArgs>(args?: SelectSubset<T, LoginEventFindFirstArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LoginEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventFindFirstOrThrowArgs} args - Arguments to find a LoginEvent
+     * @example
+     * // Get one LoginEvent
+     * const loginEvent = await prisma.loginEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LoginEventFindFirstOrThrowArgs>(args?: SelectSubset<T, LoginEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LoginEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LoginEvents
+     * const loginEvents = await prisma.loginEvent.findMany()
+     * 
+     * // Get first 10 LoginEvents
+     * const loginEvents = await prisma.loginEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const loginEventWithIdOnly = await prisma.loginEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LoginEventFindManyArgs>(args?: SelectSubset<T, LoginEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LoginEvent.
+     * @param {LoginEventCreateArgs} args - Arguments to create a LoginEvent.
+     * @example
+     * // Create one LoginEvent
+     * const LoginEvent = await prisma.loginEvent.create({
+     *   data: {
+     *     // ... data to create a LoginEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends LoginEventCreateArgs>(args: SelectSubset<T, LoginEventCreateArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LoginEvents.
+     * @param {LoginEventCreateManyArgs} args - Arguments to create many LoginEvents.
+     * @example
+     * // Create many LoginEvents
+     * const loginEvent = await prisma.loginEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LoginEventCreateManyArgs>(args?: SelectSubset<T, LoginEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LoginEvents and returns the data saved in the database.
+     * @param {LoginEventCreateManyAndReturnArgs} args - Arguments to create many LoginEvents.
+     * @example
+     * // Create many LoginEvents
+     * const loginEvent = await prisma.loginEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LoginEvents and only return the `id`
+     * const loginEventWithIdOnly = await prisma.loginEvent.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LoginEventCreateManyAndReturnArgs>(args?: SelectSubset<T, LoginEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LoginEvent.
+     * @param {LoginEventDeleteArgs} args - Arguments to delete one LoginEvent.
+     * @example
+     * // Delete one LoginEvent
+     * const LoginEvent = await prisma.loginEvent.delete({
+     *   where: {
+     *     // ... filter to delete one LoginEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LoginEventDeleteArgs>(args: SelectSubset<T, LoginEventDeleteArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LoginEvent.
+     * @param {LoginEventUpdateArgs} args - Arguments to update one LoginEvent.
+     * @example
+     * // Update one LoginEvent
+     * const loginEvent = await prisma.loginEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LoginEventUpdateArgs>(args: SelectSubset<T, LoginEventUpdateArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LoginEvents.
+     * @param {LoginEventDeleteManyArgs} args - Arguments to filter LoginEvents to delete.
+     * @example
+     * // Delete a few LoginEvents
+     * const { count } = await prisma.loginEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LoginEventDeleteManyArgs>(args?: SelectSubset<T, LoginEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LoginEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LoginEvents
+     * const loginEvent = await prisma.loginEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LoginEventUpdateManyArgs>(args: SelectSubset<T, LoginEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LoginEvent.
+     * @param {LoginEventUpsertArgs} args - Arguments to update or create a LoginEvent.
+     * @example
+     * // Update or create a LoginEvent
+     * const loginEvent = await prisma.loginEvent.upsert({
+     *   create: {
+     *     // ... data to create a LoginEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LoginEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LoginEventUpsertArgs>(args: SelectSubset<T, LoginEventUpsertArgs<ExtArgs>>): Prisma__LoginEventClient<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LoginEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventCountArgs} args - Arguments to filter LoginEvents to count.
+     * @example
+     * // Count the number of LoginEvents
+     * const count = await prisma.loginEvent.count({
+     *   where: {
+     *     // ... the filter for the LoginEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends LoginEventCountArgs>(
+      args?: Subset<T, LoginEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LoginEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LoginEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LoginEventAggregateArgs>(args: Subset<T, LoginEventAggregateArgs>): Prisma.PrismaPromise<GetLoginEventAggregateType<T>>
+
+    /**
+     * Group by LoginEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LoginEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LoginEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LoginEventGroupByArgs['orderBy'] }
+        : { orderBy?: LoginEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LoginEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLoginEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LoginEvent model
+   */
+  readonly fields: LoginEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LoginEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LoginEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends LoginEvent$userArgs<ExtArgs> = {}>(args?: Subset<T, LoginEvent$userArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LoginEvent model
+   */ 
+  interface LoginEventFieldRefs {
+    readonly id: FieldRef<"LoginEvent", 'String'>
+    readonly userId: FieldRef<"LoginEvent", 'String'>
+    readonly email: FieldRef<"LoginEvent", 'String'>
+    readonly success: FieldRef<"LoginEvent", 'Boolean'>
+    readonly reason: FieldRef<"LoginEvent", 'String'>
+    readonly ipAddress: FieldRef<"LoginEvent", 'String'>
+    readonly userAgent: FieldRef<"LoginEvent", 'String'>
+    readonly createdAt: FieldRef<"LoginEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LoginEvent findUnique
+   */
+  export type LoginEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter, which LoginEvent to fetch.
+     */
+    where: LoginEventWhereUniqueInput
+  }
+
+  /**
+   * LoginEvent findUniqueOrThrow
+   */
+  export type LoginEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter, which LoginEvent to fetch.
+     */
+    where: LoginEventWhereUniqueInput
+  }
+
+  /**
+   * LoginEvent findFirst
+   */
+  export type LoginEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter, which LoginEvent to fetch.
+     */
+    where?: LoginEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginEvents to fetch.
+     */
+    orderBy?: LoginEventOrderByWithRelationInput | LoginEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LoginEvents.
+     */
+    cursor?: LoginEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LoginEvents.
+     */
+    distinct?: LoginEventScalarFieldEnum | LoginEventScalarFieldEnum[]
+  }
+
+  /**
+   * LoginEvent findFirstOrThrow
+   */
+  export type LoginEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter, which LoginEvent to fetch.
+     */
+    where?: LoginEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginEvents to fetch.
+     */
+    orderBy?: LoginEventOrderByWithRelationInput | LoginEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LoginEvents.
+     */
+    cursor?: LoginEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LoginEvents.
+     */
+    distinct?: LoginEventScalarFieldEnum | LoginEventScalarFieldEnum[]
+  }
+
+  /**
+   * LoginEvent findMany
+   */
+  export type LoginEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter, which LoginEvents to fetch.
+     */
+    where?: LoginEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LoginEvents to fetch.
+     */
+    orderBy?: LoginEventOrderByWithRelationInput | LoginEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LoginEvents.
+     */
+    cursor?: LoginEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LoginEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LoginEvents.
+     */
+    skip?: number
+    distinct?: LoginEventScalarFieldEnum | LoginEventScalarFieldEnum[]
+  }
+
+  /**
+   * LoginEvent create
+   */
+  export type LoginEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LoginEvent.
+     */
+    data: XOR<LoginEventCreateInput, LoginEventUncheckedCreateInput>
+  }
+
+  /**
+   * LoginEvent createMany
+   */
+  export type LoginEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LoginEvents.
+     */
+    data: LoginEventCreateManyInput | LoginEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LoginEvent createManyAndReturn
+   */
+  export type LoginEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LoginEvents.
+     */
+    data: LoginEventCreateManyInput | LoginEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LoginEvent update
+   */
+  export type LoginEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LoginEvent.
+     */
+    data: XOR<LoginEventUpdateInput, LoginEventUncheckedUpdateInput>
+    /**
+     * Choose, which LoginEvent to update.
+     */
+    where: LoginEventWhereUniqueInput
+  }
+
+  /**
+   * LoginEvent updateMany
+   */
+  export type LoginEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LoginEvents.
+     */
+    data: XOR<LoginEventUpdateManyMutationInput, LoginEventUncheckedUpdateManyInput>
+    /**
+     * Filter which LoginEvents to update
+     */
+    where?: LoginEventWhereInput
+  }
+
+  /**
+   * LoginEvent upsert
+   */
+  export type LoginEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LoginEvent to update in case it exists.
+     */
+    where: LoginEventWhereUniqueInput
+    /**
+     * In case the LoginEvent found by the `where` argument doesn't exist, create a new LoginEvent with this data.
+     */
+    create: XOR<LoginEventCreateInput, LoginEventUncheckedCreateInput>
+    /**
+     * In case the LoginEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LoginEventUpdateInput, LoginEventUncheckedUpdateInput>
+  }
+
+  /**
+   * LoginEvent delete
+   */
+  export type LoginEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
+    /**
+     * Filter which LoginEvent to delete.
+     */
+    where: LoginEventWhereUniqueInput
+  }
+
+  /**
+   * LoginEvent deleteMany
+   */
+  export type LoginEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LoginEvents to delete
+     */
+    where?: LoginEventWhereInput
+  }
+
+  /**
+   * LoginEvent.user
+   */
+  export type LoginEvent$userArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * LoginEvent without action
+   */
+  export type LoginEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LoginEvent
+     */
+    select?: LoginEventSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoginEventInclude<ExtArgs> | null
   }
 
 
@@ -19885,6 +21008,20 @@ export namespace Prisma {
   export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFieldEnum)[keyof typeof VerificationTokenScalarFieldEnum]
 
 
+  export const LoginEventScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    email: 'email',
+    success: 'success',
+    reason: 'reason',
+    ipAddress: 'ipAddress',
+    userAgent: 'userAgent',
+    createdAt: 'createdAt'
+  };
+
+  export type LoginEventScalarFieldEnum = (typeof LoginEventScalarFieldEnum)[keyof typeof LoginEventScalarFieldEnum]
+
+
   export const ElectionScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -20483,6 +21620,7 @@ export namespace Prisma {
     auditLogs?: AuditLogListRelationFilter
     tipSubmissions?: TipSubmissionListRelationFilter
     notifications?: NotificationListRelationFilter
+    loginEvents?: LoginEventListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -20503,6 +21641,7 @@ export namespace Prisma {
     auditLogs?: AuditLogOrderByRelationAggregateInput
     tipSubmissions?: TipSubmissionOrderByRelationAggregateInput
     notifications?: NotificationOrderByRelationAggregateInput
+    loginEvents?: LoginEventOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -20526,6 +21665,7 @@ export namespace Prisma {
     auditLogs?: AuditLogListRelationFilter
     tipSubmissions?: TipSubmissionListRelationFilter
     notifications?: NotificationListRelationFilter
+    loginEvents?: LoginEventListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -20744,6 +21884,76 @@ export namespace Prisma {
     identifier?: StringWithAggregatesFilter<"VerificationToken"> | string
     token?: StringWithAggregatesFilter<"VerificationToken"> | string
     expires?: DateTimeWithAggregatesFilter<"VerificationToken"> | Date | string
+  }
+
+  export type LoginEventWhereInput = {
+    AND?: LoginEventWhereInput | LoginEventWhereInput[]
+    OR?: LoginEventWhereInput[]
+    NOT?: LoginEventWhereInput | LoginEventWhereInput[]
+    id?: StringFilter<"LoginEvent"> | string
+    userId?: StringNullableFilter<"LoginEvent"> | string | null
+    email?: StringFilter<"LoginEvent"> | string
+    success?: BoolFilter<"LoginEvent"> | boolean
+    reason?: StringNullableFilter<"LoginEvent"> | string | null
+    ipAddress?: StringNullableFilter<"LoginEvent"> | string | null
+    userAgent?: StringNullableFilter<"LoginEvent"> | string | null
+    createdAt?: DateTimeFilter<"LoginEvent"> | Date | string
+    user?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+  }
+
+  export type LoginEventOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    email?: SortOrder
+    success?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type LoginEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LoginEventWhereInput | LoginEventWhereInput[]
+    OR?: LoginEventWhereInput[]
+    NOT?: LoginEventWhereInput | LoginEventWhereInput[]
+    userId?: StringNullableFilter<"LoginEvent"> | string | null
+    email?: StringFilter<"LoginEvent"> | string
+    success?: BoolFilter<"LoginEvent"> | boolean
+    reason?: StringNullableFilter<"LoginEvent"> | string | null
+    ipAddress?: StringNullableFilter<"LoginEvent"> | string | null
+    userAgent?: StringNullableFilter<"LoginEvent"> | string | null
+    createdAt?: DateTimeFilter<"LoginEvent"> | Date | string
+    user?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+  }, "id">
+
+  export type LoginEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrderInput | SortOrder
+    email?: SortOrder
+    success?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    ipAddress?: SortOrderInput | SortOrder
+    userAgent?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: LoginEventCountOrderByAggregateInput
+    _max?: LoginEventMaxOrderByAggregateInput
+    _min?: LoginEventMinOrderByAggregateInput
+  }
+
+  export type LoginEventScalarWhereWithAggregatesInput = {
+    AND?: LoginEventScalarWhereWithAggregatesInput | LoginEventScalarWhereWithAggregatesInput[]
+    OR?: LoginEventScalarWhereWithAggregatesInput[]
+    NOT?: LoginEventScalarWhereWithAggregatesInput | LoginEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LoginEvent"> | string
+    userId?: StringNullableWithAggregatesFilter<"LoginEvent"> | string | null
+    email?: StringWithAggregatesFilter<"LoginEvent"> | string
+    success?: BoolWithAggregatesFilter<"LoginEvent"> | boolean
+    reason?: StringNullableWithAggregatesFilter<"LoginEvent"> | string | null
+    ipAddress?: StringNullableWithAggregatesFilter<"LoginEvent"> | string | null
+    userAgent?: StringNullableWithAggregatesFilter<"LoginEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"LoginEvent"> | Date | string
   }
 
   export type ElectionWhereInput = {
@@ -22049,6 +23259,7 @@ export namespace Prisma {
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -22069,6 +23280,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -22089,6 +23301,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -22109,6 +23322,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -22342,6 +23556,82 @@ export namespace Prisma {
     identifier?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expires?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventCreateInput = {
+    id?: string
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+    user?: UserCreateNestedOneWithoutLoginEventsInput
+  }
+
+  export type LoginEventUncheckedCreateInput = {
+    id?: string
+    userId?: string | null
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type LoginEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneWithoutLoginEventsNestedInput
+  }
+
+  export type LoginEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventCreateManyInput = {
+    id?: string
+    userId?: string | null
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type LoginEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ElectionCreateInput = {
@@ -23955,6 +25245,12 @@ export namespace Prisma {
     none?: NotificationWhereInput
   }
 
+  export type LoginEventListRelationFilter = {
+    every?: LoginEventWhereInput
+    some?: LoginEventWhereInput
+    none?: LoginEventWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -23981,6 +25277,10 @@ export namespace Prisma {
   }
 
   export type NotificationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LoginEventOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -24237,6 +25537,44 @@ export namespace Prisma {
     identifier?: SortOrder
     token?: SortOrder
     expires?: SortOrder
+  }
+
+  export type UserNullableRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
+  export type LoginEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    email?: SortOrder
+    success?: SortOrder
+    reason?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LoginEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    email?: SortOrder
+    success?: SortOrder
+    reason?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LoginEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    email?: SortOrder
+    success?: SortOrder
+    reason?: SortOrder
+    ipAddress?: SortOrder
+    userAgent?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type EnumElectionStatusFilter<$PrismaModel = never> = {
@@ -24498,11 +25836,6 @@ export namespace Prisma {
   export type ElectionNullableRelationFilter = {
     is?: ElectionWhereInput | null
     isNot?: ElectionWhereInput | null
-  }
-
-  export type UserNullableRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
   }
 
   export type VictimListRelationFilter = {
@@ -25462,6 +26795,13 @@ export namespace Prisma {
     connect?: NotificationWhereUniqueInput | NotificationWhereUniqueInput[]
   }
 
+  export type LoginEventCreateNestedManyWithoutUserInput = {
+    create?: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput> | LoginEventCreateWithoutUserInput[] | LoginEventUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LoginEventCreateOrConnectWithoutUserInput | LoginEventCreateOrConnectWithoutUserInput[]
+    createMany?: LoginEventCreateManyUserInputEnvelope
+    connect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -25509,6 +26849,13 @@ export namespace Prisma {
     connectOrCreate?: NotificationCreateOrConnectWithoutUserInput | NotificationCreateOrConnectWithoutUserInput[]
     createMany?: NotificationCreateManyUserInputEnvelope
     connect?: NotificationWhereUniqueInput | NotificationWhereUniqueInput[]
+  }
+
+  export type LoginEventUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput> | LoginEventCreateWithoutUserInput[] | LoginEventUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LoginEventCreateOrConnectWithoutUserInput | LoginEventCreateOrConnectWithoutUserInput[]
+    createMany?: LoginEventCreateManyUserInputEnvelope
+    connect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -25633,6 +26980,20 @@ export namespace Prisma {
     deleteMany?: NotificationScalarWhereInput | NotificationScalarWhereInput[]
   }
 
+  export type LoginEventUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput> | LoginEventCreateWithoutUserInput[] | LoginEventUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LoginEventCreateOrConnectWithoutUserInput | LoginEventCreateOrConnectWithoutUserInput[]
+    upsert?: LoginEventUpsertWithWhereUniqueWithoutUserInput | LoginEventUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LoginEventCreateManyUserInputEnvelope
+    set?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    disconnect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    delete?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    connect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    update?: LoginEventUpdateWithWhereUniqueWithoutUserInput | LoginEventUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LoginEventUpdateManyWithWhereWithoutUserInput | LoginEventUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LoginEventScalarWhereInput | LoginEventScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -25731,6 +27092,20 @@ export namespace Prisma {
     deleteMany?: NotificationScalarWhereInput | NotificationScalarWhereInput[]
   }
 
+  export type LoginEventUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput> | LoginEventCreateWithoutUserInput[] | LoginEventUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LoginEventCreateOrConnectWithoutUserInput | LoginEventCreateOrConnectWithoutUserInput[]
+    upsert?: LoginEventUpsertWithWhereUniqueWithoutUserInput | LoginEventUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LoginEventCreateManyUserInputEnvelope
+    set?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    disconnect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    delete?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    connect?: LoginEventWhereUniqueInput | LoginEventWhereUniqueInput[]
+    update?: LoginEventUpdateWithWhereUniqueWithoutUserInput | LoginEventUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LoginEventUpdateManyWithWhereWithoutUserInput | LoginEventUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LoginEventScalarWhereInput | LoginEventScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -25765,6 +27140,22 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutSessionsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSessionsInput, UserUpdateWithoutSessionsInput>, UserUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type UserCreateNestedOneWithoutLoginEventsInput = {
+    create?: XOR<UserCreateWithoutLoginEventsInput, UserUncheckedCreateWithoutLoginEventsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginEventsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneWithoutLoginEventsNestedInput = {
+    create?: XOR<UserCreateWithoutLoginEventsInput, UserUncheckedCreateWithoutLoginEventsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginEventsInput
+    upsert?: UserUpsertWithoutLoginEventsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLoginEventsInput, UserUpdateWithoutLoginEventsInput>, UserUncheckedUpdateWithoutLoginEventsInput>
   }
 
   export type IncidentCreateNestedManyWithoutElectionInput = {
@@ -27383,6 +28774,36 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type LoginEventCreateWithoutUserInput = {
+    id?: string
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type LoginEventUncheckedCreateWithoutUserInput = {
+    id?: string
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
+    createdAt?: Date | string
+  }
+
+  export type LoginEventCreateOrConnectWithoutUserInput = {
+    where: LoginEventWhereUniqueInput
+    create: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput>
+  }
+
+  export type LoginEventCreateManyUserInputEnvelope = {
+    data: LoginEventCreateManyUserInput | LoginEventCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -27620,6 +29041,36 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Notification"> | Date | string
   }
 
+  export type LoginEventUpsertWithWhereUniqueWithoutUserInput = {
+    where: LoginEventWhereUniqueInput
+    update: XOR<LoginEventUpdateWithoutUserInput, LoginEventUncheckedUpdateWithoutUserInput>
+    create: XOR<LoginEventCreateWithoutUserInput, LoginEventUncheckedCreateWithoutUserInput>
+  }
+
+  export type LoginEventUpdateWithWhereUniqueWithoutUserInput = {
+    where: LoginEventWhereUniqueInput
+    data: XOR<LoginEventUpdateWithoutUserInput, LoginEventUncheckedUpdateWithoutUserInput>
+  }
+
+  export type LoginEventUpdateManyWithWhereWithoutUserInput = {
+    where: LoginEventScalarWhereInput
+    data: XOR<LoginEventUpdateManyMutationInput, LoginEventUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type LoginEventScalarWhereInput = {
+    AND?: LoginEventScalarWhereInput | LoginEventScalarWhereInput[]
+    OR?: LoginEventScalarWhereInput[]
+    NOT?: LoginEventScalarWhereInput | LoginEventScalarWhereInput[]
+    id?: StringFilter<"LoginEvent"> | string
+    userId?: StringNullableFilter<"LoginEvent"> | string | null
+    email?: StringFilter<"LoginEvent"> | string
+    success?: BoolFilter<"LoginEvent"> | boolean
+    reason?: StringNullableFilter<"LoginEvent"> | string | null
+    ipAddress?: StringNullableFilter<"LoginEvent"> | string | null
+    userAgent?: StringNullableFilter<"LoginEvent"> | string | null
+    createdAt?: DateTimeFilter<"LoginEvent"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     name?: string | null
@@ -27637,6 +29088,7 @@ export namespace Prisma {
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -27656,6 +29108,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -27691,6 +29144,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -27710,6 +29164,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -27729,6 +29184,7 @@ export namespace Prisma {
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -27748,6 +29204,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -27783,6 +29240,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -27797,6 +29255,103 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
+    createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
+    tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutLoginEventsInput = {
+    id?: string
+    name?: string | null
+    email: string
+    emailVerified?: Date | string | null
+    image?: string | null
+    password?: string | null
+    role?: $Enums.UserRole
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    reviewedIncidents?: IncidentCreateNestedManyWithoutReviewedByInput
+    createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
+    auditLogs?: AuditLogCreateNestedManyWithoutUserInput
+    tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutLoginEventsInput = {
+    id?: string
+    name?: string | null
+    email: string
+    emailVerified?: Date | string | null
+    image?: string | null
+    password?: string | null
+    role?: $Enums.UserRole
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    reviewedIncidents?: IncidentUncheckedCreateNestedManyWithoutReviewedByInput
+    createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
+    tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutLoginEventsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutLoginEventsInput, UserUncheckedCreateWithoutLoginEventsInput>
+  }
+
+  export type UserUpsertWithoutLoginEventsInput = {
+    update: XOR<UserUpdateWithoutLoginEventsInput, UserUncheckedUpdateWithoutLoginEventsInput>
+    create: XOR<UserCreateWithoutLoginEventsInput, UserUncheckedCreateWithoutLoginEventsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutLoginEventsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutLoginEventsInput, UserUncheckedUpdateWithoutLoginEventsInput>
+  }
+
+  export type UserUpdateWithoutLoginEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    reviewedIncidents?: IncidentUpdateManyWithoutReviewedByNestedInput
+    createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
+    tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutLoginEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -28112,6 +29667,7 @@ export namespace Prisma {
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCreatedIncidentsInput = {
@@ -28131,6 +29687,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCreatedIncidentsInput = {
@@ -28155,6 +29712,7 @@ export namespace Prisma {
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutReviewedIncidentsInput = {
@@ -28174,6 +29732,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutReviewedIncidentsInput = {
@@ -28473,6 +30032,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCreatedIncidentsInput = {
@@ -28492,6 +30052,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserUpsertWithoutReviewedIncidentsInput = {
@@ -28522,6 +30083,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReviewedIncidentsInput = {
@@ -28541,6 +30103,7 @@ export namespace Prisma {
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type VictimUpsertWithWhereUniqueWithoutIncidentInput = {
@@ -30204,6 +31767,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -30223,6 +31787,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -30377,6 +31942,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -30396,6 +31962,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutTipSubmissionsInput = {
@@ -30415,6 +31982,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutTipSubmissionsInput = {
@@ -30434,6 +32002,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutTipSubmissionsInput = {
@@ -30469,6 +32038,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutTipSubmissionsInput = {
@@ -30488,6 +32058,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutNotificationsInput = {
@@ -30507,6 +32078,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -30526,6 +32098,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -30561,6 +32134,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -30580,6 +32154,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AccountCreateManyUserInput = {
@@ -30728,6 +32303,16 @@ export namespace Prisma {
     message: string
     link?: string | null
     isRead?: boolean
+    createdAt?: Date | string
+  }
+
+  export type LoginEventCreateManyUserInput = {
+    id?: string
+    email: string
+    success: boolean
+    reason?: string | null
+    ipAddress?: string | null
+    userAgent?: string | null
     createdAt?: Date | string
   }
 
@@ -31199,6 +32784,36 @@ export namespace Prisma {
     message?: StringFieldUpdateOperationsInput | string
     link?: NullableStringFieldUpdateOperationsInput | string | null
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoginEventUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    success?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -32040,6 +33655,10 @@ export namespace Prisma {
      * @deprecated Use VerificationTokenDefaultArgs instead
      */
     export type VerificationTokenArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VerificationTokenDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LoginEventDefaultArgs instead
+     */
+    export type LoginEventArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LoginEventDefaultArgs<ExtArgs>
     /**
      * @deprecated Use ElectionDefaultArgs instead
      */

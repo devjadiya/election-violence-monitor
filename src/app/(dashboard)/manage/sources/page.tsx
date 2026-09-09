@@ -1,59 +1,107 @@
-import { prisma } from '@/lib/db'
-import { SourcesManager } from '@/components/sources/sources-manager'
 import { formatDistanceToNow } from 'date-fns'
+import { prisma } from '@/lib/db'
+import { getActor, hasPermission } from '@/lib/auth/guard'
+import { SourcesManager } from '@/components/sources/sources-manager'
+import { PageHeader, Panel, Stat } from '@/components/dashboard/ui'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * The source registry.
+ *
+ * The source list bounds what the platform can find, so this page is about
+ * whether collection is actually working — not about presenting a tidy
+ * inventory. A feed that has never returned an article is shown as prominently
+ * as a productive one, because that is the fact worth acting on.
+ */
 export default async function SourcesPage() {
-  const [sources, lastLog] = await Promise.all([
+  const actor = await getActor()
+  const isAdmin = !!actor && hasPermission(actor.role, 'ADMIN')
+
+  const [sources, lastRun, articleTotal] = await Promise.all([
     prisma.monitoredSource.findMany({
-      orderBy: { trustScore: 'desc' },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
       include: { _count: { select: { rawArticles: true } } },
     }),
-    prisma.ingestionLog.findFirst({
-      orderBy: { startedAt: 'desc' },
-    }),
+    prisma.ingestionLog.findFirst({ orderBy: { startedAt: 'desc' } }),
+    prisma.rawArticle.count(),
   ])
 
+  const active = sources.filter((s) => s.isActive)
+  const silent = sources.filter((s) => s._count.rawArticles === 0).length
+  const failing = active.filter((s) => s.consecutiveFailures > 0).length
+
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Sources</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Manage trusted news sources and RSS feeds</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-5">
+      <PageHeader
+        title="Sources"
+        lede="Every publisher the pipeline reads. Adding one checks the feed before saving it and collects immediately; removing one stops collection without discarding the articles already gathered."
+      />
 
-      {/* Last ingestion summary */}
-      {lastLog && (
-        <div className={`p-4 rounded-xl border ${lastLog.errors ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <div className={`text-sm font-semibold ${lastLog.errors ? 'text-red-700' : 'text-green-700'}`}>
-                Last ingestion run — {formatDistanceToNow(new Date(lastLog.startedAt), { addSuffix: true })}
-              </div>
-              <div className="text-xs text-zinc-500 mt-0.5">
-                {lastLog.articlesFound} articles found · {lastLog.articlesNew} new · {lastLog.incidentsCreated} incidents created
-                {lastLog.durationMs && ` · ${(lastLog.durationMs / 1000).toFixed(1)}s`}
-              </div>
-              {lastLog.errors && (
-                <div className="text-xs text-red-600 mt-1 font-mono">{lastLog.errors.slice(0, 200)}</div>
-              )}
-            </div>
-            <div className={`text-xs px-3 py-1 rounded-full font-medium ${lastLog.errors ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}`}>
-              {lastLog.errors ? 'Completed with errors' : 'Completed successfully'}
-            </div>
+      <section className="rule-b grid grid-cols-2 gap-x-6 gap-y-6 pb-6 sm:grid-cols-4">
+        <Stat value={active.length} label="Collecting" note={`${sources.length} registered`} />
+        <Stat
+          value={silent}
+          label="Never returned anything"
+          note={silent > 0 ? 'worth removing or fixing' : undefined}
+        />
+        <Stat value={failing} label="Currently failing" />
+        <Stat value={articleTotal} label="Articles collected" note="all sources, all time" />
+      </section>
+
+      {lastRun ? (
+        <Panel className="p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className="text-[0.875rem] font-medium text-[var(--ink)]">
+              Last scheduled run{' '}
+              <span className="font-normal text-[var(--ink-3)]">
+                {formatDistanceToNow(new Date(lastRun.startedAt), { addSuffix: true })}
+              </span>
+            </p>
+            <span className={`status ${lastRun.errors ? 'status-caution' : 'status-active'}`}>
+              {lastRun.errors ? 'Completed with errors' : 'Completed'}
+            </span>
           </div>
-        </div>
+          <p className="mt-1 text-[0.8125rem] text-[var(--ink-3)]">
+            {lastRun.articlesFound.toLocaleString('en-US')} found ·{' '}
+            {lastRun.articlesNew.toLocaleString('en-US')} new ·{' '}
+            {lastRun.incidentsCreated.toLocaleString('en-US')} records created
+            {lastRun.durationMs ? ` · ${(lastRun.durationMs / 1000).toFixed(1)}s` : ''}
+          </p>
+          {lastRun.errors ? (
+            <p className="chip-mono mt-1.5 text-[0.75rem] leading-relaxed text-[var(--severity)]">
+              {lastRun.errors.slice(0, 240)}
+            </p>
+          ) : null}
+        </Panel>
+      ) : (
+        <Panel className="p-4">
+          <p className="text-[0.875rem] text-[var(--ink-2)]">
+            No scheduled run has been recorded yet. Use the refresh control on a source to read it
+            now.
+          </p>
+        </Panel>
       )}
 
-      {!lastLog && (
-        <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-500">
-          No ingestion runs recorded yet. Click "Run Ingestion Now" to start.
-        </div>
-      )}
-
-      <SourcesManager sources={sources} />
+      <SourcesManager
+        sources={sources.map((s) => ({
+          id: s.id,
+          name: s.name,
+          url: s.url,
+          rssUrl: s.rssUrl,
+          sourceType: String(s.sourceType),
+          country: s.country,
+          language: s.language,
+          isActive: s.isActive,
+          trustScore: s.trustScore,
+          lastFetchedAt: s.lastFetchedAt,
+          lastSuccessAt: s.lastSuccessAt,
+          lastError: s.lastError,
+          consecutiveFailures: s.consecutiveFailures,
+          _count: s._count,
+        }))}
+        isAdmin={isAdmin}
+      />
     </div>
   )
 }

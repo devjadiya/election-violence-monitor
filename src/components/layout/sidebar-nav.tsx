@@ -6,7 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, MapPin, AlertTriangle, CheckSquare,
   BarChart3, Settings, Users, Download,
-  Globe, Calendar, MessageSquare, Menu, X
+  Globe, Calendar, MessageSquare, Menu, X, KeyRound
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -45,6 +45,7 @@ const DATA_ITEMS: NavItem[] = [
 
 const ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/access-log', label: 'Access log', icon: KeyRound },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -134,7 +135,7 @@ export function SidebarNav({ user }: Props) {
       <nav aria-label="Operations" className="flex-1 space-y-5 overflow-y-auto px-2 py-4">
         <NavGroup title="Work" items={WORK_ITEMS} pathname={pathname} onNavigate={closeMobile} />
         <NavGroup title="Data" items={DATA_ITEMS} pathname={pathname} onNavigate={closeMobile} />
-        {user.role === 'ADMIN' || user.role === 'EDITOR' ? (
+        {user.role === 'ADMIN' ? (
           <NavGroup title="Admin" items={ADMIN_ITEMS} pathname={pathname} onNavigate={closeMobile} />
         ) : null}
       </nav>

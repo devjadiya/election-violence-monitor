@@ -170,6 +170,7 @@ model User {
   auditLogs     AuditLog[]
   tipSubmissions TipSubmission[]
   notifications Notification[]
+  loginEvents   LoginEvent[]
 
   @@index([email])
   @@index([role])
@@ -212,6 +213,41 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// Sign-in history.
+///
+/// Sessions are JWT, so no `Session` row is ever written and the database had
+/// no record of who signed in or from where. An administrator handing accounts
+/// to outside collaborators needs to see that, and a failed-attempt trail is
+/// the only way a credential-stuffing attempt is visible at all.
+///
+/// Deliberately append-only and separate from `AuditLog`: an audit row is
+/// about a change to an incident, and mixing sign-ins into it would mean
+/// overloading `AuditAction` with a value that has no incident.
+///
+/// `userId` is nullable and set null on delete, because a failed attempt on an
+/// unknown address has no user, and removing a user must not erase the history
+/// of their sign-ins. `email` records what was actually typed.
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  /// The address supplied at the prompt, kept even when it matches no account.
+  email     String
+  success   Boolean
+  /// Why a failed attempt failed. Never distinguishes "no such account" from
+  /// "wrong password" in anything shown to an unauthenticated caller.
+  reason    String?
+  ipAddress String?
+  userAgent String?  @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([email])
 }
 
 // ============================================================

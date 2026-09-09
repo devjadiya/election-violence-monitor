@@ -577,7 +577,7 @@ Two findings from that run worth recording:
 - **The backlog is growing.** Never-screened rose from 1,004 to 1,444 in roughly a day.
   Discovery is outrunning classification, which is D-throughput, not a display problem.
 
-### D18 — `/manage/analytics` draws pie charts over empty tables — OPEN
+### D18 — `/manage/analytics` draws pie charts over empty tables — resolved 2026-09-09 (D20)
 
 `src/components/charts/analytics-charts.tsx` renders gender, age, victim-role and weapon
 charts. `Victim` and `Actor` hold zero rows. Its empty-data path substitutes
@@ -640,6 +640,77 @@ second source of truth `analytics-charts.tsx` already demonstrates. A renamed to
 `/analytics` moved from `force-dynamic` to `revalidate = 300`, and Chapter 2 (the screening
 funnel) is streamed in a `<Suspense>` boundary with its own error containment — the first
 `<Suspense>` on the public surface.
+
+### D20 — the operations dashboard becomes usable by someone else — 2026-09-09
+
+Handing the deployment to outside collaborators exposed several things that only survive when
+the only user is the person who built it.
+
+**Sign-in history now exists.** Sessions are JWT, so NextAuth never wrote a `Session` row and
+the database held no record of who signed in or from where. New `LoginEvent` table (migration
+`20260909120000_login_events`, additive, applied through the pooler), written by
+[src/lib/auth/login-events.ts](../src/lib/auth/login-events.ts) on every attempt including
+failures, and read at **`/admin/access-log`**. Recording never blocks a sign-in — an unreachable
+pooler must not stop a reviewer working, and losing one audit row is the lesser harm. The
+failure reason is stored (`no-such-account` vs `wrong-password`) so an administrator can tell a
+typo from an attack, and is never returned to the caller.
+
+**Two collaborator administrators created** — Olagunju and Muyiwa, via
+[scripts/create-collaborator-admins.ts](../scripts/create-collaborator-admins.ts), which is
+idempotent, dry-run by default, and prints credentials once without writing them to disk.
+
+**Security holes closed along the way:**
+
+- `authorize()` compared `user.password === credentials.password` for any hash not starting with
+  `$2`, so an unhashed row was a working credential. Verified against production first: all six
+  accounts store bcrypt hashes, so removing the fallback locks nobody out.
+- **`/admin/users` had no role check at all.** Any signed-in account — including OBSERVER, the
+  lowest rung — could open it and read every colleague's address and role. The sidebar hid the
+  link, which is not the same as the page being protected. `/admin/*` is ADMIN-gated server-side
+  now, and the sidebar group no longer shows to EDITOR.
+- `POST /api/admin/users` defaulted an omitted password to the literal `password123`, and the
+  add-user form pre-filled the same string. Passwords are now required, minimum 12 characters,
+  and the form generates one.
+- An administrator could demote or disable their own account, and the last active administrator
+  could be removed, locking everyone out with no route back in through the interface. Both are
+  refused in the route handler.
+
+**Ingestion is real rather than demonstrative.** Registering a feed was a bare `create()`: a
+mistyped URL was stored as happily as a working one and nothing ever said so.
+[src/lib/ingestion/source-onboarding.ts](../src/lib/ingestion/source-onboarding.ts) now proves a
+feed before storing it and reads it immediately after, so adding a source either produces
+articles in the same interaction or explains why it cannot. New `POST /api/sources/[id]/fetch`
+reads one feed without running the whole pipeline. `DELETE /api/sources/[id]` (ADMIN)
+deactivates a source that has articles and deletes one that has none — severing published
+records from the reporting they cite is not something an interface should offer.
+
+Verified end to end against production: probe returned 5 items, the source was created, 5
+articles were stored, health fields were set, removal with articles deactivated and kept them,
+removal when empty deleted the row. Nothing was left behind.
+
+**Numbers now reconcile.** Every query on `/manage/analytics` ran with no `where` clause at all —
+no `publicIncidentFilter()`, not even `isDemo: false` — so it counted the fabricated April seed
+records while every public figure excluded them. Both surfaces exclude demo data now. The
+remaining difference is deliberate and stated on the page: the dashboard counts every real
+record including the review queue, the public site counts published records only. The trend
+chart also kept only days that had incidents, which drew sixty days of sparse data as continuous
+activity; empty days are retained.
+
+**D18 is resolved.** The three `[{ name: 'No data', value: 1 }]` substitutions are gone. `Victim`
+and `Actor` hold no rows, so those charts were drawing a full, complete-looking donut over an
+empty table. They now state the gap.
+
+**Style.** [src/components/dashboard/ui.tsx](../src/components/dashboard/ui.tsx) carries the
+shared operations primitives — `PageHeader`, `Panel`, `Stat`, `TableShell`, `RoleBadge`,
+`StateBadge`, `Empty` — in the same `--ink` / `--navy` / `--rule` vocabulary as the public site.
+`/admin/settings` previously listed "Gemini 1.5 Flash — Active", "Upstash Redis — Connected" and
+five notification toggles, all hardcoded strings that checked nothing and saved nothing. That
+mattered beyond tidiness: `gemini-1.5-flash` had been retired while the screen reported it
+active. Everything there is now read from the database or the running configuration, and the
+toggles were removed rather than left implying a feature exists.
+
+Still on the prototype styling and not yet migrated: `manage/incidents`, `manage/incidents/[id]`,
+`manage/elections`, `export`, `tips`, `livemap`.
 
 ---
 

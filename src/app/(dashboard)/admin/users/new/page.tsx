@@ -2,85 +2,182 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
 
-const ROLES = ['OBSERVER', 'ANALYST', 'REVIEWER', 'EDITOR', 'ADMIN']
+/**
+ * Creating an account.
+ *
+ * The password field was pre-filled with the literal string `password123`, and
+ * the API defaulted to the same value when the field was omitted. An
+ * administrator who accepted the default created a working account with a
+ * publicly known credential, and nothing anywhere said so.
+ *
+ * A strong password is now generated on arrival and can be regenerated, but
+ * never defaulted to a constant. It is shown in clear precisely once, on this
+ * screen, because the person creating the account has to be able to pass it on.
+ */
+
+const ROLES = [
+  { id: 'OBSERVER', note: 'Reads internal records, including unpublished ones.' },
+  { id: 'ANALYST', note: 'Creates and edits records, and registers sources.' },
+  { id: 'REVIEWER', note: 'Works the review queue and marks records verified.' },
+  { id: 'EDITOR', note: 'Publishes and retracts records.' },
+  { id: 'ADMIN', note: 'Everything, plus accounts, sources and the access log.' },
+]
+
+const ADJECTIVES = ['Amber', 'Cobalt', 'Flint', 'Harbour', 'Juniper', 'Marble', 'Onyx', 'Ridge']
+const NOUNS = ['Anchor', 'Beacon', 'Compass', 'Delta', 'Keystone', 'Meridian', 'Pillar', 'Trellis']
+
+/** Word-and-number, so it survives being read aloud or typed on a phone. */
+function generatePassword(): string {
+  const pick = <T,>(list: T[]): T => list[Math.floor(Math.random() * list.length)]
+  return `${pick(ADJECTIVES)}-${pick(NOUNS)}-${Math.floor(1000 + Math.random() * 9000)}`
+}
 
 export default function NewUserPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ name: '', email: '', password: 'password123', role: 'ANALYST' })
+  const [form, setForm] = useState(() => ({
+    name: '',
+    email: '',
+    password: generatePassword(),
+    role: 'ANALYST',
+  }))
 
-  const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]/10 focus:border-[#1a1a2e] transition-all"
+  const inputClass =
+    'mt-1 w-full border border-[var(--rule-2)] bg-[var(--paper)] px-3 py-2 text-[0.875rem] text-[var(--ink)] outline-none focus:border-[var(--navy-3)]'
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setLoading(true)
     setError('')
+
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(data.error ?? `The server refused the request (${res.status}).`)
+        return
+      }
+
+      toast.success(`${form.email} created`, {
+        description: `Role ${form.role}. Pass on the password now — it is not shown again.`,
+        duration: 10000,
+      })
       router.push('/admin/users')
-    } catch (err: any) {
-      setError(err.message)
+    } catch {
+      setError('The account could not be created. Check your connection and try again.')
+    } finally {
       setLoading(false)
     }
   }
 
+  const selected = ROLES.find((r) => r.id === form.role)
+
   return (
-    <div className="max-w-md mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1a1a2e]">Add User</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Create a new team member account</p>
-      </div>
+    <div className="mx-auto max-w-xl space-y-5">
+      <header className="rule-b pb-5">
+        <h1 className="headline">Add a user</h1>
+        <p className="mt-1 text-[0.875rem] text-[var(--ink-3)]">
+          The password below is generated and shown once. Copy it before saving.
+        </p>
+      </header>
 
-      {error && <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">{error}</div>}
+      {error ? (
+        <p className="border-l-2 border-[var(--severity)] bg-[var(--severity-tint)] px-3 py-2 text-[0.8125rem] leading-relaxed text-[var(--severity)]">
+          {error}
+        </p>
+      ) : null}
 
-      <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 border border-[var(--rule)] bg-[var(--paper)] p-5"
+      >
+        <label className="block">
+          <span className="figure-label">Full name</span>
+          <input
+            className={inputClass}
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="James Adeyemi"
+          />
+        </label>
+
+        <label className="block">
+          <span className="figure-label">Email address</span>
+          <input
+            type="email"
+            required
+            className={inputClass}
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            placeholder="name@example.org"
+          />
+        </label>
+
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Full Name</label>
-          <input className={inputClass} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. James Adeyemi" />
+          <span className="figure-label">Password</span>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="text"
+              required
+              minLength={12}
+              className={`${inputClass} chip-mono mt-0`}
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            />
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, password: generatePassword() }))}
+              className="btn btn-secondary shrink-0"
+              aria-label="Generate a different password"
+            >
+              <RefreshCw size={14} aria-hidden />
+            </button>
+          </div>
+          <p className="mt-1 text-[0.75rem] leading-relaxed text-[var(--ink-4)]">
+            Shown in clear so you can pass it on. It is stored only as a bcrypt hash — if it is
+            lost, issue a new one from the users list rather than trying to recover this.
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Email Address *</label>
-          <input type="email" required className={inputClass} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="user@evm.org" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Temporary Password</label>
-          <input type="text" className={inputClass} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-          <p className="text-xs text-zinc-400 mt-1">User should change this on first login</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Role *</label>
-          <select className={inputClass} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+
+        <label className="block">
+          <span className="figure-label">Role</span>
+          <select
+            className={inputClass}
+            value={form.role}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+          >
+            {ROLES.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.id}
+              </option>
+            ))}
           </select>
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button type="submit" disabled={loading}
-            className="bg-[#1a1a2e] text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors disabled:opacity-50">
-            {loading ? 'Creating...' : 'Create User'}
+          {selected ? (
+            <span className="mt-1 block text-[0.75rem] leading-relaxed text-[var(--ink-3)]">
+              {selected.note} Each role can also do everything the roles below it can.
+            </span>
+          ) : null}
+        </label>
+
+        <div className="flex gap-2 pt-1">
+          <button type="submit" disabled={loading} className="btn btn-primary disabled:opacity-50">
+            {loading ? 'Creating…' : 'Create account'}
           </button>
-          <button type="button" onClick={() => router.back()}
-            className="border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-zinc-50 transition-colors">
+          <Link href="/admin/users" className="btn btn-secondary">
             Cancel
-          </button>
+          </Link>
         </div>
       </form>
-
-      <div className="mt-4 p-4 bg-zinc-50 rounded-xl text-xs text-zinc-500 space-y-1">
-        <div className="font-medium text-zinc-700 mb-2">Role Permissions</div>
-        <div><strong>Observer</strong> — Submit tips only</div>
-        <div><strong>Analyst</strong> — Read all incidents, add tags</div>
-        <div><strong>Reviewer</strong> — Verify / reject incidents</div>
-        <div><strong>Editor</strong> — Edit verified incidents, manage sources</div>
-        <div><strong>Admin</strong> — Full access, user management</div>
-      </div>
     </div>
   )
 }

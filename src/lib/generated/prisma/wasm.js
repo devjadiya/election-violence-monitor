@@ -163,6 +163,17 @@ exports.Prisma.VerificationTokenScalarFieldEnum = {
   expires: 'expires'
 };
 
+exports.Prisma.LoginEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  email: 'email',
+  success: 'success',
+  reason: 'reason',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ElectionScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -544,6 +555,7 @@ exports.Prisma.ModelName = {
   Account: 'Account',
   Session: 'Session',
   VerificationToken: 'VerificationToken',
+  LoginEvent: 'LoginEvent',
   Election: 'Election',
   Incident: 'Incident',
   Victim: 'Victim',

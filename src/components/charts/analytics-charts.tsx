@@ -3,6 +3,13 @@
 import ReactECharts from 'echarts-for-react'
 import { CATEGORY_COLORS } from '@/constants'
 
+/**
+ * `echarts-for-react` exports its option type as `any`, which the lint ratchet
+ * rejects. These objects are built here and handed straight back to the
+ * library, so a structural type carries everything that is actually needed.
+ */
+type EChartsOption = Record<string, unknown>
+
 interface Props {
   data: {
     byCategory: { name: string; value: number }[]
@@ -54,7 +61,7 @@ export function AnalyticsCharts({ data }: Props) {
     legend: { bottom: 0, textStyle: { color: '#71717a', fontSize: 10 }, itemWidth: 10, itemHeight: 10 },
     series: [{
       type: 'pie', radius: ['45%', '68%'], center: ['50%', '42%'],
-      data: data.byCategory.length > 0 ? data.byCategory : [{ name: 'No data', value: 1 }],
+      data: data.byCategory,
       label: { show: false },
       itemStyle: { borderRadius: 4, borderWidth: 2, borderColor: '#fff' },
       color: Object.values(CATEGORY_COLORS),
@@ -94,7 +101,7 @@ export function AnalyticsCharts({ data }: Props) {
     legend: { bottom: 0, textStyle: { color: '#71717a', fontSize: 10 }, itemWidth: 10, itemHeight: 10 },
     series: [{
       type: 'pie', radius: ['35%', '60%'], center: ['50%', '42%'],
-      data: data.byWeapon.length > 0 ? data.byWeapon : [{ name: 'No data', value: 1 }],
+      data: data.byWeapon,
       label: { show: false },
       itemStyle: { borderRadius: 4, borderWidth: 2, borderColor: '#fff' },
       color: ['#dc2626', '#d97706', '#2563eb', '#7c3aed', '#059669', '#6b7280'],
@@ -107,7 +114,7 @@ export function AnalyticsCharts({ data }: Props) {
     tooltip: { ...chartDefaults.tooltip, trigger: 'item' },
     series: [{
       type: 'pie', radius: ['45%', '68%'], center: ['50%', '50%'],
-      data: data.byVictimGender.length > 0 ? data.byVictimGender : [{ name: 'No data', value: 1 }],
+      data: data.byVictimGender,
       label: { formatter: '{b}\n{d}%', fontSize: 11, color: '#52525b' },
       labelLine: { smooth: true },
       itemStyle: { borderRadius: 4, borderWidth: 2, borderColor: '#fff' },
@@ -141,21 +148,47 @@ export function AnalyticsCharts({ data }: Props) {
     }],
   }
 
-  const statCard = (value: string | number, label: string, sub?: string, color = 'text-[#1a1a2e]') => (
-    <div className="glass-card p-4 text-center">
-      <div className={`text-2xl font-bold ${color} mb-0.5`}>{value}</div>
-      <div className="text-xs font-medium text-zinc-600">{label}</div>
-      {sub && <div className="text-[10px] text-zinc-400 mt-0.5">{sub}</div>}
+  const statCard = (value: string | number, label: string, sub?: string) => (
+    <div className="border border-[var(--rule)] bg-[var(--paper)] p-4">
+      <div className="figure-value">
+        {typeof value === 'number' ? value.toLocaleString('en-US') : value}
+      </div>
+      <div className="figure-label mt-0.5">{label}</div>
+      {sub ? <div className="mt-0.5 text-[0.6875rem] text-[var(--ink-4)]">{sub}</div> : null}
     </div>
   )
 
-  const chartCard = (title: string, subtitle: string, chart: any, height = 220) => (
-    <div className="glass-card p-5">
+  /**
+   * `empty` is the honest path for a chart whose table has no rows.
+   *
+   * Three of these previously substituted `[{ name: 'No data', value: 1 }]`
+   * into a pie series, so an empty table rendered as a full, complete-looking
+   * donut. Victim and Actor hold no rows at all, which meant the gender, age,
+   * victim-role and weapon charts were drawing a finished-looking picture of
+   * nothing. A gap is now stated.
+   */
+  const chartCard = (
+    title: string,
+    subtitle: string,
+    chart: EChartsOption,
+    height = 220,
+    empty?: string
+  ) => (
+    <div className="border border-[var(--rule)] bg-[var(--paper)] p-5">
       <div className="mb-3">
-        <div className="text-sm font-semibold text-[#1a1a2e]">{title}</div>
-        <div className="text-xs text-zinc-400 mt-0.5">{subtitle}</div>
+        <div className="text-sm font-semibold text-[var(--ink)]">{title}</div>
+        <div className="mt-0.5 text-xs text-[var(--ink-3)]">{subtitle}</div>
       </div>
-      <ReactECharts option={chart} style={{ height }} opts={{ renderer: 'svg' }} />
+      {empty ? (
+        <div
+          className="flex items-center justify-center bg-[var(--paper-2)] px-4 text-center text-xs leading-relaxed text-[var(--ink-3)]"
+          style={{ height }}
+        >
+          {empty}
+        </div>
+      ) : (
+        <ReactECharts option={chart} style={{ height }} opts={{ renderer: 'svg' }} />
+      )}
     </div>
   )
 
@@ -168,12 +201,12 @@ export function AnalyticsCharts({ data }: Props) {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
           {statCard(data.totals.incidents, 'Total Incidents', 'All statuses')}
-          {statCard(data.totals.published, 'Published', 'Publicly visible', 'text-green-600')}
-          {statCard(data.totals.fatalities, 'Fatalities', 'Reported deaths', 'text-red-600')}
-          {statCard(data.totals.injured, 'Injured', 'Reported injuries', 'text-orange-500')}
-          {statCard(data.totals.arrested, 'Arrested', 'Reported arrests', 'text-blue-600')}
-          {statCard(data.totals.aiDetected, 'Machine-extracted', 'Awaiting or past review', 'text-violet-600')}
-          {statCard(data.totals.withResponse, 'With Response', 'Accountability actions', 'text-teal-600')}
+          {statCard(data.totals.published, 'Published', 'Publicly visible')}
+          {statCard(data.totals.fatalities, 'Fatalities', 'Reported deaths')}
+          {statCard(data.totals.injured, 'Injured', 'Reported injuries')}
+          {statCard(data.totals.arrested, 'Arrested', 'Reported arrests')}
+          {statCard(data.totals.aiDetected, 'Machine-extracted', 'Awaiting or past review')}
+          {statCard(data.totals.withResponse, 'With Response', 'Accountability actions')}
         </div>
       </div>
 
@@ -192,7 +225,13 @@ export function AnalyticsCharts({ data }: Props) {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {chartCard('By Country', 'Top 12 countries by incident count', countryOption, 280)}
-          {chartCard('By Category', 'Types of election violence documented', categoryOption, 280)}
+          {chartCard(
+            'By Category',
+            'Types of election violence documented',
+            categoryOption,
+            280,
+            data.byCategory.length === 0 ? 'No records to categorise yet.' : undefined
+          )}
         </div>
       </div>
 
@@ -203,7 +242,15 @@ export function AnalyticsCharts({ data }: Props) {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {chartCard('By Election Stage', 'When in the electoral cycle violence occurs', stageOption, 220)}
-          {chartCard('By Weapon Type', 'Types of weapons involved in incidents', weaponOption, 220)}
+          {chartCard(
+            'By Weapon Type',
+            'Types of weapons involved in incidents',
+            weaponOption,
+            220,
+            data.byWeapon.length === 0
+              ? 'No incident records a weapon type. Every published record so far leaves it unspecified.'
+              : undefined
+          )}
         </div>
       </div>
 
@@ -213,9 +260,27 @@ export function AnalyticsCharts({ data }: Props) {
           Indicators 5, 6, 7 — Victim Demographics &amp; Target Groups
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {chartCard('Gender Distribution', 'Indicator 5 — Gender of affected individuals', genderOption, 220)}
-          {chartCard('Age Distribution', 'Indicator 6 — Age groups affected', ageOption, 220)}
-          {chartCard('Target Groups', 'Indicator 7 — Role of victims in electoral process', roleOption, 220)}
+          {chartCard(
+            'Gender Distribution',
+            'Indicator 5 — Gender of affected individuals',
+            genderOption,
+            220,
+            data.byVictimGender.length === 0 ? 'No victim records have been extracted yet, so there is nothing to break down. This is a gap in the data, not a finding.' : undefined
+          )}
+          {chartCard(
+            'Age Distribution',
+            'Indicator 6 — Age groups affected',
+            ageOption,
+            220,
+            data.byVictimAge.length === 0 ? 'No victim records have been extracted yet, so there is nothing to break down. This is a gap in the data, not a finding.' : undefined
+          )}
+          {chartCard(
+            'Target Groups',
+            'Indicator 7 — Role of victims in electoral process',
+            roleOption,
+            220,
+            data.byVictimRole.length === 0 ? 'No victim records have been extracted yet, so there is nothing to break down. This is a gap in the data, not a finding.' : undefined
+          )}
         </div>
       </div>
 
