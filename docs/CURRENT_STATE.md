@@ -41,7 +41,7 @@ Plus `GOOGLE_GENERATIVE_AI_API_KEY`, read **implicitly** by `@ai-sdk/google` —
 
 ### ⚠️ Declared dependencies with **zero** usage in `src/`
 
-`hono` · `@hono/zod-validator` · `@sentry/nextjs` · `@supabase/ssr` · `@supabase/supabase-js` · `@upstash/qstash` · `@turf/turf` · `cheerio` · `node-html-parser` · `fast-xml-parser` · `ky` · `slugify` · `@tanstack/react-table`
+~~`hono` · `@hono/zod-validator` · `@sentry/nextjs` · `@supabase/ssr` · `@supabase/supabase-js` · `@upstash/qstash` · `@turf/turf` · `node-html-parser` · `fast-xml-parser` · `ky` · `slugify` · `@tanstack/react-table`~~ — all removed 2026-09-09 (D21). `cheerio` was on this list but is used by `article-body.ts`.
 
 Two consequences worth internalising:
 
@@ -711,6 +711,65 @@ toggles were removed rather than left implying a feature exists.
 
 Still on the prototype styling and not yet migrated: `manage/incidents`, `manage/incidents/[id]`,
 `manage/elections`, `export`, `tips`, `livemap`.
+
+### D21 — CI green, dashboard fast, tables legible — 2026-09-09
+
+**The CI build failure was mine.** Moving `/analytics` off `force-dynamic` to `revalidate = 300`
+(D19) made it a build-time prerendered page. CI builds with a placeholder `DATABASE_URL`
+pointing at nothing — deliberately, it has no secrets — so the page threw during static
+generation and the build exited. The homepage and `/elections` had the same defect from the
+earlier `revalidate = 60` change; the build simply stopped at the first one.
+
+Fixed at the cause rather than by reverting the caching: an ISR page should not fall over when
+the database is unreachable. [src/lib/db/resilient.ts](../src/lib/db/resilient.ts) wraps the
+read, and all three pages render a stated absence instead. This is a production improvement too
+— the Supabase pooler drops connections often enough that a public page 500ing on a momentary
+outage was a real risk. On Vercel the database *is* reachable at build time, so production
+still prerenders real figures. Verified by building with a dead `DATABASE_URL`.
+
+**Dependency backlog cut.** 142 advisories → 90, by deleting 13 packages that were installed
+and never imported: `hono` (30 advisories on its own), `@hono/zod-validator`, `@sentry/nextjs`,
+`@supabase/ssr`, `@supabase/supabase-js`, `@upstash/qstash`, `@turf/turf`, `node-html-parser`,
+`fast-xml-parser`, `ky`, `slugify`, `@tanstack/react-table`, `motion`, plus `shadcn`. Each was
+confirmed to have zero imports across `src/` and `scripts/` first. `cheerio` and `nanoid` were
+on the same list in §1 but are genuinely used, and stay. What remains needs `next` and
+`next-auth` major upgrades — a deliberate decision, not something to slip into a UI pass.
+
+**Row headers were being drawn as column headers.** `.data-table th` styled every `th`,
+including `<th scope="row">` — the accessible way to mark the cell naming a row. Eight of those
+exist across the dashboard and the public site, so incident titles, source names and field
+names were all rendering as 12px uppercase letter-spaced grey. Now scoped to `thead th`, with
+`tbody th` styled as content.
+
+**Long titles overlapped the next column** because `max-width` on a `td` or `th` is ignored
+under the automatic table layout algorithm — the browser sizes columns to content. New
+`.cell-clip` constrains a block-level child instead, which works, and narrows on small screens.
+
+**The dashboard took five seconds to render.** Measured against production: three query batches
+at 2184ms, 1394ms and 1390ms. A round trip to the pooler costs ~700ms and `connection_limit` is
+5, so a batch of seven queries is two waits. Nineteen queries became eleven — one aggregate
+`FILTER` statement replaces four `rawArticle.count()` calls, `groupBy(['status'])` replaces two
+counts and a total, and the review queue is fetched once with its confidence bands derived in
+memory rather than costing four more round trips.
+
+That alone was not enough: the corpus aggregate is a full scan, the table has grown from 5,766
+rows in August to **14,207**, and the scan alone costs ~1.6s and rising. Those four numbers only
+change when the cron runs, so they are now `unstable_cache`d for 60 seconds. Everything an
+operator acts on — the review queue, recent records, source health — stays live.
+
+**Mobile.** The dashboard's fixed bottom navigation was covering the last rows of every table
+(`pb-24` below `lg`), main padding was `p-6` at every width, and the mobile menu button sat on
+top of the search field. Added tap-highlight suppression, `touch-action: manipulation` to remove
+the 300ms double-tap delay, a 44px minimum hit area under `(pointer: coarse)` — icon buttons
+were 28px — `overscroll-behavior-x: contain` so a sideways swipe in a table does not trigger
+back-navigation, and `overflow-wrap` on body for long source URLs.
+
+**`topbar.tsx`** had five `react-hooks/set-state-in-effect` violations. Both effects now update
+state only from timer or settled-fetch callbacks, with an unmount guard. The search reset also
+moved inside the debounce, so a fast typist causes one state change rather than one per key.
+
+Still on prototype styling: `manage/incidents`, `manage/incidents/[id]`, `manage/elections`,
+`export`, `tips`, `livemap`. The public site still has no mobile navigation menu.
 
 ---
 

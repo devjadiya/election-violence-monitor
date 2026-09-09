@@ -12,6 +12,7 @@ import {
 } from '@/lib/elections/format'
 import { formatDate } from '@/lib/incidents/format'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { tryRead } from '@/lib/db/resilient'
 import type { ElectionStatus, MonitoringStatus } from '@/lib/generated/prisma'
 
 export const metadata: Metadata = {
@@ -119,24 +120,61 @@ function Group({ title, note, rows }: { title: string; note?: string; rows: Row[
   )
 }
 
-export default async function ElectionsPage() {
-  const elections = await prisma.election.findMany({
-    where: { isActive: true },
-    select: {
-      id: true, name: true, country: true, countryCode: true, region: true,
-      electionDate: true, electionType: true, status: true, monitoringStatus: true,
-      _count: { select: { incidents: true } },
-    },
-    orderBy: { electionDate: 'desc' },
-  })
+/**
+ * The election list, or null when the database could not be read.
+ *
+ * This page is prerendered, so it renders at build time and on each
+ * revalidation; neither should be able to take it down. See
+ * `src/lib/db/resilient.ts`.
+ */
+async function loadElections() {
+  return tryRead(async () => {
+    const elections = await prisma.election.findMany({
+      where: { isActive: true },
+      select: {
+        id: true, name: true, country: true, countryCode: true, region: true,
+        electionDate: true, electionType: true, status: true, monitoringStatus: true,
+        _count: { select: { incidents: true } },
+      },
+      orderBy: { electionDate: 'desc' },
+    })
 
-  // Published counts must come from the same filter as every other public
-  // surface; the relation count includes records that are not public.
-  const publishedByElection = await prisma.incident.groupBy({
-    by: ['electionId'],
-    where: publicIncidentFilter(),
-    _count: true,
+    // Published counts must come from the same filter as every other public
+    // surface; the relation count includes records that are not public.
+    const publishedByElection = await prisma.incident.groupBy({
+      by: ['electionId'],
+      where: publicIncidentFilter(),
+      _count: true,
+    })
+
+    return { elections, publishedByElection }
   })
+}
+
+export default async function ElectionsPage() {
+  const loaded = await loadElections()
+
+  if (!loaded) {
+    return (
+      <>
+        <SiteHeader current="/elections" />
+        <main id="main" className="shell section">
+          <PageHeader title="Elections" lede="Elections within the platform's scope." />
+          <div className="mt-6">
+            <EmptyState title="The election list could not be read.">
+              <p>
+                The database did not respond. This is not an empty list &mdash; it was not
+                retrieved. Reloading usually resolves it.
+              </p>
+            </EmptyState>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    )
+  }
+
+  const { elections, publishedByElection } = loaded
   const publishedMap = new Map(
     publishedByElection.filter((p) => p.electionId).map((p) => [p.electionId as string, p._count])
   )

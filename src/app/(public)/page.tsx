@@ -6,6 +6,7 @@ import {
   publicIncidentFilter,
   publicViolenceFilter,
 } from '@/lib/incidents/visibility'
+import { tryRead } from '@/lib/db/resilient'
 import {
   SiteHeader,
   SiteFooter,
@@ -251,7 +252,33 @@ async function getState() {
 }
 
 export default async function HomePage() {
-  const s = await getState()
+  // Prerendered with `revalidate = 60`, so this runs at build time and on each
+  // revalidation. Neither should be able to take the homepage down — see
+  // `src/lib/db/resilient.ts`.
+  const s = await tryRead(getState)
+
+  if (!s) {
+    return (
+      <>
+        <SiteHeader />
+        <main id="main" className="shell section">
+          <h1 className="display">Election Violence Monitor</h1>
+          <p className="prose-measure mt-3 text-[0.9375rem] leading-relaxed text-[var(--ink-2)]">
+            Turning published reporting on election violence into structured, citable records.
+          </p>
+          <div className="mt-6">
+            <EmptyState title="The live figures could not be read.">
+              <p>
+                The database did not respond, so the counts and recent records are not shown.
+                They are not zero &mdash; they were not retrieved. Reloading usually resolves it.
+              </p>
+            </EmptyState>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    )
+  }
 
   return (
     <>

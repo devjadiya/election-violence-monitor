@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { ScreeningChapter } from './_chapters/screening'
 import { RecordsChapter } from './_chapters/records'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
+import { tryRead } from '@/lib/db/resilient'
 import { SiteHeader, SiteFooter, PageHeader, Figure, EmptyState } from '@/components/public/site-shell'
 import { Distribution } from '@/components/public/distribution'
 import { CATEGORY_LABEL, STAGE_LABEL } from '@/lib/incidents/format'
@@ -75,11 +76,30 @@ const PATHWAY_ROW_LABEL: Record<string, string> = {
   PENDING: 'Awaiting review',
 }
 
-export default async function AnalyticsPage() {
+/**
+ * The page's own figures, or null when the database could not be read.
+ *
+ * Separated from the component so the failure has somewhere to be handled.
+ * This page is prerendered, so it renders both at build time and on each
+ * revalidation, and neither should be able to take the page down — see
+ * `src/lib/db/resilient.ts`.
+ */
+async function loadFigures() {
   const where = publicIncidentFilter()
 
-  const [total, byCategory, byRegion, byStage, totals, withCoords, multiSource, occurred, byPathway, byCorroboration] =
-    await Promise.all([
+  return tryRead(async () => {
+    const [
+      total,
+      byCategory,
+      byRegion,
+      byStage,
+      totals,
+      withCoords,
+      multiSource,
+      occurred,
+      byPathway,
+      byCorroboration,
+    ] = await Promise.all([
       prisma.incident.count({ where }),
       prisma.incident.groupBy({ by: ['category'], where, _count: true }),
       prisma.incident.groupBy({ by: ['region'], where, _count: true }),
@@ -91,6 +111,57 @@ export default async function AnalyticsPage() {
       prisma.incident.groupBy({ by: ['verificationPathway'], where, _count: true }),
       prisma.incident.groupBy({ by: ['corroboratingSources'], where, _count: true }),
     ])
+
+    return {
+      total,
+      byCategory,
+      byRegion,
+      byStage,
+      totals,
+      withCoords,
+      multiSource,
+      occurred,
+      byPathway,
+      byCorroboration,
+    }
+  })
+}
+
+export default async function AnalyticsPage() {
+  const figures = await loadFigures()
+
+  if (!figures) {
+    return (
+      <>
+        <SiteHeader current="/analytics" />
+        <main id="main" className="shell section">
+          <PageHeader title="Analytics" lede="Breakdowns of the published record set." />
+          <div className="mt-6">
+            <EmptyState title="The figures could not be read.">
+              <p>
+                The database did not respond. Nothing here is missing or zero &mdash; it was not
+                retrieved. Reloading usually resolves it.
+              </p>
+            </EmptyState>
+          </div>
+        </main>
+        <SiteFooter />
+      </>
+    )
+  }
+
+  const {
+    total,
+    byCategory,
+    byRegion,
+    byStage,
+    totals,
+    withCoords,
+    multiSource,
+    occurred,
+    byPathway,
+    byCorroboration,
+  } = figures
 
   const { buckets: months, earlier } = monthBuckets(occurred)
 

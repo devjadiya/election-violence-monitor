@@ -26,7 +26,11 @@ export default async function DashboardLayout({
       <SidebarNav user={user} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar user={user} />
-        <main className="flex-1 overflow-y-auto p-6">
+        {/* `pb-24` on small screens clears the fixed bottom navigation, which
+            was covering the last rows of every table. `overflow-x-hidden`
+            stops a wide child from pushing the whole column sideways — tables
+            scroll inside their own `.scroll-x` container instead. */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 sm:p-6 lg:pb-6">
           {children}
         </main>
       </div>

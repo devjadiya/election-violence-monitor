@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { internalIncidentFilter, publicIncidentFilter } from '@/lib/incidents/visibility'
 import { Figure, EmptyState } from '@/components/public/site-shell'
@@ -55,73 +56,138 @@ function parseErrors(raw: string | null): RunErrors | null {
   }
 }
 
+/** One row of aggregate counts over the article corpus. */
+interface ArticleStats {
+  total: number
+  backlog: number
+  screened: number
+  relevant: number
+}
+
+/**
+ * Corpus totals, cached for a minute.
+ *
+ * These four numbers need an aggregate over the whole `RawArticle` table, and
+ * that table is growing fast — 5,766 rows in August, 14,207 today. Measured
+ * against production, the scan alone costs about 1.6 seconds, which was a
+ * third of the dashboard's total load time and rising with every cron run.
+ *
+ * They also only change when the cron runs, roughly once a day. Recomputing
+ * them on every page view was paying a growing cost for data that is stale by
+ * construction, so it is cached for sixty seconds. Everything else on this
+ * page stays live: the review queue, the recent records and the source health
+ * are what an operator acts on, and those must reflect their own edits
+ * immediately.
+ */
+const getArticleStats = unstable_cache(
+  async (): Promise<ArticleStats[]> =>
+    prisma.$queryRaw<ArticleStats[]>`
+      SELECT
+        COUNT(*)::int                                                           AS total,
+        COUNT(*) FILTER (WHERE NOT "isProcessed")::int                          AS backlog,
+        COUNT(*) FILTER (WHERE "pass1At" IS NOT NULL)::int                      AS screened,
+        COUNT(*) FILTER (WHERE "isElectionRelated" AND "isViolenceRelated")::int AS relevant
+      FROM "RawArticle"
+    `,
+  ['dashboard-article-stats'],
+  { revalidate: 60, tags: ['article-stats'] }
+)
+
 async function getOperationalState() {
   const real = internalIncidentFilter()
   const queueWhere = { ...real, status: { in: ['FLAGGED', 'UNDER_REVIEW'] as IncidentStatus[] } }
 
-  // Sequential groups: a pooled connection serves these one at a time, and a
-  // single flat Promise.all of ~20 queries has saturated pgbouncer before.
-  const [articles, backlog, screened, relevant, candidates, published] = await Promise.all([
-    prisma.rawArticle.count(),
-    prisma.rawArticle.count({ where: { isProcessed: false } }),
-    prisma.rawArticle.count({ where: { pass1At: { not: null } } }),
-    prisma.rawArticle.count({ where: { isElectionRelated: true, isViolenceRelated: true } }),
-    prisma.incident.count({ where: real }),
+  /**
+   * Nineteen queries became eleven, and six pooled rounds became three.
+   *
+   * Measured against production on 2026-09-09: the three original batches took
+   * 2184ms, 1394ms and 1390ms — nearly five seconds before the page rendered
+   * anything. A single round trip to the pooler costs roughly 700ms from here,
+   * and `connection_limit` is 5, so a batch of seven queries is two waits, not
+   * one. The cost was almost entirely the number of queries rather than the
+   * work in any of them.
+   *
+   * Three consolidations, no behaviour change:
+   *
+   *  - Four `rawArticle.count()` calls with different predicates become one
+   *    statement using aggregate FILTER. Raw SQL is safe over the article
+   *    corpus and is forbidden over Incident, where the visibility filter is a
+   *    Prisma `where` object that cannot be applied to a template literal.
+   *  - `groupBy(['status'])` replaces the separate FLAGGED and UNDER_REVIEW
+   *    counts, and its sum replaces the total-real-records count.
+   *  - The review queue is a dozen rows, so it is fetched once and the three
+   *    confidence bands and the oldest-queued timestamp are derived in memory
+   *    rather than costing four more round trips.
+   */
+  const [articleStats, byStatus, published] = await Promise.all([
+    getArticleStats(),
+    prisma.incident.groupBy({ by: ['status'], where: real, _count: true }),
     prisma.incident.count({ where: publicIncidentFilter() }),
   ])
 
-  const [flagged, underReview, tips, oldestQueued, lowConfidence, midConfidence, highConfidence] =
+  const [queue, tips, lastDiscover, lastClassify, runs, sources, elections, recent] =
     await Promise.all([
-      prisma.incident.count({ where: { ...real, status: 'FLAGGED' } }),
-      prisma.incident.count({ where: { ...real, status: 'UNDER_REVIEW' } }),
-      prisma.tipSubmission.count({ where: { isReviewed: false } }),
-      prisma.incident.findFirst({
+      prisma.incident.findMany({
         where: queueWhere,
         orderBy: { createdAt: 'asc' },
-        select: { createdAt: true },
+        select: { createdAt: true, confidenceScore: true },
       }),
-      prisma.incident.count({ where: { ...queueWhere, confidenceScore: { lt: 55 } } }),
-      prisma.incident.count({ where: { ...queueWhere, confidenceScore: { gte: 55, lt: 75 } } }),
-      prisma.incident.count({ where: { ...queueWhere, confidenceScore: { gte: 75 } } }),
+      prisma.tipSubmission.count({ where: { isReviewed: false } }),
+      prisma.ingestionLog.findFirst({ where: { jobType: 'discover' }, orderBy: { startedAt: 'desc' } }),
+      prisma.ingestionLog.findFirst({ where: { jobType: 'classify' }, orderBy: { startedAt: 'desc' } }),
+      prisma.ingestionLog.findMany({ orderBy: { startedAt: 'desc' }, take: 8 }),
+      prisma.monitoredSource.findMany({
+        where: { isActive: true },
+        select: {
+          id: true, name: true, lastSuccessAt: true,
+          consecutiveFailures: true, lastError: true,
+        },
+        orderBy: [{ consecutiveFailures: 'desc' }, { lastSuccessAt: 'asc' }],
+      }),
+      prisma.election.findMany({
+        where: { isActive: true, monitoringStatus: { in: ['ACTIVE', 'SCHEDULED'] } },
+        orderBy: { electionDate: 'asc' },
+        select: {
+          id: true, name: true, country: true, region: true, electionDate: true,
+          electionType: true, monitoringStatus: true, currentStage: true,
+          _count: { select: { incidents: { where: real } } },
+        },
+      }),
+      prisma.incident.findMany({
+        where: real,
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        select: {
+          id: true, referenceId: true, title: true, status: true,
+          confidenceScore: true, createdAt: true, country: true,
+        },
+      }),
     ])
 
-  const [lastDiscover, lastClassify, runs, sources, elections, recent] = await Promise.all([
-    prisma.ingestionLog.findFirst({ where: { jobType: 'discover' }, orderBy: { startedAt: 'desc' } }),
-    prisma.ingestionLog.findFirst({ where: { jobType: 'classify' }, orderBy: { startedAt: 'desc' } }),
-    prisma.ingestionLog.findMany({ orderBy: { startedAt: 'desc' }, take: 8 }),
-    prisma.monitoredSource.findMany({
-      where: { isActive: true },
-      select: {
-        id: true, name: true, lastSuccessAt: true,
-        consecutiveFailures: true, lastError: true,
-      },
-      orderBy: [{ consecutiveFailures: 'desc' }, { lastSuccessAt: 'asc' }],
-    }),
-    prisma.election.findMany({
-      where: { isActive: true, monitoringStatus: { in: ['ACTIVE', 'SCHEDULED'] } },
-      orderBy: { electionDate: 'asc' },
-      select: {
-        id: true, name: true, country: true, region: true, electionDate: true,
-        electionType: true, monitoringStatus: true, currentStage: true,
-        _count: { select: { incidents: { where: real } } },
-      },
-    }),
-    prisma.incident.findMany({
-      where: real,
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      select: {
-        id: true, referenceId: true, title: true, status: true,
-        confidenceScore: true, createdAt: true, country: true,
-      },
-    }),
-  ])
+  const stats = articleStats[0] ?? { total: 0, backlog: 0, screened: 0, relevant: 0 }
+  const countOf = (status: IncidentStatus) =>
+    byStatus.find((row) => row.status === status)?._count ?? 0
 
   return {
-    articles, backlog, screened, relevant, candidates, published,
-    flagged, underReview, tips, oldestQueued,
-    lowConfidence, midConfidence, highConfidence,
+    articles: stats.total,
+    backlog: stats.backlog,
+    screened: stats.screened,
+    relevant: stats.relevant,
+    candidates: byStatus.reduce((sum, row) => sum + row._count, 0),
+    published,
+    flagged: countOf('FLAGGED'),
+    underReview: countOf('UNDER_REVIEW'),
+    tips,
+    oldestQueued: queue[0] ?? null,
+    lowConfidence: queue.filter((i) => i.confidenceScore < 55).length,
+    midConfidence: queue.filter((i) => i.confidenceScore >= 55 && i.confidenceScore < 75).length,
+    highConfidence: queue.filter((i) => i.confidenceScore >= 75).length,
     lastDiscover, lastClassify, runs, sources, elections, recent,
+    // Read here rather than during render: `react-hooks/purity` objects to a
+    // clock read in a component body, and it is right to — the value differs
+    // on every call. Ages are resolved once, against the same instant every
+    // figure on the page is measured from.
+    now: Date.now(),
   }
 }
 
@@ -131,13 +197,13 @@ export default async function DashboardPage() {
   const failingSources = s.sources.filter((x) => x.consecutiveFailures > 0)
   const queueSize = s.flagged + s.underReview
   const oldestQueuedDays = s.oldestQueued
-    ? Math.floor((Date.now() - new Date(s.oldestQueued.createdAt).getTime()) / 86_400_000)
+    ? Math.floor((s.now - new Date(s.oldestQueued.createdAt).getTime()) / 86_400_000)
     : 0
 
   // The attention list. Each entry cites the measurement that produced it.
   const attention: { text: string; href: string }[] = []
-  const discoverAge = s.lastDiscover ? Date.now() - new Date(s.lastDiscover.startedAt).getTime() : null
-  const classifyAge = s.lastClassify ? Date.now() - new Date(s.lastClassify.startedAt).getTime() : null
+  const discoverAge = s.lastDiscover ? s.now - new Date(s.lastDiscover.startedAt).getTime() : null
+  const classifyAge = s.lastClassify ? s.now - new Date(s.lastClassify.startedAt).getTime() : null
 
   if (discoverAge === null) {
     attention.push({ text: 'Collection has never run.', href: '/sources/health' })
@@ -390,7 +456,7 @@ export default async function DashboardPage() {
                   const failedCount = errs?.failedSources?.length ?? 0
                   return (
                     <tr key={r.id}>
-                      <th scope="row" className="whitespace-nowrap px-3 py-2.5 text-left text-[0.8125rem] font-normal">
+                      <th scope="row" className="whitespace-nowrap text-[0.8125rem]">
                         {formatDateTime(r.startedAt)}
                       </th>
                       <td><span className="chip chip-mono">{r.jobType}</span></td>
@@ -445,7 +511,7 @@ export default async function DashboardPage() {
               <tbody>
                 {failingSources.map((x) => (
                   <tr key={x.id}>
-                    <th scope="row" className="px-3 py-2.5 text-left text-[0.875rem] font-normal">
+                    <th scope="row" className="text-[0.875rem]">
                       {x.name}
                     </th>
                     <td className="tnum text-right">{x.consecutiveFailures}</td>
@@ -493,15 +559,16 @@ export default async function DashboardPage() {
                 {s.recent.map((i) => (
                   <tr key={i.id}>
                     <td><span className="chip chip-mono">{i.referenceId}</span></td>
-                    <th scope="row" className="max-w-[26rem] px-3 py-2.5 text-left font-normal">
+                    <th scope="row">
                       <Link
                         href={`/manage/incidents/${i.id}`}
-                        className="text-[0.875rem] text-[var(--ink)] hover:text-[var(--link)]"
+                        className="cell-clip text-[0.875rem] text-[var(--ink)] hover:text-[var(--link)]"
+                        title={i.title}
                       >
                         {i.title}
                       </Link>
                     </th>
-                    <td className="text-[var(--ink-2)]">{i.country}</td>
+                    <td className="whitespace-nowrap text-[var(--ink-2)]">{i.country}</td>
                     <td>
                       <span className={`status ${STATUS_TONE[i.status]}`}>
                         {STATUS_LABEL[i.status]}

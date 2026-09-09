@@ -269,6 +269,50 @@ body {
 
 .rise { animation: evm-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+/* ---------------------------------------------------------------- touch --
+   Interaction on a phone.
+
+   Three things a desktop-first build gets wrong and nobody notices until they
+   open it on a handset:
+
+   - Tapping anything flashes a grey box. That is the mobile browser's default
+     highlight, and it makes a considered interface feel cheap.
+   - Every tap costs about 300ms while the browser waits to see whether it was
+     a double-tap. `touch-action: manipulation` opts out of that wait.
+   - An icon button drawn at 28px is below every published minimum for a touch
+     target (44px in Apple's guidance, 48px in Google's). It is fine with a
+     mouse and a coin-toss with a thumb, so interactive elements get a minimum
+     hit area on coarse pointers without changing how they look. */
+a, button, [role='button'], summary, label, select, input {
+  -webkit-tap-highlight-color: transparent;
+}
+a, button, [role='button'], summary {
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  button, [role='button'], a.btn, .nav-link {
+    min-height: 44px;
+  }
+  /* Icon-only controls are square, so they need the width too. */
+  button:has(> svg:only-child),
+  a:has(> svg:only-child) {
+    min-width: 44px;
+  }
+}
+
+
+/* A sticky header must not cover the thing that was just scrolled to. */
+:target {
+  scroll-margin-top: 5rem;
+}
+
+/* Long, unbroken strings — a source URL, a reference id — are the usual cause
+   of a page that scrolls sideways on a phone. */
+body {
+  overflow-wrap: break-word;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .live-dot, .rise { animation: none; }
   .rise { opacity: 1; transform: none; }
@@ -578,7 +622,15 @@ body {
 
 /* Data tables: dense, ruled, scannable. */
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-.data-table th {
+
+/* Column headers only.
+   This selector was `.data-table th`, which also caught every
+   `<th scope="row">` — the accessible way to mark the cell that names a row.
+   Eight of those exist across the dashboard and the public site, and all of
+   them were being rendered as 12px uppercase letter-spaced grey: incident
+   titles, source names and field names all shouting in a column meant for
+   content. */
+.data-table thead th {
   text-align: left;
   font-weight: 600;
   font-size: 0.75rem;
@@ -589,6 +641,14 @@ body {
   border-bottom: 1px solid var(--rule-2);
   white-space: nowrap;
 }
+
+/* A row header is a cell that happens to name its row. It reads as content. */
+.data-table tbody th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--ink);
+}
+.data-table tbody th,
 .data-table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--rule);
@@ -596,8 +656,31 @@ body {
 }
 .data-table tbody tr:hover { background: var(--paper-2); }
 
-/* Horizontal scroll container for wide tables on small screens. */
-.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Long text inside a table cell.
+   `max-width` on a `td` or `th` is ignored under the automatic table layout
+   algorithm — the browser sizes columns to their content, which is how a long
+   incident title came to overlap the column beside it. Constraining a
+   block-level child works, because it is no longer a table box. */
+.cell-clip {
+  display: block;
+  max-width: 26rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .cell-clip { max-width: 15rem; }
+}
+
+/* Horizontal scroll container for wide tables on small screens.
+   `overscroll-behavior-x: contain` stops a sideways swipe inside the table
+   from triggering the browser's back-navigation gesture, which is the single
+   most irritating way to lose your place on a phone. */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

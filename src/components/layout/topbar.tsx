@@ -67,39 +67,84 @@ export function TopBar({ user: _user }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
-    try {
-      const res = await fetch('/api/notifications')
-      const data = await res.json()
-      if (data.success) {
+  /**
+   * Notification polling.
+   *
+   * Every state update happens in a callback from a timer or a settled fetch,
+   * never synchronously in the effect body. Calling the loader inline made
+   * React re-render immediately after mount for a value that was not ready
+   * yet, which is what `react-hooks/set-state-in-effect` is warning about.
+   *
+   * `cancelled` guards the unmount race: a request in flight when the
+   * component goes away would otherwise set state on a dead component.
+   */
+  const refreshNotifications = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const res = await fetch('/api/notifications')
+        const data = await res.json().catch(() => ({}))
+        if (cancelled || !data.success) return
         setNotifications(data.data)
         setUnreadCount(data.unreadCount)
+      } catch {
+        // A failed poll is not worth reporting; the next one is 30s away.
       }
-    } catch {}
-  }
+    }
 
-  useEffect(() => {
-    fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000)
-    return () => clearInterval(interval)
+    refreshNotifications.current = () => {
+      void load()
+    }
+
+    const initial = setTimeout(load, 0)
+    const interval = setInterval(load, 30_000)
+    return () => {
+      cancelled = true
+      clearTimeout(initial)
+      clearInterval(interval)
+    }
   }, [])
 
-  // Search
+  /**
+   * Search, debounced.
+   *
+   * The short-query reset used to run synchronously on every keystroke, which
+   * both tripped the same lint rule and cleared the results list on the way
+   * down from three characters to two — a visible flicker. Everything now
+   * happens inside the debounce callback, so a fast typist causes exactly one
+   * state change rather than one per key.
+   */
   useEffect(() => {
-    if (search.length < 2) { setSearchResults([]); setSearchOpen(false); return }
+    let cancelled = false
+
     const timer = setTimeout(async () => {
+      if (cancelled) return
+
+      if (search.trim().length < 2) {
+        setSearchResults([])
+        setSearchOpen(false)
+        return
+      }
+
       setSearchLoading(true)
       try {
         const res = await fetch(`/api/incidents/search?q=${encodeURIComponent(search)}`)
         const data = await res.json().catch(() => ({}))
+        if (cancelled) return
         setSearchResults(data.data ?? [])
         setSearchOpen(true)
       } finally {
-        setSearchLoading(false)
+        if (!cancelled) setSearchLoading(false)
       }
     }, 300)
-    return () => clearTimeout(timer)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [search])
 
   async function markAllRead() {
@@ -117,7 +162,7 @@ export function TopBar({ user: _user }: Props) {
   }
 
   return (
-    <header className="glass-nav px-6 py-3 flex items-center gap-4 shrink-0 z-30">
+    <header className="glass-nav z-30 flex shrink-0 items-center gap-3 py-3 pl-16 pr-4 sm:gap-4 lg:pl-6 lg:pr-6">
       {/* Search */}
       <div className="flex-1 max-w-md relative" ref={searchRef}>
         <div className="relative">
@@ -162,7 +207,10 @@ export function TopBar({ user: _user }: Props) {
         {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => { setNotifOpen(!notifOpen); if (!notifOpen) fetchNotifications() }}
+            onClick={() => {
+              setNotifOpen(!notifOpen)
+              if (!notifOpen) refreshNotifications.current()
+            }}
             className="relative p-2 rounded-lg hover:bg-zinc-100 transition-colors"
           >
             <Bell size={16} className="text-zinc-500" />
