@@ -166,37 +166,37 @@ export function TopBar({ user: _user }: Props) {
       {/* Search */}
       <div className="flex-1 max-w-md relative" ref={searchRef}>
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-4)]" />
           <input
             type="text"
             placeholder="Search incidents, countries, ref IDs..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
-            className="w-full pl-9 pr-8 py-2 text-sm bg-zinc-100 border border-transparent rounded-lg focus:outline-none focus:bg-white focus:border-zinc-200 transition-all"
+            className="w-full pl-9 pr-8 py-2 text-sm bg-[var(--paper-3)] border border-transparent rounded-sm focus:outline-none focus:bg-[var(--paper)] focus:border-[var(--rule-2)] transition-all"
           />
           {search && (
             <button onClick={() => { setSearch(''); setSearchResults([]); setSearchOpen(false) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-4)] hover:text-[var(--ink-2)]">
               <X size={12} />
             </button>
           )}
         </div>
         {searchOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-zinc-200 rounded-xl shadow-xl z-50 overflow-hidden">
-            {searchLoading && <div className="px-4 py-3 text-xs text-zinc-400">Searching...</div>}
-            {!searchLoading && searchResults.length === 0 && <div className="px-4 py-3 text-xs text-zinc-400">No results for &ldquo;{search}&rdquo;</div>}
+          <div className="absolute top-full left-0 right-0 mt-1.5 bg-[var(--paper)] border border-[var(--rule-2)] rounded-sm shadow-[0_8px_20px_rgba(20,22,26,0.10)] z-50 overflow-hidden">
+            {searchLoading && <div className="px-4 py-3 text-xs text-[var(--ink-4)]">Searching...</div>}
+            {!searchLoading && searchResults.length === 0 && <div className="px-4 py-3 text-xs text-[var(--ink-4)]">No results for &ldquo;{search}&rdquo;</div>}
             {!searchLoading && searchResults.map(r => (
               <button key={r.id} onClick={() => { router.push(`/manage/incidents/${r.id}`); setSearchOpen(false); setSearch('') }}
-                className="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0">
+                className="w-full text-left px-4 py-3 hover:bg-[var(--paper-2)] transition-colors border-b border-[var(--rule)] last:border-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-[10px] font-mono text-zinc-400">{r.referenceId}</span>
+                  <span className="text-[10px] font-mono text-[var(--ink-4)]">{r.referenceId}</span>
                   <span className={`status ${STATUS_TONE[r.status as IncidentStatus] ?? 'status-none'}`}>
                     {STATUS_LABEL[r.status as IncidentStatus] ?? r.status}
                   </span>
                 </div>
-                <div className="text-sm font-medium text-zinc-800 truncate">{r.title}</div>
-                <div className="text-xs text-zinc-400 mt-0.5">{r.country} · {formatDistanceToNow(new Date(r.occurredAt), { addSuffix: true })}</div>
+                <div className="text-sm font-medium text-[var(--ink)] truncate">{r.title}</div>
+                <div className="text-xs text-[var(--ink-4)] mt-0.5">{r.country} · {formatDistanceToNow(new Date(r.occurredAt), { addSuffix: true })}</div>
               </button>
             ))}
           </div>
@@ -211,20 +211,20 @@ export function TopBar({ user: _user }: Props) {
               setNotifOpen(!notifOpen)
               if (!notifOpen) refreshNotifications.current()
             }}
-            className="relative p-2 rounded-lg hover:bg-zinc-100 transition-colors"
+            className="relative p-2 rounded-sm hover:bg-[var(--paper-3)] transition-colors"
           >
-            <Bell size={16} className="text-zinc-500" />
+            <Bell size={16} className="text-[var(--ink-3)]" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[var(--navy)] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {notifOpen && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-zinc-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
-                <div className="text-sm font-semibold text-zinc-800">Notifications</div>
+            <div className="absolute top-full right-0 mt-2 w-80 bg-[var(--paper)] border border-[var(--rule-2)] rounded-sm shadow-[0_12px_28px_rgba(20,22,26,0.12)] z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--rule)]">
+                <div className="text-sm font-semibold text-[var(--ink)]">Notifications</div>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead}
                     className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors">
@@ -236,7 +236,7 @@ export function TopBar({ user: _user }: Props) {
 
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-400 text-xs">
+                  <div className="text-center py-8 text-[var(--ink-4)] text-xs">
                     <Bell size={20} className="mx-auto mb-2 opacity-30" />
                     No notifications yet
                   </div>
@@ -245,7 +245,7 @@ export function TopBar({ user: _user }: Props) {
                     <button
                       key={n.id}
                       onClick={() => markOneRead(n.id, n.link)}
-                      className={`w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
+                      className={`w-full text-left px-4 py-3 hover:bg-[var(--paper-2)] transition-colors border-b border-[var(--rule)] last:border-0 ${!n.isRead ? 'bg-[var(--navy-tint)]' : ''}`}
                     >
                       <div className="flex items-start gap-2.5">
                         <span className="chip mt-0.5 shrink-0">
@@ -271,8 +271,8 @@ export function TopBar({ user: _user }: Props) {
                 )}
               </div>
 
-              <div className="px-4 py-2.5 border-t border-zinc-100 bg-zinc-50/50">
-                <p className="text-[10px] text-zinc-400 text-center">
+              <div className="px-4 py-2.5 border-t border-[var(--rule)] bg-[var(--paper-2)]">
+                <p className="text-[10px] text-[var(--ink-4)] text-center">
                   Refreshes every 30 seconds
                 </p>
               </div>
@@ -282,7 +282,7 @@ export function TopBar({ user: _user }: Props) {
 
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 text-sm text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--paper-3)] rounded-sm transition-colors"
         >
           <LogOut size={14} />
           <span className="hidden sm:inline">Sign out</span>

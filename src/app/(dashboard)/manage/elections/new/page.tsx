@@ -73,23 +73,23 @@ export default function NewElectionPage() {
     }
   }
 
-  const inputClass = "w-full px-3.5 py-2.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]/10 focus:border-[#1a1a2e] transition-all"
-  const labelClass = "block text-sm font-medium text-zinc-700 mb-1.5"
+  const inputClass = "w-full px-3.5 py-2.5 rounded-sm border border-[var(--rule-2)] text-sm focus:outline-none focus:border-[var(--navy-3)] transition-all"
+  const labelClass = "block text-sm font-medium text-[var(--ink-2)] mb-1.5"
 
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#1a1a2e]">Add Election</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Register an election to monitor for violence incidents</p>
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Add Election</h1>
+        <p className="text-sm text-[var(--ink-3)] mt-0.5">Register an election to monitor for violence incidents</p>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">{error}</div>
+        <div className="mb-4 p-3 rounded-sm border-l-2 border-[var(--severity)] bg-[var(--severity-tint)] text-[var(--severity)] text-sm">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="glass-card p-5 space-y-4">
-          <h2 className="font-semibold text-[#1a1a2e] text-sm">Election Details</h2>
+        <div className="border border-[var(--rule)] bg-[var(--paper)] p-5 space-y-4">
+          <h2 className="font-semibold text-[var(--ink)] text-sm">Election Details</h2>
 
           <div>
             <label className={labelClass}>Election Name *</label>
@@ -128,14 +128,14 @@ export default function NewElectionPage() {
 
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={e => update('isActive', e.target.checked)} className="rounded" />
-            <span className="text-sm text-zinc-700">Actively monitoring this election</span>
+            <span className="text-sm text-[var(--ink-2)]">Actively monitoring this election</span>
           </label>
         </div>
 
         {/* Wikidata linking */}
-        <div className="glass-card p-5 space-y-3">
-          <h2 className="font-semibold text-[#1a1a2e] text-sm">Wikidata Linking (Optional)</h2>
-          <p className="text-xs text-zinc-500">Link to a Wikidata entity for structured data integration</p>
+        <div className="border border-[var(--rule)] bg-[var(--paper)] p-5 space-y-3">
+          <h2 className="font-semibold text-[var(--ink)] text-sm">Wikidata Linking (Optional)</h2>
+          <p className="text-xs text-[var(--ink-3)]">Link to a Wikidata entity for structured data integration</p>
 
           <div className="flex gap-2">
             <input
@@ -146,14 +146,14 @@ export default function NewElectionPage() {
               placeholder="Search Wikidata (e.g. 2023 Nigerian election)"
             />
             <button type="button" onClick={searchWikidata} disabled={searching}
-              className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-sm transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-3 py-2 bg-[var(--paper-3)] hover:bg-[var(--rule)] rounded-sm text-sm transition-colors disabled:opacity-50">
               <Search size={14} />
               {searching ? '...' : 'Search'}
             </button>
           </div>
 
           {wikidataResults.length > 0 && (
-            <div className="border border-zinc-200 rounded-lg overflow-hidden">
+            <div className="border border-[var(--rule-2)] rounded-sm overflow-hidden">
               {wikidataResults.map(result => (
                 <button
                   key={result.id}
@@ -164,16 +164,16 @@ export default function NewElectionPage() {
                     setWikidataResults([])
                     setWikidataSearch(result.label)
                   }}
-                  className={`w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0 ${
+                  className={`w-full text-left px-4 py-3 hover:bg-[var(--paper-2)] transition-colors border-b border-[var(--rule)] last:border-0 ${
                     form.wikidataId === result.id ? 'bg-blue-50' : ''
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-blue-600 shrink-0">{result.id}</span>
+                    <span className="text-xs font-mono text-[var(--link)] shrink-0">{result.id}</span>
                     <div>
-                      <div className="text-sm font-medium text-zinc-800">{result.label}</div>
+                      <div className="text-sm font-medium text-[var(--ink)]">{result.label}</div>
                       {result.description && (
-                        <div className="text-xs text-zinc-400 truncate">{result.description}</div>
+                        <div className="text-xs text-[var(--ink-4)] truncate">{result.description}</div>
                       )}
                     </div>
                   </div>
@@ -183,9 +183,9 @@ export default function NewElectionPage() {
           )}
 
           {form.wikidataId && (
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <span className="text-xs font-mono text-blue-700 font-bold">{form.wikidataId}</span>
-              <span className="text-xs text-blue-600 flex-1">{wikidataSearch}</span>
+            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-sm border border-blue-100">
+              <span className="chip-mono text-xs font-semibold text-[var(--navy)]">{form.wikidataId}</span>
+              <span className="text-xs text-[var(--link)] flex-1">{wikidataSearch}</span>
               <button type="button" onClick={() => { update('wikidataId', ''); setWikidataSearch('') }}
                 className="text-xs text-red-500 hover:text-red-700">Remove</button>
             </div>
@@ -200,11 +200,11 @@ export default function NewElectionPage() {
 
         <div className="flex gap-3 pb-6">
           <button type="submit" disabled={loading}
-            className="bg-[#1a1a2e] text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors disabled:opacity-50">
+            className="btn btn-primary px-6 py-2.5 rounded-sm text-sm font-medium  transition-colors disabled:opacity-50">
             {loading ? 'Adding...' : 'Add Election'}
           </button>
           <button type="button" onClick={() => router.back()}
-            className="px-6 py-2.5 rounded-lg text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors">
+            className="px-6 py-2.5 rounded-sm text-sm font-medium border border-[var(--rule-2)] text-[var(--ink-2)] hover:bg-[var(--paper-2)] transition-colors">
             Cancel
           </button>
         </div>

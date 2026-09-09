@@ -1,96 +1,151 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileJson, FileText } from 'lucide-react'
+import { Download, FileJson, FileText, Share2, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+/**
+ * Bulk export.
+ *
+ * The previous version never checked the response: a 401, a 429 from the
+ * rate limiter, or a 500 all produced a blob, and the browser cheerfully
+ * downloaded the error body as `evm-incidents-2026-09-09.csv`. Someone would
+ * have opened a spreadsheet containing the word "Unauthorized" and had no idea
+ * why. The content type is now verified before anything is saved.
+ *
+ * The anchor is also appended to the document before it is clicked. A detached
+ * anchor works in Chromium and silently does nothing in Firefox.
+ */
+
+type Format = 'csv' | 'json' | 'wikidata'
+
+const EXTENSION: Record<Format, string> = { csv: 'csv', json: 'json', wikidata: 'jsonld' }
 
 export default function ExportPage() {
-  const [loading, setLoading] = useState<string | null>(null)
+  const [loading, setLoading] = useState<Format | null>(null)
 
-  async function exportData(format: 'csv' | 'json' | 'wikidata') {
+  async function exportData(format: Format) {
     setLoading(format)
     try {
       const res = await fetch(`/api/export?format=${format}`)
+
+      if (!res.ok) {
+        // The body of a failed export is JSON, not data.
+        const detail = await res.json().catch(() => ({}))
+        toast.error('The export failed', {
+          description:
+            detail.error ??
+            (res.status === 429
+              ? 'The export rate limit was reached. Exports are capped at ten an hour.'
+              : `The server returned ${res.status}.`),
+        })
+        return
+      }
+
       const blob = await res.blob()
+      if (blob.size === 0) {
+        toast.error('The export was empty', {
+          description: 'Nothing matched, so no file was saved.',
+        })
+        return
+      }
+
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      const ext = format === 'wikidata' ? 'jsonld' : format
-      a.download = `evm-incidents-${new Date().toISOString().slice(0, 10)}.${ext}`
-      a.click()
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `evm-records-${new Date().toISOString().slice(0, 10)}.${EXTENSION[format]}`
+      document.body.appendChild(anchor)
+      anchor.click()
+      document.body.removeChild(anchor)
       URL.revokeObjectURL(url)
+
+      toast.success('Export downloaded', {
+        description: `${(blob.size / 1024).toFixed(0)} KB as ${EXTENSION[format].toUpperCase()}.`,
+      })
+    } catch {
+      toast.error('The export failed', {
+        description: 'The request did not complete. Check your connection and try again.',
+      })
     } finally {
       setLoading(null)
     }
   }
 
+  const options: { id: Format; icon: typeof FileText; label: string; note: string }[] = [
+    { id: 'csv', icon: FileText, label: 'CSV', note: 'Spreadsheets and GIS tools' },
+    { id: 'json', icon: FileJson, label: 'JSON', note: 'Scripts and analysis' },
+    { id: 'wikidata', icon: Share2, label: 'JSON-LD', note: 'Wikidata and knowledge graphs' },
+  ]
+
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Export Data</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Download incident data for research and analysis</p>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <header className="rule-b pb-5">
+        <h1 className="headline">Export</h1>
+        <p className="mt-1 text-[0.875rem] leading-relaxed text-[var(--ink-3)]">
+          The record set as a file. What you receive depends on your role: everyone gets published
+          records, an analyst and above also gets those marked verified.
+        </p>
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {options.map(({ id, icon: Icon, label, note }) => {
+          const busy = loading === id
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => exportData(id)}
+              disabled={!!loading}
+              className="card card-hover flex flex-col items-start gap-2 p-5 text-left disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 size={22} className="animate-spin text-[var(--navy)]" aria-hidden />
+              ) : (
+                <Icon size={22} className="text-[var(--ink-3)]" aria-hidden />
+              )}
+              <span className="text-[0.9375rem] font-semibold text-[var(--ink)]">{label}</span>
+              <span className="text-[0.75rem] leading-relaxed text-[var(--ink-3)]">{note}</span>
+              <span className="mt-1 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-[var(--link)]">
+                <Download size={13} aria-hidden />
+                {busy ? 'Preparing…' : 'Download'}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
-      <div className="glass-card p-6 space-y-4">
-        <h2 className="font-semibold text-[#1a1a2e]">Published Incidents</h2>
-        <p className="text-sm text-zinc-500">
-          Export all verified and published incidents. Sensitive personal details are excluded per our ethical guidelines.
-        </p>
-
-        <div className="grid grid-cols-2 gap-4 pt-2">
-          <button
-            onClick={() => exportData('csv')}
-            disabled={!!loading}
-            className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-zinc-200 rounded-xl hover:border-[#1a1a2e] hover:bg-zinc-50 transition-all disabled:opacity-50"
-          >
-            <FileText size={28} className="text-zinc-400" />
-            <div className="text-center">
-              <div className="font-semibold text-zinc-700">CSV Format</div>
-              <div className="text-xs text-zinc-400 mt-0.5">For spreadsheets & GIS tools</div>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm text-[#1a1a2e] font-medium">
-              <Download size={14} />
-              {loading === 'csv' ? 'Downloading...' : 'Download CSV'}
-            </div>
-          </button>
-
-          <button
-            onClick={() => exportData('json')}
-            disabled={!!loading}
-            className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-zinc-200 rounded-xl hover:border-[#1a1a2e] hover:bg-zinc-50 transition-all disabled:opacity-50"
-          >
-            <FileJson size={28} className="text-zinc-400" />
-            <div className="text-center">
-              <div className="font-semibold text-zinc-700">JSON Format</div>
-              <div className="text-xs text-zinc-400 mt-0.5">For developers & Wikidata</div>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm text-[#1a1a2e] font-medium">
-              <Download size={14} />
-              {loading === 'json' ? 'Downloading...' : 'Download JSON'}
-            </div>
-          </button>
+      <section className="card p-5">
+        <h2 className="text-[0.9375rem] font-semibold text-[var(--ink)]">What is in the file</h2>
+        <div className="prose-measure mt-2 space-y-2.5 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+          <p>
+            Every row carries its own provenance: the source URL, when the source published, the
+            model and prompt version that extracted it, its confidence, and whether a person
+            reviewed it or it met the automated publication criteria. A row you cannot trace back
+            to a published article is not in here, because it is not in the database.
+          </p>
+          <p>
+            Victim names, personal identifiers and the sensitive demographic fields are excluded
+            from every export, at every role. Casualty figures are the numbers a source stated;
+            where a report said &ldquo;several injured&rdquo; the field is zero, so these are lower
+            bounds rather than counts.
+          </p>
+          <p>
+            Structured data is <span className="text-[var(--ink)]">CC0</span>. The underlying
+            articles remain their publishers&rsquo;, which is why this links to them rather than
+            reproducing them.
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="glass-card p-5">
-        <h3 className="font-semibold text-sm text-[#1a1a2e] mb-2">Wikidata-Compatible JSON</h3>
-        <p className="text-xs text-zinc-500 mb-3">
-          Export structured data linked to Wikidata entities for research and knowledge graph integration.
+      <section className="card p-5">
+        <h2 className="text-[0.9375rem] font-semibold text-[var(--ink)]">Rate limit</h2>
+        <p className="prose-measure mt-2 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+          Ten exports an hour. The public API at{' '}
+          <span className="chip-mono">/api/public/incidents</span> is the better route for anything
+          automated &mdash; it is paginated, unauthenticated and documented under{' '}
+          <span className="text-[var(--ink)]">Developers</span>.
         </p>
-        <button
-          onClick={() => exportData('wikidata')}
-          disabled={!!loading}
-          className="text-sm text-blue-600 hover:underline font-medium disabled:opacity-50"
-        >
-          {loading === 'wikidata' ? 'Downloading...' : 'Download Wikidata JSON-LD →'}
-        </button>
-      </div>
-
-      <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-        <p className="text-xs text-blue-700 leading-relaxed">
-          <strong>Privacy notice:</strong> All exports exclude victim names, personal identifiers, and sensitive demographic data.
-          Only aggregate counts and anonymized incident details are included, per our ethical data publication guidelines.
-        </p>
-      </div>
+      </section>
     </div>
   )
 }

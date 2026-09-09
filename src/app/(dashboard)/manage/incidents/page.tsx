@@ -1,14 +1,48 @@
-import { prisma } from '@/lib/db'
-import { internalIncidentFilter } from '@/lib/incidents/visibility'
-import type { Prisma } from '@/lib/generated/prisma'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/constants'
-import { STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
-import type { IncidentCategory, IncidentStatus } from '@/lib/generated/prisma'
-import { Plus, Filter } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { prisma } from '@/lib/db'
+import { internalIncidentFilter } from '@/lib/incidents/visibility'
+import { CATEGORY_LABEL, STATUS_LABEL, STATUS_TONE } from '@/lib/incidents/format'
+import { familyOf } from '@/lib/incidents/category-family'
+import { PageHeader, Panel, TableShell, Empty } from '@/components/dashboard/ui'
+import type { Prisma, IncidentCategory, IncidentStatus } from '@/lib/generated/prisma'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * The full record register.
+ *
+ * The list an operator lives in, so it is built for scanning: reference,
+ * headline, what kind of harm, where, what state it is in, and how confident
+ * the extraction was. Colour carries the harm family rather than giving each of
+ * nineteen categories its own hue — four of which were near-identical reds and
+ * none of which could be read without the legend.
+ *
+ * Starts from `internalIncidentFilter()`, so it agrees with every other surface
+ * and never lists the fabricated seed records. It previously started from `{}`.
+ */
+
+const PAGE_SIZE = 20
+
+const STATUSES: IncidentStatus[] = [
+  'RAW',
+  'FLAGGED',
+  'UNDER_REVIEW',
+  'VERIFIED',
+  'PUBLISHED',
+  'REJECTED',
+]
+
+/** Preserves the other filters when one changes, so they compose. */
+function href(params: { status?: string; category?: string; page?: string }): string {
+  const q = new URLSearchParams()
+  if (params.status) q.set('status', params.status)
+  if (params.category) q.set('category', params.category)
+  if (params.page && params.page !== '1') q.set('page', params.page)
+  const s = q.toString()
+  return s ? `/manage/incidents?${s}` : '/manage/incidents'
+}
 
 export default async function IncidentsPage({
   searchParams,
@@ -16,11 +50,8 @@ export default async function IncidentsPage({
   searchParams: Promise<{ status?: string; category?: string; page?: string }>
 }) {
   const params = await searchParams
-  const page = Number(params.page ?? 1)
-  const pageSize = 20
+  const page = Math.max(1, Number(params.page ?? 1) || 1)
 
-  // Starts from the internal filter rather than `{}`, so this list agrees with
-  // every other surface and never shows the fabricated seed records.
   const where: Prisma.IncidentWhereInput = { ...internalIncidentFilter() }
   if (params.status) where.status = params.status as Prisma.IncidentWhereInput['status']
   if (params.category) where.category = params.category as Prisma.IncidentWhereInput['category']
@@ -28,163 +59,191 @@ export default async function IncidentsPage({
   const [incidents, total] = await Promise.all([
     prisma.incident.findMany({
       where,
-      take: pageSize,
-      skip: (page - 1) * pageSize,
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        referenceId: true,
+        title: true,
+        category: true,
+        country: true,
+        region: true,
+        status: true,
+        confidenceScore: true,
+        createdAt: true,
         election: { select: { name: true } },
-        createdBy: { select: { name: true } },
       },
     }),
     prisma.incident.count({ where }),
   ])
 
-  const totalPages = Math.ceil(total / pageSize)
-
-  const statuses: IncidentStatus[] = ['RAW', 'FLAGGED', 'UNDER_REVIEW', 'VERIFIED', 'PUBLISHED', 'REJECTED']
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Incidents</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">{total} total incidents</p>
-        </div>
-        <Link
-          href="/manage/incidents/new"
-          className="flex items-center gap-2 bg-[#1a1a2e] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors"
-        >
-          <Plus size={15} />
-          New Incident
-        </Link>
-      </div>
-
-      {/* Filters */}
-      <div className="glass-card p-4 flex flex-wrap gap-2 items-center">
-        <Filter size={14} className="text-zinc-400" />
-        <span className="text-xs text-zinc-500 font-medium mr-1">Status:</span>
-        <Link
-          href="/manage/incidents"
-          className={`text-xs px-3 py-1.5 rounded-full border transition-all ${!params.status ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}
-        >
-          All
-        </Link>
-        {statuses.map((s) => (
-          <Link
-            key={s}
-            href={`/manage/incidents?status=${s}${params.category ? `&category=${params.category}` : ''}`}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${params.status === s ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]' : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'}`}
-          >
-            {s}
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader
+        title="Records"
+        lede={`${total.toLocaleString('en-US')} record${total === 1 ? '' : 's'}, every status. Excludes the fabricated seed data, as every other surface does.`}
+        action={
+          <Link href="/manage/incidents/new" className="btn btn-primary">
+            <Plus size={15} aria-hidden /> New record
           </Link>
-        ))}
-      </div>
+        }
+      />
 
-      {/* Table */}
-      <div className="glass-card overflow-hidden">
-        {incidents.length === 0 ? (
-          <div className="px-5 py-16 text-center">
-            <div className="text-[0.9375rem] font-medium text-[var(--ink)]">
-              No records match this filter.
-            </div>
-            <Link href="/manage/incidents/new" className="text-xs text-blue-500 hover:underline mt-2 inline-block">
-              Add the first incident
+      <Panel className="p-3">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[0.75rem] font-medium text-[var(--ink-3)]">Status</span>
+          <Link
+            href={href({ category: params.category })}
+            aria-current={!params.status ? 'true' : undefined}
+            className={`chip ${
+              !params.status
+                ? 'border-[var(--navy)] bg-[var(--navy)] text-white'
+                : 'hover:border-[var(--rule-2)] hover:bg-[var(--paper-3)]'
+            }`}
+          >
+            All
+          </Link>
+          {STATUSES.map((s) => (
+            <Link
+              key={s}
+              href={href({ status: s, category: params.category })}
+              aria-current={params.status === s ? 'true' : undefined}
+              className={`chip ${
+                params.status === s
+                  ? 'border-[var(--navy)] bg-[var(--navy)] text-white'
+                  : 'hover:border-[var(--rule-2)] hover:bg-[var(--paper-3)]'
+              }`}
+            >
+              {STATUS_LABEL[s]}
             </Link>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Ref</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Title</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Category</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Country</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Score</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-50">
-              {incidents.map((incident) => (
-                <tr key={incident.id} className="hover:bg-zinc-50 transition-colors group">
-                  <td className="px-5 py-3.5">
-                    <span className="text-xs font-mono text-zinc-400">{incident.referenceId}</span>
+          ))}
+        </div>
+      </Panel>
+
+      {incidents.length === 0 ? (
+        <Empty title="No records match this filter.">
+          <p>
+            {params.status || params.category
+              ? 'Clear the filter to see everything the pipeline has produced.'
+              : 'The pipeline has not structured any records yet.'}
+          </p>
+          <p className="mt-2">
+            <Link href="/manage/incidents/new" className="link-underline">
+              Create one by hand
+            </Link>
+          </p>
+        </Empty>
+      ) : (
+        <TableShell>
+          <thead>
+            <tr>
+              <th scope="col">Reference</th>
+              <th scope="col">Title</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Place</th>
+              <th scope="col">Status</th>
+              <th scope="col">Confidence</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {incidents.map((incident) => {
+              const family = familyOf(incident.category)
+              return (
+                <tr key={incident.id}>
+                  <td>
+                    <span className="chip chip-mono">{incident.referenceId}</span>
                   </td>
-                  <td className="px-5 py-3.5 max-w-xs">
+                  <th scope="row">
                     <Link
                       href={`/manage/incidents/${incident.id}`}
-                      className="font-medium text-zinc-800 group-hover:text-[#1a1a2e] truncate block"
+                      title={incident.title}
+                      className="cell-clip text-[0.875rem] text-[var(--ink)] hover:text-[var(--link)]"
                     >
                       {incident.title}
                     </Link>
-                    {incident.election && (
-                      <span className="text-[11px] text-zinc-400">{incident.election.name}</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span
-                      className="text-xs px-2 py-1 rounded-full font-medium"
-                      style={{
-                        backgroundColor: CATEGORY_COLORS[incident.category as IncidentCategory] + '15',
-                        color: CATEGORY_COLORS[incident.category as IncidentCategory],
-                      }}
-                    >
-                      {CATEGORY_LABELS[incident.category as IncidentCategory]}
+                    {incident.election ? (
+                      <span className="block truncate text-[0.6875rem] text-[var(--ink-4)]">
+                        {incident.election.name}
+                      </span>
+                    ) : null}
+                  </th>
+                  <td>
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[0.75rem] text-[var(--ink-2)]">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: family.color }}
+                        aria-hidden
+                      />
+                      {CATEGORY_LABEL[incident.category as IncidentCategory]}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-600 text-xs">{incident.country}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="whitespace-nowrap text-[0.8125rem] text-[var(--ink-2)]">
+                    {incident.region ?? incident.country}
+                  </td>
+                  <td>
                     <span className={`status ${STATUS_TONE[incident.status]}`}>
                       {STATUS_LABEL[incident.status]}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="bar-track w-12 shrink-0">
                         <div
-                          className="h-full bg-green-500 rounded-full"
-                          style={{ width: `${incident.confidenceScore}%` }}
+                          className="bar-fill"
+                          style={{ width: `${Math.round(incident.confidenceScore)}%` }}
                         />
                       </div>
-                      <span className="text-[11px] text-zinc-400">{Math.round(incident.confidenceScore)}%</span>
+                      <span className="tnum text-[0.75rem] text-[var(--ink-3)]">
+                        {Math.round(incident.confidenceScore)}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs">
-                    {formatDistanceToNow(new Date(incident.createdAt), { addSuffix: true })}
+                  <td className="whitespace-nowrap text-[0.8125rem] text-[var(--ink-3)]">
+                    <time dateTime={incident.createdAt.toISOString()}>
+                      {formatDistanceToNow(incident.createdAt, { addSuffix: true })}
+                    </time>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              )
+            })}
+          </tbody>
+        </TableShell>
+      )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-zinc-400">
+      {totalPages > 1 ? (
+        <nav
+          aria-label="Pagination"
+          className="flex items-center justify-between gap-4 border-t border-[var(--rule)] pt-4"
+        >
+          <p className="text-[0.8125rem] text-[var(--ink-3)]">
             Page {page} of {totalPages}
-          </span>
+          </p>
           <div className="flex gap-2">
-            {page > 1 && (
+            {page > 1 ? (
               <Link
-                href={`/manage/incidents?page=${page - 1}${params.status ? `&status=${params.status}` : ''}`}
-                className="text-xs px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                href={href({ ...params, page: String(page - 1) })}
+                className="btn btn-secondary"
+                rel="prev"
               >
                 Previous
               </Link>
-            )}
-            {page < totalPages && (
+            ) : null}
+            {page < totalPages ? (
               <Link
-                href={`/manage/incidents?page=${page + 1}${params.status ? `&status=${params.status}` : ''}`}
-                className="text-xs px-3 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                href={href({ ...params, page: String(page + 1) })}
+                className="btn btn-secondary"
+                rel="next"
               >
                 Next
               </Link>
-            )}
+            ) : null}
           </div>
-        </div>
-      )}
+        </nav>
+      ) : null}
     </div>
   )
 }

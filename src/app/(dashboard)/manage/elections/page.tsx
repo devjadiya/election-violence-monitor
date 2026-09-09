@@ -1,155 +1,251 @@
-import { prisma } from '@/lib/db'
 import Link from 'next/link'
-import { format, isPast, isFuture, isWithinInterval, subDays, addDays } from 'date-fns'
-import { Plus, Calendar, Globe } from 'lucide-react'
+import { format } from 'date-fns'
+import { Plus } from 'lucide-react'
+import { prisma } from '@/lib/db'
+import { internalIncidentFilter, publicIncidentFilter } from '@/lib/incidents/visibility'
+import {
+  MONITORING_LABEL,
+  electionPlace,
+  electionTypeLabel,
+  monitoringTone,
+  relativeElectionDate,
+} from '@/lib/elections/format'
+import { PageHeader, Panel, Stat, Empty } from '@/components/dashboard/ui'
+import type { MonitoringStatus } from '@/lib/generated/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ElectionsPage() {
-  const elections = await prisma.election.findMany({
-    orderBy: { electionDate: 'asc' },
-    include: { _count: { select: { incidents: true } } },
-  })
+/**
+ * Elections in scope.
+ *
+ * The previous version decided what was "Currently Monitoring" by testing
+ * whether today fell within thirty days of polling day, ignoring
+ * `monitoringStatus` entirely. That field exists precisely because the two are
+ * orthogonal — an election can be days away with nothing configured to collect
+ * it, which is exactly the case this page most needs to show. It reported
+ * elections as monitored that were not, with a pulsing green dot.
+ *
+ * Grouping now follows the field, and the record counts run through the same
+ * filters as every other surface: the fabricated seed data is excluded, and
+ * published is distinguished from total rather than conflated.
+ */
 
-  const upcoming = elections.filter(e => isFuture(new Date(e.electionDate)))
-  const past = elections.filter(e => isPast(new Date(e.electionDate)))
-  const active = elections.filter(e =>
-    isWithinInterval(new Date(), {
-      start: subDays(new Date(e.electionDate), 30),
-      end: addDays(new Date(e.electionDate), 30),
-    })
-  )
+interface Row {
+  id: string
+  name: string
+  country: string
+  region: string | null
+  electionDate: Date
+  electionType: string
+  monitoringStatus: MonitoringStatus
+  wikidataId: string | null
+  total: number
+  published: number
+}
+
+function railClass(m: MonitoringStatus): string {
+  if (m === 'ACTIVE') return 'rail rail-live'
+  if (m === 'SCHEDULED') return 'rail rail-caution'
+  if (m === 'CONCLUDED') return 'rail rail-ok'
+  return 'rail rail-idle'
+}
+
+function ElectionCard({ e }: { e: Row }) {
+  const tone = monitoringTone(e.monitoringStatus)
+  const live = e.monitoringStatus === 'ACTIVE'
 
   return (
-    <div className="space-y-5 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Elections</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            {upcoming.length} upcoming · {active.length} active · {past.length} past
-          </p>
+    <article className={`card ${railClass(e.monitoringStatus)}`}>
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="shrink-0 text-center">
+            <div className="tnum text-[1.25rem] font-semibold leading-none text-[var(--ink)]">
+              {format(e.electionDate, 'd')}
+            </div>
+            <div className="eyebrow mt-0.5">{format(e.electionDate, 'MMM')}</div>
+            <div className="text-[0.625rem] text-[var(--ink-4)]">
+              {format(e.electionDate, 'yyyy')}
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="truncate text-[0.9375rem] font-medium text-[var(--ink)]">{e.name}</h3>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.75rem] text-[var(--ink-3)]">
+              <span>{electionPlace(e)}</span>
+              <span aria-hidden>·</span>
+              <span>{electionTypeLabel(e.electionType)}</span>
+              <span aria-hidden>·</span>
+              <span>{relativeElectionDate(e.electionDate)}</span>
+              {e.wikidataId ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <a
+                    href={`https://www.wikidata.org/wiki/${e.wikidataId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-underline chip-mono"
+                  >
+                    {e.wikidataId}
+                  </a>
+                </>
+              ) : null}
+            </p>
+          </div>
         </div>
-        <Link
-          href="/manage/elections/new"
-          className="flex items-center gap-2 bg-[#1a1a2e] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#16213e] transition-colors"
-        >
-          <Plus size={15} /> Add Election
-        </Link>
+
+        <div className="flex shrink-0 items-center justify-between gap-5 sm:justify-end">
+          <span
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[0.75rem] ${
+              tone === 'ok'
+                ? 'text-[var(--ok)]'
+                : tone === 'caution'
+                  ? 'text-[var(--caution)]'
+                  : 'text-[var(--ink-3)]'
+            }`}
+          >
+            {live ? <span className="live-dot" aria-hidden /> : null}
+            {MONITORING_LABEL[e.monitoringStatus]}
+          </span>
+
+          <span className="text-right leading-none">
+            <span className="tnum block text-[1.125rem] font-semibold text-[var(--ink)]">
+              {e.published}
+            </span>
+            <span className="text-[0.6875rem] text-[var(--ink-3)]">
+              published{e.total > e.published ? ` of ${e.total}` : ''}
+            </span>
+          </span>
+        </div>
       </div>
-
-      {/* Active/Monitoring now */}
-      {active.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <h2 className="text-sm font-semibold text-zinc-700">Currently Monitoring</h2>
-          </div>
-          <div className="space-y-2">
-            {active.map(election => (
-              <ElectionCard key={election.id} election={election} highlight />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Upcoming */}
-      {upcoming.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">Upcoming</h2>
-          <div className="space-y-2">
-            {upcoming.map(election => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Past */}
-      {past.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">Past</h2>
-          <div className="space-y-2 opacity-70">
-            {past.map(election => (
-              <ElectionCard key={election.id} election={election} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {elections.length === 0 && (
-        <div className="glass-card p-16 text-center">
-          <Calendar size={32} className="text-zinc-300 mx-auto mb-3" />
-          <div className="text-sm font-medium text-zinc-600">No elections added yet</div>
-          <Link href="/manage/elections/new" className="text-xs text-blue-500 hover:underline mt-2 inline-block">
-            Add your first election
-          </Link>
-        </div>
-      )}
-    </div>
+    </article>
   )
 }
 
-function ElectionCard({ election, highlight }: { election: any; highlight?: boolean }) {
-  const date = new Date(election.electionDate)
-  const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  const isPastElection = isPast(date)
+function Group({ title, note, rows }: { title: string; note?: string; rows: Row[] }) {
+  if (rows.length === 0) return null
+  return (
+    <section>
+      <h2 className="eyebrow">
+        {title} ({rows.length})
+      </h2>
+      {note ? <p className="mt-1 text-[0.75rem] text-[var(--ink-3)]">{note}</p> : null}
+      <div className="mt-2.5 space-y-2.5">
+        {rows.map((e) => (
+          <ElectionCard key={e.id} e={e} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+async function loadElections(): Promise<Row[]> {
+  const [elections, publishedByElection] = await Promise.all([
+    prisma.election.findMany({
+      orderBy: { electionDate: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        country: true,
+        region: true,
+        electionDate: true,
+        electionType: true,
+        monitoringStatus: true,
+        wikidataId: true,
+        _count: { select: { incidents: { where: internalIncidentFilter() } } },
+      },
+    }),
+    prisma.incident.groupBy({
+      by: ['electionId'],
+      where: publicIncidentFilter(),
+      _count: true,
+    }),
+  ])
+
+  const published = new Map(
+    publishedByElection.filter((p) => p.electionId).map((p) => [p.electionId as string, p._count])
+  )
+
+  return elections.map((e) => ({
+    id: e.id,
+    name: e.name,
+    country: e.country,
+    region: e.region,
+    electionDate: e.electionDate,
+    electionType: e.electionType,
+    monitoringStatus: e.monitoringStatus,
+    wikidataId: e.wikidataId,
+    total: e._count.incidents,
+    published: published.get(e.id) ?? 0,
+  }))
+}
+
+export default async function ManageElectionsPage() {
+  const rows = await loadElections()
+
+  const active = rows.filter((r) => r.monitoringStatus === 'ACTIVE')
+  const scheduled = rows.filter((r) => r.monitoringStatus === 'SCHEDULED')
+  const concluded = rows.filter((r) => r.monitoringStatus === 'CONCLUDED')
+  const notMonitored = rows.filter((r) => r.monitoringStatus === 'NOT_ACTIVE')
 
   return (
-    <div className={`glass-card p-5 ${highlight ? 'border-green-200 bg-green-50/30' : ''}`}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-            highlight ? 'bg-green-100' : isPastElection ? 'bg-zinc-100' : 'bg-blue-50'
-          }`}>
-            <div className={`text-lg font-bold leading-none ${highlight ? 'text-green-700' : isPastElection ? 'text-zinc-400' : 'text-blue-700'}`}>
-              {format(date, 'd')}
-            </div>
-            <div className={`text-[10px] uppercase tracking-wider ${highlight ? 'text-green-600' : isPastElection ? 'text-zinc-400' : 'text-blue-600'}`}>
-              {format(date, 'MMM')}
-            </div>
-          </div>
-          <div>
-            <div className="font-semibold text-zinc-800">{election.name}</div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Globe size={11} className="text-zinc-400" />
-              <span className="text-xs text-zinc-500">{election.country}</span>
-              <span className="text-zinc-200">·</span>
-              <span className="text-xs text-zinc-500 capitalize">{election.electionType}</span>
-              {election.wikidataId && (
-                <>
-                  <span className="text-zinc-200">·</span>
-                  <a
-                    href={`https://www.wikidata.org/wiki/${election.wikidataId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-500 hover:underline"
-                  >
-                    {election.wikidataId}
-                  </a>
-                </>
-              )}
-            </div>
-          </div>
+    <div className="mx-auto max-w-5xl space-y-5">
+      <PageHeader
+        title="Elections"
+        lede="Grouped by whether anything is actually collecting for them, which is not the same as whether polling day has passed."
+        action={
+          <Link href="/manage/elections/new" className="btn btn-primary">
+            <Plus size={15} aria-hidden /> Add election
+          </Link>
+        }
+      />
+
+      <section className="rule-b grid grid-cols-2 gap-x-6 gap-y-6 pb-6 sm:grid-cols-4">
+        <Stat value={rows.length} label="Registered" />
+        <Stat value={active.length} label="Collecting now" />
+        <Stat value={scheduled.length} label="Scheduled" />
+        <Stat
+          value={notMonitored.length}
+          label="Not monitored"
+          note={notMonitored.length > 0 ? 'in scope, nothing collecting' : undefined}
+        />
+      </section>
+
+      {rows.length === 0 ? (
+        <Empty title="No elections registered.">
+          <p>
+            The pipeline only collects inside an election&rsquo;s window, so nothing will be
+            gathered until one exists here.
+          </p>
+          <p className="mt-2">
+            <Link href="/manage/elections/new" className="link-underline">
+              Add the first election
+            </Link>
+          </p>
+        </Empty>
+      ) : (
+        <div className="space-y-6">
+          <Group
+            title="Collecting now"
+            note="Inside the collection window, with sources configured."
+            rows={active}
+          />
+          <Group title="Scheduled" rows={scheduled} />
+          <Group title="Not monitored" note="In scope, but nothing is collecting." rows={notMonitored} />
+          <Group title="Concluded" rows={concluded} />
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-center">
-            <div className="text-sm font-bold text-zinc-700">{election._count.incidents}</div>
-            <div className="text-[10px] text-zinc-400">incidents</div>
-          </div>
-          {!isPastElection && (
-            <div className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-              highlight ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-            }`}>
-              {daysUntil > 0 ? `${daysUntil}d to go` : 'Today'}
-            </div>
-          )}
-          {isPastElection && (
-            <div className="text-xs px-2.5 py-1 rounded-full font-medium bg-zinc-100 text-zinc-500">
-              {format(date, 'yyyy')}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
+
+      <Panel className="p-5">
+        <h2 className="text-[0.9375rem] font-semibold text-[var(--ink)]">
+          Monitoring is not the same as timing
+        </h2>
+        <p className="prose-measure mt-2 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+          An election can be days away and still show as not monitored: that means it is in scope
+          but no source is configured for its country and language, so nothing will be collected.
+          Grouping by date instead of by this field would report coverage the platform does not
+          have &mdash; which is what this page did before.
+        </p>
+      </Panel>
     </div>
   )
 }

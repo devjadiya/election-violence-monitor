@@ -54,7 +54,13 @@ export default async function InternalMapPage() {
           {lastRun ? <> Data as of the latest collection run, {relativeDays(lastRun.startedAt)}.</> : null}
         </p>
       </div>
-      <div className="glass-card overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+      {/* `dvh` rather than `vh`: on a phone the browser chrome collapses on
+          scroll, and a `vh`-sized map jumps every time it does. The floor keeps
+          it usable on a short window. */}
+      <div
+        className="overflow-hidden border border-[var(--rule)] bg-[var(--paper)]"
+        style={{ height: 'max(24rem, calc(100dvh - 15rem))' }}
+      >
         <IncidentMapLoader incidents={incidents} />
       </div>
     </div>
