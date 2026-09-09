@@ -1,12 +1,12 @@
 'use client'
 
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard, MapPin, AlertTriangle, CheckSquare,
   BarChart3, Settings, Users, Download,
-  Globe, Calendar, MessageSquare, Menu, X, KeyRound
+  Globe, Calendar, MessageSquare, Menu, X, KeyRound, Loader2
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -49,6 +49,23 @@ const ADMIN_ITEMS: NavItem[] = [
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 
+/**
+ * Swaps the destination's icon for a spinner while its page is being fetched.
+ *
+ * Some of these routes take seconds to load. Without this the click produced
+ * no visible change at all and the previous page simply sat there, which reads
+ * as a broken link rather than a slow one. `useLinkStatus` reports the pending
+ * state of the enclosing Link, so the feedback is on the thing that was
+ * actually clicked rather than a bar at the top of the window.
+ */
+function NavIcon({ Icon, active }: { Icon: LucideIcon; active: boolean }) {
+  const { pending } = useLinkStatus()
+  if (pending) {
+    return <Loader2 size={15} className="shrink-0 animate-spin" aria-hidden />
+  }
+  return <Icon size={15} strokeWidth={active ? 2.25 : 1.75} className="shrink-0" aria-hidden />
+}
+
 function NavLink({
   item,
   active,
@@ -58,7 +75,6 @@ function NavLink({
   active: boolean
   onNavigate: () => void
 }) {
-  const Icon = item.icon
   return (
     <Link
       href={item.href}
@@ -70,7 +86,7 @@ function NavLink({
           : 'text-[var(--ink-2)] hover:bg-[var(--paper-3)] hover:text-[var(--ink)]'
       }`}
     >
-      <Icon size={15} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+      <NavIcon Icon={item.icon} active={active} />
       {item.label}
     </Link>
   )

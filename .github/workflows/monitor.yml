@@ -15,6 +15,21 @@ name: Election monitor
 #
 # Scheduled runs on GitHub can be delayed by several minutes under load. That is
 # acceptable — the alternative is no observation at all.
+#
+# ---------------------------------------------------------------------------
+# A missing secret is a configuration gap, not an incident.
+#
+# This workflow ran every fifteen minutes for twenty-five days and failed in
+# under four seconds each time, because `APP_URL` was never set on the
+# repository and the gate did `exit 1`. That produced a failure email roughly
+# every two hours and taught the only person receiving them to ignore the
+# workflow entirely — which is the real cost, because a genuine outage would
+# have looked exactly the same.
+#
+# So the two cases are now separated. Not configured: warn, skip, finish green,
+# and say precisely what to set. Configured but unreachable: fail, because that
+# is a real incident worth an email.
+# ---------------------------------------------------------------------------
 
 on:
   schedule:
@@ -45,14 +60,62 @@ jobs:
         id: gate
         env:
           APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
-          if [ -z "${APP_URL:-}" ]; then
-            echo "APP_URL secret is not set." >&2
+
+          # `configured=false` short-circuits every later step without failing
+          # the run. Secrets cannot be read from a job-level `if:`, so the check
+          # has to happen here.
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            missing=""
+            [ -z "${APP_URL:-}" ] && missing="APP_URL"
+            [ -z "${CRON_SECRET:-}" ] && missing="${missing:+$missing and }CRON_SECRET"
+
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "collect=false"    >> "$GITHUB_OUTPUT"
+            echo "cadence=unknown"  >> "$GITHUB_OUTPUT"
+
+            echo "::warning title=Election monitor is not configured::${missing} is not set, so no collection runs. Set it under Settings → Secrets and variables → Actions."
+
+            {
+              echo "### Election monitor — not configured"
+              echo ""
+              echo "**${missing}** is not set on this repository, so the high-frequency"
+              echo "collection pass does nothing. The daily Vercel cron is unaffected."
+              echo ""
+              echo "To enable it, add these repository secrets under"
+              echo "**Settings → Secrets and variables → Actions**:"
+              echo ""
+              echo '| Secret | Value |'
+              echo '|---|---|'
+              echo '| `APP_URL` | the deployment origin, with no trailing slash |'
+              echo '| `CRON_SECRET` | the same value as the `CRON_SECRET` environment variable on Vercel |'
+              echo ""
+              echo "This run is green because nothing is broken — it is simply switched off."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
+          # A configured deployment that does not answer IS an incident, so the
+          # response is no longer swallowed into an empty object. `-f` makes
+          # curl exit non-zero on a 4xx/5xx, and `set -e` then fails the run.
+          if ! status=$(curl -fsS --max-time 30 "${APP_URL}/api/monitoring/status"); then
+            echo "::error title=Deployment unreachable::${APP_URL}/api/monitoring/status did not respond."
             exit 1
           fi
 
-          status=$(curl -fsS --max-time 30 "${APP_URL}/api/monitoring/status" || echo '{}')
+          # A deployment answering with HTML — an auth wall, a platform error
+          # page — used to reach `jq` and kill the run with an unreadable parse
+          # error three seconds in. Say what actually happened instead.
+          if ! echo "$status" | jq -e . >/dev/null 2>&1; then
+            echo "::error title=Unexpected response::/api/monitoring/status did not return JSON."
+            echo "$status" | head -c 400
+            exit 1
+          fi
+
           collect=$(echo "$status" | jq -r '.collect // false')
           cadence=$(echo "$status" | jq -r '.cadence // "baseline"')
           live=$(echo "$status" | jq -r '[.liveElections[]?.name] | join(", ")')
@@ -69,7 +132,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Discover new articles
-        if: steps.gate.outputs.collect == 'true' || inputs.force
+        if: steps.gate.outputs.configured == 'true' && (steps.gate.outputs.collect == 'true' || inputs.force)
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -82,7 +145,7 @@ jobs:
           echo "$response" | jq -c '{articlesFound, articlesNew, durationMs}' >> "$GITHUB_STEP_SUMMARY" || echo "$response"
 
       - name: Classify
-        if: steps.gate.outputs.collect == 'true' || inputs.force
+        if: steps.gate.outputs.configured == 'true' && (steps.gate.outputs.collect == 'true' || inputs.force)
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -107,5 +170,5 @@ jobs:
           echo "$response" | jq -c '{backlogBefore, backlogAfter, created, filtered, errors}' >> "$GITHUB_STEP_SUMMARY" || echo "$response"
 
       - name: Nothing to collect
-        if: steps.gate.outputs.collect != 'true' && !inputs.force
+        if: steps.gate.outputs.configured == 'true' && steps.gate.outputs.collect != 'true' && !inputs.force
         run: echo "No election inside its collection window. Daily baseline cron still runs."

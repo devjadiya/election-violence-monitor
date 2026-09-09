@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
-import { auth } from '@/lib/auth'
+import { internalIncidentFilter } from '@/lib/incidents/visibility'
+import type { Prisma } from '@/lib/generated/prisma'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '@/constants'
@@ -18,9 +19,11 @@ export default async function IncidentsPage({
   const page = Number(params.page ?? 1)
   const pageSize = 20
 
-  const where: any = {}
-  if (params.status) where.status = params.status
-  if (params.category) where.category = params.category
+  // Starts from the internal filter rather than `{}`, so this list agrees with
+  // every other surface and never shows the fabricated seed records.
+  const where: Prisma.IncidentWhereInput = { ...internalIncidentFilter() }
+  if (params.status) where.status = params.status as Prisma.IncidentWhereInput['status']
+  if (params.category) where.category = params.category as Prisma.IncidentWhereInput['category']
 
   const [incidents, total] = await Promise.all([
     prisma.incident.findMany({
@@ -80,9 +83,10 @@ export default async function IncidentsPage({
       {/* Table */}
       <div className="glass-card overflow-hidden">
         {incidents.length === 0 ? (
-          <div className="text-center py-16 text-zinc-400">
-            <div className="text-4xl mb-3">📋</div>
-            <div className="text-sm">No incidents found</div>
+          <div className="px-5 py-16 text-center">
+            <div className="text-[0.9375rem] font-medium text-[var(--ink)]">
+              No records match this filter.
+            </div>
             <Link href="/manage/incidents/new" className="text-xs text-blue-500 hover:underline mt-2 inline-block">
               Add the first incident
             </Link>

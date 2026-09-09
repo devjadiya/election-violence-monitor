@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { CATEGORY_LABELS } from '@/constants'
-import { Loader2 } from 'lucide-react'
+import { Check, Loader2, Lock } from 'lucide-react'
 
 export function SubmitTipForm() {
   const [submitted, setSubmitted] = useState(false)
@@ -17,8 +17,9 @@ export function SubmitTipForm() {
     contactEmail: '',
   })
 
-  function update(key: string, value: any) {
-    setForm(f => ({ ...f, [key]: value }))
+  type Form = typeof form
+  function update<K extends keyof Form>(key: K, value: Form[K]) {
+    setForm((f) => ({ ...f, [key]: value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,8 +55,8 @@ export function SubmitTipForm() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-6">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">✅</span>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ok-tint)]">
+            <Check size={20} className="text-[var(--ok)]" aria-hidden />
           </div>
           <h2 className="text-xl font-bold text-[#1a1a2e] mb-2">Tip Submitted</h2>
           <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
@@ -113,7 +114,8 @@ export function SubmitTipForm() {
       <div className="max-w-2xl mx-auto px-6 pt-28 pb-16">
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-700 text-xs font-medium px-3 py-1.5 rounded-full mb-4 border border-orange-100">
-            🔒 Anonymous &amp; Secure
+            <Lock size={12} aria-hidden />
+            Anonymous and confidential
           </div>
           <h1 className="text-3xl font-bold text-[#1a1a2e] mb-3">Submit an Incident Report</h1>
           <p className="text-zinc-500 leading-relaxed">

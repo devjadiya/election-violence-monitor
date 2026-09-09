@@ -359,6 +359,8 @@ exports.Prisma.TipSubmissionScalarFieldEnum = {
   submitterId: 'submitterId',
   isReviewed: 'isReviewed',
   reviewNotes: 'reviewNotes',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
   createdAt: 'createdAt'
 };
 

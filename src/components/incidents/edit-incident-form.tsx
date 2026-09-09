@@ -147,7 +147,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
-        {/* ── Basic Info ── */}
+        {/* Basic Info */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Basic Information</h2>
 
@@ -228,7 +228,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
           </div>
         </div>
 
-        {/* ── Location ── */}
+        {/* Location */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Location</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -263,7 +263,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
           </div>
         </div>
 
-        {/* ── Impact ── */}
+        {/* Impact */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Impact</h2>
           <div className="grid grid-cols-3 gap-4">
@@ -300,7 +300,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
           </div>
         </div>
 
-        {/* ── Victim Info ── */}
+        {/* Victim Info */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Victim Information</h2>
           <p className="text-xs text-zinc-400">
@@ -378,7 +378,7 @@ export function EditIncidentForm({ incident, elections }: Props) {
           </div>
         </div>
 
-        {/* ── Actors ── */}
+        {/* Actors */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Actors Involved</h2>
           <div className="grid grid-cols-2 gap-4">

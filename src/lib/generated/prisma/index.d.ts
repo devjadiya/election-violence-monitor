@@ -2487,6 +2487,7 @@ export namespace Prisma {
     createdIncidents: number
     auditLogs: number
     tipSubmissions: number
+    reviewedTips: number
     notifications: number
     loginEvents: number
   }
@@ -2498,6 +2499,7 @@ export namespace Prisma {
     createdIncidents?: boolean | UserCountOutputTypeCountCreatedIncidentsArgs
     auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
     tipSubmissions?: boolean | UserCountOutputTypeCountTipSubmissionsArgs
+    reviewedTips?: boolean | UserCountOutputTypeCountReviewedTipsArgs
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
     loginEvents?: boolean | UserCountOutputTypeCountLoginEventsArgs
   }
@@ -2552,6 +2554,13 @@ export namespace Prisma {
    * UserCountOutputType without action
    */
   export type UserCountOutputTypeCountTipSubmissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TipSubmissionWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountReviewedTipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TipSubmissionWhereInput
   }
 
@@ -2962,6 +2971,7 @@ export namespace Prisma {
     createdIncidents?: boolean | User$createdIncidentsArgs<ExtArgs>
     auditLogs?: boolean | User$auditLogsArgs<ExtArgs>
     tipSubmissions?: boolean | User$tipSubmissionsArgs<ExtArgs>
+    reviewedTips?: boolean | User$reviewedTipsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     loginEvents?: boolean | User$loginEventsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -3000,6 +3010,7 @@ export namespace Prisma {
     createdIncidents?: boolean | User$createdIncidentsArgs<ExtArgs>
     auditLogs?: boolean | User$auditLogsArgs<ExtArgs>
     tipSubmissions?: boolean | User$tipSubmissionsArgs<ExtArgs>
+    reviewedTips?: boolean | User$reviewedTipsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     loginEvents?: boolean | User$loginEventsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -3015,6 +3026,7 @@ export namespace Prisma {
       createdIncidents: Prisma.$IncidentPayload<ExtArgs>[]
       auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
       tipSubmissions: Prisma.$TipSubmissionPayload<ExtArgs>[]
+      reviewedTips: Prisma.$TipSubmissionPayload<ExtArgs>[]
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
       loginEvents: Prisma.$LoginEventPayload<ExtArgs>[]
     }
@@ -3399,6 +3411,7 @@ export namespace Prisma {
     createdIncidents<T extends User$createdIncidentsArgs<ExtArgs> = {}>(args?: Subset<T, User$createdIncidentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidentPayload<ExtArgs>, T, "findMany"> | Null>
     auditLogs<T extends User$auditLogsArgs<ExtArgs> = {}>(args?: Subset<T, User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany"> | Null>
     tipSubmissions<T extends User$tipSubmissionsArgs<ExtArgs> = {}>(args?: Subset<T, User$tipSubmissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TipSubmissionPayload<ExtArgs>, T, "findMany"> | Null>
+    reviewedTips<T extends User$reviewedTipsArgs<ExtArgs> = {}>(args?: Subset<T, User$reviewedTipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TipSubmissionPayload<ExtArgs>, T, "findMany"> | Null>
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany"> | Null>
     loginEvents<T extends User$loginEventsArgs<ExtArgs> = {}>(args?: Subset<T, User$loginEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LoginEventPayload<ExtArgs>, T, "findMany"> | Null>
     /**
@@ -3857,6 +3870,26 @@ export namespace Prisma {
    * User.tipSubmissions
    */
   export type User$tipSubmissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TipSubmission
+     */
+    select?: TipSubmissionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TipSubmissionInclude<ExtArgs> | null
+    where?: TipSubmissionWhereInput
+    orderBy?: TipSubmissionOrderByWithRelationInput | TipSubmissionOrderByWithRelationInput[]
+    cursor?: TipSubmissionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TipSubmissionScalarFieldEnum | TipSubmissionScalarFieldEnum[]
+  }
+
+  /**
+   * User.reviewedTips
+   */
+  export type User$reviewedTipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the TipSubmission
      */
@@ -18000,6 +18033,8 @@ export namespace Prisma {
     submitterId: string | null
     isReviewed: boolean | null
     reviewNotes: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
     createdAt: Date | null
   }
 
@@ -18013,6 +18048,8 @@ export namespace Prisma {
     submitterId: string | null
     isReviewed: boolean | null
     reviewNotes: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
     createdAt: Date | null
   }
 
@@ -18026,6 +18063,8 @@ export namespace Prisma {
     submitterId: number
     isReviewed: number
     reviewNotes: number
+    reviewedById: number
+    reviewedAt: number
     createdAt: number
     _all: number
   }
@@ -18041,6 +18080,8 @@ export namespace Prisma {
     submitterId?: true
     isReviewed?: true
     reviewNotes?: true
+    reviewedById?: true
+    reviewedAt?: true
     createdAt?: true
   }
 
@@ -18054,6 +18095,8 @@ export namespace Prisma {
     submitterId?: true
     isReviewed?: true
     reviewNotes?: true
+    reviewedById?: true
+    reviewedAt?: true
     createdAt?: true
   }
 
@@ -18067,6 +18110,8 @@ export namespace Prisma {
     submitterId?: true
     isReviewed?: true
     reviewNotes?: true
+    reviewedById?: true
+    reviewedAt?: true
     createdAt?: true
     _all?: true
   }
@@ -18153,6 +18198,8 @@ export namespace Prisma {
     submitterId: string | null
     isReviewed: boolean
     reviewNotes: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
     createdAt: Date
     _count: TipSubmissionCountAggregateOutputType | null
     _min: TipSubmissionMinAggregateOutputType | null
@@ -18183,8 +18230,11 @@ export namespace Prisma {
     submitterId?: boolean
     isReviewed?: boolean
     reviewNotes?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
     createdAt?: boolean
     submitter?: boolean | TipSubmission$submitterArgs<ExtArgs>
+    reviewedBy?: boolean | TipSubmission$reviewedByArgs<ExtArgs>
   }, ExtArgs["result"]["tipSubmission"]>
 
   export type TipSubmissionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -18197,8 +18247,11 @@ export namespace Prisma {
     submitterId?: boolean
     isReviewed?: boolean
     reviewNotes?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
     createdAt?: boolean
     submitter?: boolean | TipSubmission$submitterArgs<ExtArgs>
+    reviewedBy?: boolean | TipSubmission$reviewedByArgs<ExtArgs>
   }, ExtArgs["result"]["tipSubmission"]>
 
   export type TipSubmissionSelectScalar = {
@@ -18211,20 +18264,25 @@ export namespace Prisma {
     submitterId?: boolean
     isReviewed?: boolean
     reviewNotes?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
     createdAt?: boolean
   }
 
   export type TipSubmissionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     submitter?: boolean | TipSubmission$submitterArgs<ExtArgs>
+    reviewedBy?: boolean | TipSubmission$reviewedByArgs<ExtArgs>
   }
   export type TipSubmissionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     submitter?: boolean | TipSubmission$submitterArgs<ExtArgs>
+    reviewedBy?: boolean | TipSubmission$reviewedByArgs<ExtArgs>
   }
 
   export type $TipSubmissionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TipSubmission"
     objects: {
       submitter: Prisma.$UserPayload<ExtArgs> | null
+      reviewedBy: Prisma.$UserPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -18236,6 +18294,12 @@ export namespace Prisma {
       submitterId: string | null
       isReviewed: boolean
       reviewNotes: string | null
+      /**
+       * Who handled it, and when. With more than one administrator, "reviewed"
+       * without a name is the reason two people do the same tip twice.
+       */
+      reviewedById: string | null
+      reviewedAt: Date | null
       createdAt: Date
     }, ExtArgs["result"]["tipSubmission"]>
     composites: {}
@@ -18602,6 +18666,7 @@ export namespace Prisma {
   export interface Prisma__TipSubmissionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     submitter<T extends TipSubmission$submitterArgs<ExtArgs> = {}>(args?: Subset<T, TipSubmission$submitterArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    reviewedBy<T extends TipSubmission$reviewedByArgs<ExtArgs> = {}>(args?: Subset<T, TipSubmission$reviewedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -18640,6 +18705,8 @@ export namespace Prisma {
     readonly submitterId: FieldRef<"TipSubmission", 'String'>
     readonly isReviewed: FieldRef<"TipSubmission", 'Boolean'>
     readonly reviewNotes: FieldRef<"TipSubmission", 'String'>
+    readonly reviewedById: FieldRef<"TipSubmission", 'String'>
+    readonly reviewedAt: FieldRef<"TipSubmission", 'DateTime'>
     readonly createdAt: FieldRef<"TipSubmission", 'DateTime'>
   }
     
@@ -18962,6 +19029,21 @@ export namespace Prisma {
    * TipSubmission.submitter
    */
   export type TipSubmission$submitterArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * TipSubmission.reviewedBy
+   */
+  export type TipSubmission$reviewedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the User
      */
@@ -21234,6 +21316,8 @@ export namespace Prisma {
     submitterId: 'submitterId',
     isReviewed: 'isReviewed',
     reviewNotes: 'reviewNotes',
+    reviewedById: 'reviewedById',
+    reviewedAt: 'reviewedAt',
     createdAt: 'createdAt'
   };
 
@@ -21619,6 +21703,7 @@ export namespace Prisma {
     createdIncidents?: IncidentListRelationFilter
     auditLogs?: AuditLogListRelationFilter
     tipSubmissions?: TipSubmissionListRelationFilter
+    reviewedTips?: TipSubmissionListRelationFilter
     notifications?: NotificationListRelationFilter
     loginEvents?: LoginEventListRelationFilter
   }
@@ -21640,6 +21725,7 @@ export namespace Prisma {
     createdIncidents?: IncidentOrderByRelationAggregateInput
     auditLogs?: AuditLogOrderByRelationAggregateInput
     tipSubmissions?: TipSubmissionOrderByRelationAggregateInput
+    reviewedTips?: TipSubmissionOrderByRelationAggregateInput
     notifications?: NotificationOrderByRelationAggregateInput
     loginEvents?: LoginEventOrderByRelationAggregateInput
   }
@@ -21664,6 +21750,7 @@ export namespace Prisma {
     createdIncidents?: IncidentListRelationFilter
     auditLogs?: AuditLogListRelationFilter
     tipSubmissions?: TipSubmissionListRelationFilter
+    reviewedTips?: TipSubmissionListRelationFilter
     notifications?: NotificationListRelationFilter
     loginEvents?: LoginEventListRelationFilter
   }, "id" | "email">
@@ -23025,8 +23112,11 @@ export namespace Prisma {
     submitterId?: StringNullableFilter<"TipSubmission"> | string | null
     isReviewed?: BoolFilter<"TipSubmission"> | boolean
     reviewNotes?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedById?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"TipSubmission"> | Date | string | null
     createdAt?: DateTimeFilter<"TipSubmission"> | Date | string
     submitter?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+    reviewedBy?: XOR<UserNullableRelationFilter, UserWhereInput> | null
   }
 
   export type TipSubmissionOrderByWithRelationInput = {
@@ -23039,8 +23129,11 @@ export namespace Prisma {
     submitterId?: SortOrderInput | SortOrder
     isReviewed?: SortOrder
     reviewNotes?: SortOrderInput | SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     submitter?: UserOrderByWithRelationInput
+    reviewedBy?: UserOrderByWithRelationInput
   }
 
   export type TipSubmissionWhereUniqueInput = Prisma.AtLeast<{
@@ -23056,8 +23149,11 @@ export namespace Prisma {
     submitterId?: StringNullableFilter<"TipSubmission"> | string | null
     isReviewed?: BoolFilter<"TipSubmission"> | boolean
     reviewNotes?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedById?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"TipSubmission"> | Date | string | null
     createdAt?: DateTimeFilter<"TipSubmission"> | Date | string
     submitter?: XOR<UserNullableRelationFilter, UserWhereInput> | null
+    reviewedBy?: XOR<UserNullableRelationFilter, UserWhereInput> | null
   }, "id">
 
   export type TipSubmissionOrderByWithAggregationInput = {
@@ -23070,6 +23166,8 @@ export namespace Prisma {
     submitterId?: SortOrderInput | SortOrder
     isReviewed?: SortOrder
     reviewNotes?: SortOrderInput | SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: TipSubmissionCountOrderByAggregateInput
     _max?: TipSubmissionMaxOrderByAggregateInput
@@ -23089,6 +23187,8 @@ export namespace Prisma {
     submitterId?: StringNullableWithAggregatesFilter<"TipSubmission"> | string | null
     isReviewed?: BoolWithAggregatesFilter<"TipSubmission"> | boolean
     reviewNotes?: StringNullableWithAggregatesFilter<"TipSubmission"> | string | null
+    reviewedById?: StringNullableWithAggregatesFilter<"TipSubmission"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"TipSubmission"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"TipSubmission"> | Date | string
   }
 
@@ -23258,6 +23358,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -23279,6 +23380,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -23300,6 +23402,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -23321,6 +23424,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -24897,8 +25001,10 @@ export namespace Prisma {
     isAnonymous?: boolean
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
     submitter?: UserCreateNestedOneWithoutTipSubmissionsInput
+    reviewedBy?: UserCreateNestedOneWithoutReviewedTipsInput
   }
 
   export type TipSubmissionUncheckedCreateInput = {
@@ -24911,6 +25017,8 @@ export namespace Prisma {
     submitterId?: string | null
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -24923,8 +25031,10 @@ export namespace Prisma {
     isAnonymous?: BoolFieldUpdateOperationsInput | boolean
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     submitter?: UserUpdateOneWithoutTipSubmissionsNestedInput
+    reviewedBy?: UserUpdateOneWithoutReviewedTipsNestedInput
   }
 
   export type TipSubmissionUncheckedUpdateInput = {
@@ -24937,6 +25047,8 @@ export namespace Prisma {
     submitterId?: NullableStringFieldUpdateOperationsInput | string | null
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -24950,6 +25062,8 @@ export namespace Prisma {
     submitterId?: string | null
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -24962,6 +25076,7 @@ export namespace Prisma {
     isAnonymous?: BoolFieldUpdateOperationsInput | boolean
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -24975,6 +25090,8 @@ export namespace Prisma {
     submitterId?: NullableStringFieldUpdateOperationsInput | string | null
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -26631,6 +26748,8 @@ export namespace Prisma {
     submitterId?: SortOrder
     isReviewed?: SortOrder
     reviewNotes?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -26644,6 +26763,8 @@ export namespace Prisma {
     submitterId?: SortOrder
     isReviewed?: SortOrder
     reviewNotes?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -26657,6 +26778,8 @@ export namespace Prisma {
     submitterId?: SortOrder
     isReviewed?: SortOrder
     reviewNotes?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -26788,6 +26911,13 @@ export namespace Prisma {
     connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
   }
 
+  export type TipSubmissionCreateNestedManyWithoutReviewedByInput = {
+    create?: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput> | TipSubmissionCreateWithoutReviewedByInput[] | TipSubmissionUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: TipSubmissionCreateOrConnectWithoutReviewedByInput | TipSubmissionCreateOrConnectWithoutReviewedByInput[]
+    createMany?: TipSubmissionCreateManyReviewedByInputEnvelope
+    connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+  }
+
   export type NotificationCreateNestedManyWithoutUserInput = {
     create?: XOR<NotificationCreateWithoutUserInput, NotificationUncheckedCreateWithoutUserInput> | NotificationCreateWithoutUserInput[] | NotificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: NotificationCreateOrConnectWithoutUserInput | NotificationCreateOrConnectWithoutUserInput[]
@@ -26841,6 +26971,13 @@ export namespace Prisma {
     create?: XOR<TipSubmissionCreateWithoutSubmitterInput, TipSubmissionUncheckedCreateWithoutSubmitterInput> | TipSubmissionCreateWithoutSubmitterInput[] | TipSubmissionUncheckedCreateWithoutSubmitterInput[]
     connectOrCreate?: TipSubmissionCreateOrConnectWithoutSubmitterInput | TipSubmissionCreateOrConnectWithoutSubmitterInput[]
     createMany?: TipSubmissionCreateManySubmitterInputEnvelope
+    connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+  }
+
+  export type TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput = {
+    create?: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput> | TipSubmissionCreateWithoutReviewedByInput[] | TipSubmissionUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: TipSubmissionCreateOrConnectWithoutReviewedByInput | TipSubmissionCreateOrConnectWithoutReviewedByInput[]
+    createMany?: TipSubmissionCreateManyReviewedByInputEnvelope
     connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
   }
 
@@ -26966,6 +27103,20 @@ export namespace Prisma {
     deleteMany?: TipSubmissionScalarWhereInput | TipSubmissionScalarWhereInput[]
   }
 
+  export type TipSubmissionUpdateManyWithoutReviewedByNestedInput = {
+    create?: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput> | TipSubmissionCreateWithoutReviewedByInput[] | TipSubmissionUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: TipSubmissionCreateOrConnectWithoutReviewedByInput | TipSubmissionCreateOrConnectWithoutReviewedByInput[]
+    upsert?: TipSubmissionUpsertWithWhereUniqueWithoutReviewedByInput | TipSubmissionUpsertWithWhereUniqueWithoutReviewedByInput[]
+    createMany?: TipSubmissionCreateManyReviewedByInputEnvelope
+    set?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    disconnect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    delete?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    update?: TipSubmissionUpdateWithWhereUniqueWithoutReviewedByInput | TipSubmissionUpdateWithWhereUniqueWithoutReviewedByInput[]
+    updateMany?: TipSubmissionUpdateManyWithWhereWithoutReviewedByInput | TipSubmissionUpdateManyWithWhereWithoutReviewedByInput[]
+    deleteMany?: TipSubmissionScalarWhereInput | TipSubmissionScalarWhereInput[]
+  }
+
   export type NotificationUpdateManyWithoutUserNestedInput = {
     create?: XOR<NotificationCreateWithoutUserInput, NotificationUncheckedCreateWithoutUserInput> | NotificationCreateWithoutUserInput[] | NotificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: NotificationCreateOrConnectWithoutUserInput | NotificationCreateOrConnectWithoutUserInput[]
@@ -27075,6 +27226,20 @@ export namespace Prisma {
     connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
     update?: TipSubmissionUpdateWithWhereUniqueWithoutSubmitterInput | TipSubmissionUpdateWithWhereUniqueWithoutSubmitterInput[]
     updateMany?: TipSubmissionUpdateManyWithWhereWithoutSubmitterInput | TipSubmissionUpdateManyWithWhereWithoutSubmitterInput[]
+    deleteMany?: TipSubmissionScalarWhereInput | TipSubmissionScalarWhereInput[]
+  }
+
+  export type TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput = {
+    create?: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput> | TipSubmissionCreateWithoutReviewedByInput[] | TipSubmissionUncheckedCreateWithoutReviewedByInput[]
+    connectOrCreate?: TipSubmissionCreateOrConnectWithoutReviewedByInput | TipSubmissionCreateOrConnectWithoutReviewedByInput[]
+    upsert?: TipSubmissionUpsertWithWhereUniqueWithoutReviewedByInput | TipSubmissionUpsertWithWhereUniqueWithoutReviewedByInput[]
+    createMany?: TipSubmissionCreateManyReviewedByInputEnvelope
+    set?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    disconnect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    delete?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    connect?: TipSubmissionWhereUniqueInput | TipSubmissionWhereUniqueInput[]
+    update?: TipSubmissionUpdateWithWhereUniqueWithoutReviewedByInput | TipSubmissionUpdateWithWhereUniqueWithoutReviewedByInput[]
+    updateMany?: TipSubmissionUpdateManyWithWhereWithoutReviewedByInput | TipSubmissionUpdateManyWithWhereWithoutReviewedByInput[]
     deleteMany?: TipSubmissionScalarWhereInput | TipSubmissionScalarWhereInput[]
   }
 
@@ -27835,6 +28000,12 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type UserCreateNestedOneWithoutReviewedTipsInput = {
+    create?: XOR<UserCreateWithoutReviewedTipsInput, UserUncheckedCreateWithoutReviewedTipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutReviewedTipsInput
+    connect?: UserWhereUniqueInput
+  }
+
   export type UserUpdateOneWithoutTipSubmissionsNestedInput = {
     create?: XOR<UserCreateWithoutTipSubmissionsInput, UserUncheckedCreateWithoutTipSubmissionsInput>
     connectOrCreate?: UserCreateOrConnectWithoutTipSubmissionsInput
@@ -27843,6 +28014,16 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutTipSubmissionsInput, UserUpdateWithoutTipSubmissionsInput>, UserUncheckedUpdateWithoutTipSubmissionsInput>
+  }
+
+  export type UserUpdateOneWithoutReviewedTipsNestedInput = {
+    create?: XOR<UserCreateWithoutReviewedTipsInput, UserUncheckedCreateWithoutReviewedTipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutReviewedTipsInput
+    upsert?: UserUpsertWithoutReviewedTipsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutReviewedTipsInput, UserUpdateWithoutReviewedTipsInput>, UserUncheckedUpdateWithoutReviewedTipsInput>
   }
 
   export type UserCreateNestedOneWithoutNotificationsInput = {
@@ -28719,7 +28900,9 @@ export namespace Prisma {
     isAnonymous?: boolean
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
+    reviewedBy?: UserCreateNestedOneWithoutReviewedTipsInput
   }
 
   export type TipSubmissionUncheckedCreateWithoutSubmitterInput = {
@@ -28731,6 +28914,8 @@ export namespace Prisma {
     isAnonymous?: boolean
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -28741,6 +28926,44 @@ export namespace Prisma {
 
   export type TipSubmissionCreateManySubmitterInputEnvelope = {
     data: TipSubmissionCreateManySubmitterInput | TipSubmissionCreateManySubmitterInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TipSubmissionCreateWithoutReviewedByInput = {
+    id?: string
+    description: string
+    location?: string | null
+    occurredAt?: Date | string | null
+    category?: string | null
+    isAnonymous?: boolean
+    isReviewed?: boolean
+    reviewNotes?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    submitter?: UserCreateNestedOneWithoutTipSubmissionsInput
+  }
+
+  export type TipSubmissionUncheckedCreateWithoutReviewedByInput = {
+    id?: string
+    description: string
+    location?: string | null
+    occurredAt?: Date | string | null
+    category?: string | null
+    isAnonymous?: boolean
+    submitterId?: string | null
+    isReviewed?: boolean
+    reviewNotes?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type TipSubmissionCreateOrConnectWithoutReviewedByInput = {
+    where: TipSubmissionWhereUniqueInput
+    create: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput>
+  }
+
+  export type TipSubmissionCreateManyReviewedByInputEnvelope = {
+    data: TipSubmissionCreateManyReviewedByInput | TipSubmissionCreateManyReviewedByInput[]
     skipDuplicates?: boolean
   }
 
@@ -29008,7 +29231,25 @@ export namespace Prisma {
     submitterId?: StringNullableFilter<"TipSubmission"> | string | null
     isReviewed?: BoolFilter<"TipSubmission"> | boolean
     reviewNotes?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedById?: StringNullableFilter<"TipSubmission"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"TipSubmission"> | Date | string | null
     createdAt?: DateTimeFilter<"TipSubmission"> | Date | string
+  }
+
+  export type TipSubmissionUpsertWithWhereUniqueWithoutReviewedByInput = {
+    where: TipSubmissionWhereUniqueInput
+    update: XOR<TipSubmissionUpdateWithoutReviewedByInput, TipSubmissionUncheckedUpdateWithoutReviewedByInput>
+    create: XOR<TipSubmissionCreateWithoutReviewedByInput, TipSubmissionUncheckedCreateWithoutReviewedByInput>
+  }
+
+  export type TipSubmissionUpdateWithWhereUniqueWithoutReviewedByInput = {
+    where: TipSubmissionWhereUniqueInput
+    data: XOR<TipSubmissionUpdateWithoutReviewedByInput, TipSubmissionUncheckedUpdateWithoutReviewedByInput>
+  }
+
+  export type TipSubmissionUpdateManyWithWhereWithoutReviewedByInput = {
+    where: TipSubmissionScalarWhereInput
+    data: XOR<TipSubmissionUpdateManyMutationInput, TipSubmissionUncheckedUpdateManyWithoutReviewedByInput>
   }
 
   export type NotificationUpsertWithWhereUniqueWithoutUserInput = {
@@ -29087,6 +29328,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -29107,6 +29349,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -29143,6 +29386,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -29163,6 +29407,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -29183,6 +29428,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -29203,6 +29449,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -29239,6 +29486,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -29259,6 +29507,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -29280,6 +29529,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
   }
 
@@ -29300,6 +29550,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -29336,6 +29587,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
   }
 
@@ -29356,6 +29608,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
   }
 
@@ -29666,6 +29919,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentCreateNestedManyWithoutReviewedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -29686,6 +29940,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedCreateNestedManyWithoutReviewedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -29711,6 +29966,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -29731,6 +29987,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -30031,6 +30288,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUpdateManyWithoutReviewedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -30051,6 +30309,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -30082,6 +30341,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -30102,6 +30362,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -31766,6 +32027,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentCreateNestedManyWithoutReviewedByInput
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -31786,6 +32048,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedCreateNestedManyWithoutReviewedByInput
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -31941,6 +32204,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUpdateManyWithoutReviewedByNestedInput
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -31961,6 +32225,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -31981,6 +32246,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentCreateNestedManyWithoutReviewedByInput
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
@@ -32001,6 +32267,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedCreateNestedManyWithoutReviewedByInput
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
@@ -32008,6 +32275,53 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutTipSubmissionsInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutTipSubmissionsInput, UserUncheckedCreateWithoutTipSubmissionsInput>
+  }
+
+  export type UserCreateWithoutReviewedTipsInput = {
+    id?: string
+    name?: string | null
+    email: string
+    emailVerified?: Date | string | null
+    image?: string | null
+    password?: string | null
+    role?: $Enums.UserRole
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    reviewedIncidents?: IncidentCreateNestedManyWithoutReviewedByInput
+    createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
+    auditLogs?: AuditLogCreateNestedManyWithoutUserInput
+    tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutReviewedTipsInput = {
+    id?: string
+    name?: string | null
+    email: string
+    emailVerified?: Date | string | null
+    image?: string | null
+    password?: string | null
+    role?: $Enums.UserRole
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    reviewedIncidents?: IncidentUncheckedCreateNestedManyWithoutReviewedByInput
+    createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
+    tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutReviewedTipsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutReviewedTipsInput, UserUncheckedCreateWithoutReviewedTipsInput>
   }
 
   export type UserUpsertWithoutTipSubmissionsInput = {
@@ -32037,6 +32351,7 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUpdateManyWithoutReviewedByNestedInput
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
@@ -32057,6 +32372,60 @@ export namespace Prisma {
     reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUpsertWithoutReviewedTipsInput = {
+    update: XOR<UserUpdateWithoutReviewedTipsInput, UserUncheckedUpdateWithoutReviewedTipsInput>
+    create: XOR<UserCreateWithoutReviewedTipsInput, UserUncheckedCreateWithoutReviewedTipsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutReviewedTipsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutReviewedTipsInput, UserUncheckedUpdateWithoutReviewedTipsInput>
+  }
+
+  export type UserUpdateWithoutReviewedTipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    reviewedIncidents?: IncidentUpdateManyWithoutReviewedByNestedInput
+    createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
+    tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutReviewedTipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    reviewedIncidents?: IncidentUncheckedUpdateManyWithoutReviewedByNestedInput
+    createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
+    tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -32078,6 +32447,7 @@ export namespace Prisma {
     createdIncidents?: IncidentCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionCreateNestedManyWithoutReviewedByInput
     loginEvents?: LoginEventCreateNestedManyWithoutUserInput
   }
 
@@ -32098,6 +32468,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedCreateNestedManyWithoutCreatedByInput
     auditLogs?: AuditLogUncheckedCreateNestedManyWithoutUserInput
     tipSubmissions?: TipSubmissionUncheckedCreateNestedManyWithoutSubmitterInput
+    reviewedTips?: TipSubmissionUncheckedCreateNestedManyWithoutReviewedByInput
     loginEvents?: LoginEventUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -32134,6 +32505,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUpdateManyWithoutReviewedByNestedInput
     loginEvents?: LoginEventUpdateManyWithoutUserNestedInput
   }
 
@@ -32154,6 +32526,7 @@ export namespace Prisma {
     createdIncidents?: IncidentUncheckedUpdateManyWithoutCreatedByNestedInput
     auditLogs?: AuditLogUncheckedUpdateManyWithoutUserNestedInput
     tipSubmissions?: TipSubmissionUncheckedUpdateManyWithoutSubmitterNestedInput
+    reviewedTips?: TipSubmissionUncheckedUpdateManyWithoutReviewedByNestedInput
     loginEvents?: LoginEventUncheckedUpdateManyWithoutUserNestedInput
   }
 
@@ -32293,6 +32666,22 @@ export namespace Prisma {
     isAnonymous?: boolean
     isReviewed?: boolean
     reviewNotes?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type TipSubmissionCreateManyReviewedByInput = {
+    id?: string
+    description: string
+    location?: string | null
+    occurredAt?: Date | string | null
+    category?: string | null
+    isAnonymous?: boolean
+    submitterId?: string | null
+    isReviewed?: boolean
+    reviewNotes?: string | null
+    reviewedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -32730,7 +33119,9 @@ export namespace Prisma {
     isAnonymous?: BoolFieldUpdateOperationsInput | boolean
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviewedBy?: UserUpdateOneWithoutReviewedTipsNestedInput
   }
 
   export type TipSubmissionUncheckedUpdateWithoutSubmitterInput = {
@@ -32742,6 +33133,8 @@ export namespace Prisma {
     isAnonymous?: BoolFieldUpdateOperationsInput | boolean
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -32754,6 +33147,50 @@ export namespace Prisma {
     isAnonymous?: BoolFieldUpdateOperationsInput | boolean
     isReviewed?: BoolFieldUpdateOperationsInput | boolean
     reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TipSubmissionUpdateWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    isAnonymous?: BoolFieldUpdateOperationsInput | boolean
+    isReviewed?: BoolFieldUpdateOperationsInput | boolean
+    reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    submitter?: UserUpdateOneWithoutTipSubmissionsNestedInput
+  }
+
+  export type TipSubmissionUncheckedUpdateWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    isAnonymous?: BoolFieldUpdateOperationsInput | boolean
+    submitterId?: NullableStringFieldUpdateOperationsInput | string | null
+    isReviewed?: BoolFieldUpdateOperationsInput | boolean
+    reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TipSubmissionUncheckedUpdateManyWithoutReviewedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    isAnonymous?: BoolFieldUpdateOperationsInput | boolean
+    submitterId?: NullableStringFieldUpdateOperationsInput | string | null
+    isReviewed?: BoolFieldUpdateOperationsInput | boolean
+    reviewNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

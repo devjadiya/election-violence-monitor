@@ -1,91 +1,216 @@
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { formatDistanceToNow, format } from 'date-fns'
+import { MapPin, CalendarDays } from 'lucide-react'
 import { prisma } from '@/lib/db'
-import { formatDistanceToNow } from 'date-fns'
+import { getActor, hasPermission } from '@/lib/auth/guard'
 import { TipActions } from '@/components/tips/tip-actions'
+import { PageHeader, Panel, Stat, Empty } from '@/components/dashboard/ui'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TipsPage() {
-  const tips = await prisma.tipSubmission.findMany({
-    orderBy: { createdAt: 'desc' },
+/**
+ * Public tip submissions.
+ *
+ * Anyone can send one, so this queue is untrusted input by definition and the
+ * page is built for triage rather than reading. It needs ANALYST: a tip names
+ * places and sometimes people, and deciding one needs no further action is an
+ * editorial judgement.
+ *
+ * The reviewer's name is shown against every handled tip. With two people
+ * working the same queue, "reviewed" with nobody attached is how the same item
+ * gets worked twice.
+ */
+
+interface TipRow {
+  id: string
+  description: string
+  location: string | null
+  occurredAt: Date | null
+  category: string | null
+  isAnonymous: boolean
+  isReviewed: boolean
+  reviewNotes: string | null
+  reviewedAt: Date | null
+  createdAt: Date
+  reviewedBy: { name: string | null; email: string } | null
+}
+
+async function loadTips() {
+  return prisma.tipSubmission.findMany({
+    orderBy: [{ isReviewed: 'asc' }, { createdAt: 'desc' }],
     take: 100,
+    select: {
+      id: true,
+      description: true,
+      location: true,
+      occurredAt: true,
+      category: true,
+      isAnonymous: true,
+      isReviewed: true,
+      reviewNotes: true,
+      reviewedAt: true,
+      createdAt: true,
+      reviewedBy: { select: { name: true, email: true } },
+    },
   })
+}
 
-  const pending = tips.filter(t => !t.isReviewed)
-  const reviewed = tips.filter(t => t.isReviewed)
-
+function TipCard({ tip }: { tip: TipRow }) {
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1a1a2e] tracking-tight">Tip Submissions</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            {pending.length} pending review · {reviewed.length} reviewed
-          </p>
-        </div>
-        <a href="/submit" target="_blank"
-          className="text-xs text-zinc-400 hover:text-zinc-600 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors">
-          View public form ↗
-        </a>
-      </div>
+    <article
+      className={`card p-4 sm:p-5 ${tip.isReviewed ? 'opacity-70' : ''}`}
+      aria-labelledby={`tip-${tip.id}`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="chip">{tip.isAnonymous ? 'Anonymous' : 'Named submitter'}</span>
+            {tip.category ? <span className="chip">{tip.category}</span> : null}
+            <span className={`status ${tip.isReviewed ? 'status-active' : 'status-caution'}`}>
+              {tip.isReviewed ? 'Reviewed' : 'Awaiting review'}
+            </span>
+          </div>
 
-      {tips.length === 0 ? (
-        <div className="glass-card p-16 text-center">
-          <div className="text-4xl mb-3">📬</div>
-          <div className="text-sm font-medium text-zinc-600">No tips submitted yet</div>
-          <div className="text-xs text-zinc-400 mt-1">Tips from the public form appear here</div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {pending.length > 0 && (
-            <div>
-              <h2 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">
-                Pending Review ({pending.length})
-              </h2>
-              {pending.map(tip => <TipCard key={tip.id} tip={tip} />)}
+          <p
+            id={`tip-${tip.id}`}
+            className="prose-measure mt-2.5 text-[0.9375rem] leading-relaxed text-[var(--ink)]"
+          >
+            {tip.description}
+          </p>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.75rem] text-[var(--ink-3)]">
+            {tip.location ? (
+              <span className="inline-flex items-center gap-1">
+                <MapPin size={12} aria-hidden />
+                {tip.location}
+              </span>
+            ) : null}
+            {tip.occurredAt ? (
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays size={12} aria-hidden />
+                <time dateTime={tip.occurredAt.toISOString()}>
+                  {format(tip.occurredAt, 'd MMM yyyy')}
+                </time>
+              </span>
+            ) : null}
+            <span>
+              Submitted{' '}
+              <time dateTime={tip.createdAt.toISOString()}>
+                {formatDistanceToNow(tip.createdAt, { addSuffix: true })}
+              </time>
+            </span>
+          </div>
+
+          {tip.isReviewed ? (
+            <div className="rule-t mt-3 pt-2.5">
+              <p className="text-[0.75rem] text-[var(--ink-3)]">
+                Reviewed by{' '}
+                <span className="text-[var(--ink-2)]">
+                  {tip.reviewedBy?.name ?? tip.reviewedBy?.email ?? 'an earlier version of this system'}
+                </span>
+                {tip.reviewedAt ? (
+                  <>
+                    {' '}
+                    <time dateTime={tip.reviewedAt.toISOString()}>
+                      {formatDistanceToNow(tip.reviewedAt, { addSuffix: true })}
+                    </time>
+                  </>
+                ) : null}
+              </p>
+              {tip.reviewNotes ? (
+                <p className="prose-measure mt-1.5 bg-[var(--paper-2)] px-3 py-2 text-[0.8125rem] leading-relaxed text-[var(--ink-2)]">
+                  {tip.reviewNotes}
+                </p>
+              ) : null}
             </div>
-          )}
-          {reviewed.length > 0 && (
-            <div className="opacity-60">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Reviewed ({reviewed.length})
-              </h2>
-              {reviewed.map(tip => <TipCard key={tip.id} tip={tip} />)}
-            </div>
-          )}
+          ) : null}
         </div>
-      )}
-    </div>
+
+        <TipActions tip={{ id: tip.id, isReviewed: tip.isReviewed }} />
+      </div>
+    </article>
   )
 }
 
-function TipCard({ tip }: { tip: any }) {
+export default async function TipsPage() {
+  const actor = await getActor()
+  if (!actor || !hasPermission(actor.role, 'ANALYST')) redirect('/dashboard')
+
+  const tips = await loadTips()
+  const pending = tips.filter((t) => !t.isReviewed)
+  const reviewed = tips.filter((t) => t.isReviewed)
+  const oldest = pending[pending.length - 1]
+
   return (
-    <div className="glass-card p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            {tip.isAnonymous && (
-              <span className="text-[10px] px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-full">Anonymous</span>
-            )}
-            {tip.category && (
-              <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full">{tip.category}</span>
-            )}
-            {tip.isReviewed && (
-              <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-600 rounded-full">Reviewed</span>
-            )}
-          </div>
-          <p className="text-sm text-zinc-700 leading-relaxed line-clamp-3">{tip.description}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-zinc-400">
-            {tip.location && <span>📍 {tip.location}</span>}
-            {tip.occurredAt && <span>📅 {new Date(tip.occurredAt).toLocaleDateString()}</span>}
-            <span>🕐 {formatDistanceToNow(new Date(tip.createdAt), { addSuffix: true })}</span>
-          </div>
-          {tip.reviewNotes && (
-            <div className="mt-2 p-2 bg-zinc-50 rounded text-xs text-zinc-600">{tip.reviewNotes}</div>
-          )}
+    <div className="mx-auto max-w-4xl space-y-5">
+      <PageHeader
+        title="Tips"
+        lede="Reports sent through the public form. Every one is unverified by definition — a tip is a lead to check, not a record."
+        action={
+          <Link href="/submit" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+            View public form
+          </Link>
+        }
+      />
+
+      <section className="rule-b grid grid-cols-2 gap-x-6 gap-y-6 pb-6 sm:grid-cols-3">
+        <Stat value={pending.length} label="Awaiting review" />
+        <Stat value={reviewed.length} label="Reviewed" />
+        <Stat
+          value={oldest ? formatDistanceToNow(oldest.createdAt) : '—'}
+          label="Oldest unreviewed"
+          note={oldest ? 'has been waiting' : 'nothing waiting'}
+        />
+      </section>
+
+      {tips.length === 0 ? (
+        <Empty title="No tips have been submitted.">
+          <p>
+            Reports sent through the public form appear here. Nothing arriving is not the same as
+            nothing happening &mdash; the form has to be found before it can be used.
+          </p>
+        </Empty>
+      ) : (
+        <>
+          {pending.length > 0 ? (
+            <section>
+              <h2 className="eyebrow">Awaiting review ({pending.length})</h2>
+              <div className="mt-3 space-y-3">
+                {pending.map((tip) => (
+                  <TipCard key={tip.id} tip={tip} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {reviewed.length > 0 ? (
+            <section className="section-sm">
+              <h2 className="eyebrow">Reviewed ({reviewed.length})</h2>
+              <div className="mt-3 space-y-3">
+                {reviewed.map((tip) => (
+                  <TipCard key={tip.id} tip={tip} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      )}
+
+      <Panel className="p-5">
+        <h2 className="text-[0.9375rem] font-semibold text-[var(--ink)]">Handling a tip</h2>
+        <div className="prose-measure mt-2 space-y-2.5 text-[0.875rem] leading-relaxed text-[var(--ink-2)]">
+          <p>
+            A tip is an allegation from an anonymous member of the public. It never becomes a
+            published record on its own: creating a record from one starts the same review path as
+            anything the pipeline extracts, and it still needs a source that can be cited.
+          </p>
+          <p>
+            Marking a tip reviewed records your name against it. If someone else has already done
+            so, saving is refused rather than overwriting their note.
+          </p>
         </div>
-        <TipActions tip={tip} />
-      </div>
+      </Panel>
     </div>
   )
 }

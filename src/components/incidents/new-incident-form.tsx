@@ -134,7 +134,7 @@ export function NewIncidentForm({ elections }: Props) {
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
-        {/* ── Basic Info ── */}
+        {/* Basic Info */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Basic Information</h2>
 
@@ -220,7 +220,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Location ── */}
+        {/* Location */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Location</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -295,7 +295,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Impact ── */}
+        {/* Impact */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Impact</h2>
           <div className="grid grid-cols-3 gap-4">
@@ -364,7 +364,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Victim Information ── */}
+        {/* Victim Information */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Victim Information</h2>
           <p className="text-xs text-zinc-400">
@@ -464,7 +464,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Actors / Perpetrators ── */}
+        {/* Actors / Perpetrators */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Actors Involved</h2>
           <p className="text-xs text-zinc-400">
@@ -492,7 +492,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Source ── */}
+        {/* Source */}
         <div className="glass-card p-5 space-y-4">
           <h2 className="font-semibold text-[#1a1a2e] text-sm">Source</h2>
           <p className="text-xs text-zinc-400">
@@ -521,7 +521,7 @@ export function NewIncidentForm({ elections }: Props) {
           </div>
         </div>
 
-        {/* ── Notice ── */}
+        {/* Notice */}
         <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
           <p className="text-xs text-amber-700 leading-relaxed">
             <strong>Monitoring notice:</strong> Creating this incident flags it for human review before any publication.

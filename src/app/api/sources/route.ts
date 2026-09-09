@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth/guard'
 import { probeFeed, fetchSourceNow } from '@/lib/ingestion/source-onboarding'
+import { notifyAdmins } from '@/lib/notifications'
 import type { SourceType } from '@/lib/generated/prisma'
 
 const SOURCE_TYPES: SourceType[] = [
@@ -104,6 +105,16 @@ export async function POST(req: NextRequest) {
 
   // Read it now, so the operator sees articles rather than a promise of them.
   const fetched = rssUrl ? await fetchSourceNow(source.id) : null
+
+  // What the pipeline reads is shared configuration. Another administrator
+  // needs to know it changed without having to notice it.
+  await notifyAdmins({
+    type: 'source_changed',
+    title: 'Source added',
+    message: `${name} was registered as a source.`,
+    link: '/manage/sources',
+    exceptUserId: guard.actor.userId,
+  })
 
   return NextResponse.json({
     success: true,

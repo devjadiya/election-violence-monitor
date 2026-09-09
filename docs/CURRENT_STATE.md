@@ -771,6 +771,69 @@ moved inside the debounce, so a fast typist causes one state change rather than 
 Still on prototype styling: `manage/incidents`, `manage/incidents/[id]`, `manage/elections`,
 `export`, `tips`, `livemap`. The public site still has no mobile navigation menu.
 
+### D22 — the twenty-five days of failure emails, and what else was broken — 2026-09-09
+
+**The "Election monitor" workflow.** It ran every fifteen minutes for twenty-five days and
+failed in under four seconds each time, producing a failure email roughly every two hours. The
+cause was the gate step's first branch: `APP_URL` is not set on the repository, so it printed
+one line and did `exit 1`. Verified by elimination — `/api/monitoring/status` answers correctly
+in 2.4s with `collect: true`, so nothing about the deployment was wrong.
+
+**This still needs a repository secret that only the owner can set.** Under
+**Settings → Secrets and variables → Actions**, add `APP_URL` (the deployment origin, no
+trailing slash) and confirm `CRON_SECRET` matches the Vercel environment variable. Until then
+the high-frequency pass does nothing; the daily Vercel cron is unaffected and is still running.
+
+The workflow now separates two cases that were conflated. **Not configured** warns, writes the
+exact instructions into the step summary, and finishes green — a switched-off feature is not an
+incident. **Configured but unreachable** fails loudly, because that is one. A non-JSON response
+(an auth wall, a platform error page) previously reached `jq` and killed the run with an
+unreadable parse error; it now says what happened. The cost of the old behaviour was not the
+emails, it was that a real outage would have looked identical to twenty-five days of noise.
+
+**Two administrators, one deployment.** Notifications existed and fired on both crons, incident
+creation, incident update and tip submission, but never on the changes that matter most when
+two people share a system: a source switched off, a feed retargeted, an account's role changed.
+Those are wired now. `notifyAdmins`/`notifyReviewers` also take `exceptUserId`, so the person
+who made a change is no longer told about their own action — noise is how a notification bell
+stops being read.
+
+`TipSubmission` gained `reviewedById` and `reviewedAt` (migration
+`20260909200000_tip_reviewer`, additive). "Reviewed" with nobody attached is why two people work
+the same tip. `PATCH /api/tips/[id]` now returns **409 naming the first reviewer** rather than
+silently overwriting their note, and needs ANALYST — it was guarded by `auth()` alone, so any
+OBSERVER could mark public submissions reviewed.
+
+**Editing a source link was impossible.** `PATCH /api/sources/[id]` accepted name, country,
+trust and active state but not `url` or `rssUrl`, and the interface had no edit control at all.
+A publisher moving its RSS path is the most common reason collection stops, so it now has an
+inline editor — and a replacement feed is fetched and proved before it is stored, exactly as on
+registration. A rejected replacement leaves the working feed untouched.
+
+**Broken button:** the tips page's "Create Incident" pushed to `/incidents/new`, which does not
+exist — the route is `/manage/incidents/new`, so it hit the public incident detail page with an
+id of `new`. Its failures were also swallowed: `markReviewed` never checked `res.ok`.
+
+**Emoji removed** — 18 occurrences, now zero. Four were visible interface text (`📬` `📋` `✅`
+`🔒` plus `📍 📅 🕐` on every tip); the rest were decorative comment markers.
+
+**Nothing said a click had registered.** Nine dashboard routes had no `loading.tsx`, so a
+sidebar click left the previous page motionless for up to five seconds. Added a shared
+`DashboardSkeleton` and route loading states for all nine, plus `useLinkStatus` in the sidebar
+so the clicked destination's own icon becomes a spinner. Feedback is on the thing that was
+clicked, not a bar at the top of the window.
+
+`manage/incidents` also started its filter from `{}` — no `isDemo: false` — so it listed the
+fabricated seed records while every other surface excluded them. It now starts from
+`internalIncidentFilter()`.
+
+**Verified end to end against production**, 19 checks: a dead feed refused before anything is
+stored; a working feed accepted and collected immediately; a second read reporting duplicates
+rather than re-storing; a rejected retarget leaving the original intact; notifications reaching
+3 of 4 admins and skipping the actor; deactivation keeping articles; deletion only when empty;
+a reviewed tip naming its reviewer; 8 of 12 published records geocoded for the map; and every
+role present to test its own surface.
+
 ---
 
 ## 5. Commands

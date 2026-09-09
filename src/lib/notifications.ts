@@ -10,18 +10,40 @@ type NotificationType =
   // Raised when a run discovers articles but classifies none, or errors on a
   // large share of them. Operators need to hear about a silently dead pipeline.
   | 'ingestion_failure'
+  // Raised when one operator changes shared configuration. With more than one
+  // administrator these are the changes that are otherwise invisible: a source
+  // switched off, a feed retargeted, an account's role changed. Nothing in the
+  // interface would tell the other person, and they would spend an afternoon
+  // wondering why collection stopped.
+  | 'source_changed'
+  | 'account_changed'
   | 'system'
 
+/**
+ * `exceptUserId` is the person who caused the event.
+ *
+ * Without it, an administrator who deactivates a source is immediately told
+ * that a source was deactivated. That is noise, and noise is how a
+ * notification bell stops being read — which matters most in exactly the
+ * situation these exist for, two people administering one deployment.
+ */
 export async function notifyAdmins(opts: {
   type: NotificationType
   title: string
   message: string
   link?: string
+  exceptUserId?: string | null
 }) {
   const admins = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'EDITOR'] }, isActive: true },
+    where: {
+      role: { in: ['ADMIN', 'EDITOR'] },
+      isActive: true,
+      ...(opts.exceptUserId ? { id: { not: opts.exceptUserId } } : {}),
+    },
     select: { id: true },
   })
+
+  if (admins.length === 0) return
 
   await prisma.notification.createMany({
     data: admins.map(a => ({
@@ -39,11 +61,18 @@ export async function notifyReviewers(opts: {
   title: string
   message: string
   link?: string
+  exceptUserId?: string | null
 }) {
   const reviewers = await prisma.user.findMany({
-    where: { role: { in: ['ADMIN', 'EDITOR', 'REVIEWER'] }, isActive: true },
+    where: {
+      role: { in: ['ADMIN', 'EDITOR', 'REVIEWER'] },
+      isActive: true,
+      ...(opts.exceptUserId ? { id: { not: opts.exceptUserId } } : {}),
+    },
     select: { id: true },
   })
+
+  if (reviewers.length === 0) return
 
   await prisma.notification.createMany({
     data: reviewers.map(r => ({

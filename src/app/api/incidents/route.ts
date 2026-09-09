@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         isAutoDetected: false,
         confidenceScore: 70,
         createdById: actor.userId,
-        // ✅ NEW: victims
+        //  NEW: victims
         victims: body.victim
           ? {
             create: {
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
           }
           : undefined,
 
-        // ✅ NEW: actors
+        //  NEW: actors
         actors: body.actor
           ? {
             create: {

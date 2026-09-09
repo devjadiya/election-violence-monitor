@@ -169,6 +169,7 @@ model User {
   createdIncidents  Incident[]      @relation("CreatedBy")
   auditLogs         AuditLog[]
   tipSubmissions    TipSubmission[]
+  reviewedTips      TipSubmission[] @relation("TipReviewedBy")
   notifications     Notification[]
   loginEvents       LoginEvent[]
 
@@ -653,9 +654,16 @@ model TipSubmission {
   isReviewed  Boolean   @default(false)
   reviewNotes String?   @db.Text
 
+  /// Who handled it, and when. With more than one administrator, "reviewed"
+  /// without a name is the reason two people do the same tip twice.
+  reviewedById String?
+  reviewedBy   User?     @relation("TipReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([isReviewed])
+  @@index([reviewedById])
 }
 
 // ============================================================

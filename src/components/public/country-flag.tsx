@@ -2,7 +2,7 @@
  * Country flags as inline SVG.
  *
  * Emoji flags were the obvious choice and are the wrong one: Windows does not
- * render regional-indicator sequences at all, so 🇳🇬 displays as the bare
+ * render regional-indicator sequences at all, so a flag emoji displays as the bare
  * letters "NG" for a large share of any audience. An npm flag package would
  * work, but `AGENTS.md` asks that a dependency be justified against a free
  * alternative and a measured need — six countries are in scope, so six inline

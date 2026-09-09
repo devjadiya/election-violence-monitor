@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Fragment, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Rss, Plus, RefreshCw, Trash2, Play } from 'lucide-react'
+import { Rss, Plus, RefreshCw, Trash2, Play, Pencil, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
 import { Panel, TableShell, Empty, StateBadge } from '@/components/dashboard/ui'
@@ -59,6 +59,9 @@ export function SourcesManager({ sources, isAdmin }: Props) {
   const [probeError, setProbeError] = useState<string | null>(null)
   const [probeSample, setProbeSample] = useState<ProbeSample[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [edit, setEdit] = useState({ name: '', url: '', rssUrl: '' })
+  const [editError, setEditError] = useState<string | null>(null)
 
   function refresh() {
     startTransition(() => router.refresh())
@@ -135,6 +138,43 @@ export function SourcesManager({ sources, isAdmin }: Props) {
             ? `${data.stored} new article${data.stored === 1 ? '' : 's'} stored from ${data.found} in the feed.`
             : `${data.found} items in the feed, all already held.`,
       })
+      refresh()
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  function beginEdit(source: Source) {
+    setEditingId(source.id)
+    setEditError(null)
+    setEdit({ name: source.name, url: source.url, rssUrl: source.rssUrl ?? '' })
+  }
+
+  async function saveEdit(source: Source) {
+    setBusyId(source.id)
+    setEditError(null)
+    try {
+      const res = await fetch(`/api/sources/${source.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edit),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        // A replacement feed that cannot be read is reported in place rather
+        // than as a toast, because the URL that needs correcting is right here.
+        setEditError(data.error ?? `The server refused the change (${res.status}).`)
+        return
+      }
+
+      toast.success(`${edit.name} updated`, {
+        description:
+          edit.rssUrl && edit.rssUrl !== (source.rssUrl ?? '')
+            ? 'The new feed was read successfully before saving.'
+            : undefined,
+      })
+      setEditingId(null)
       refresh()
     } finally {
       setBusyId(null)
@@ -320,8 +360,10 @@ export function SourcesManager({ sources, isAdmin }: Props) {
           <tbody>
             {sources.map((source) => {
               const busy = busyId === source.id || pending
+              const editing = editingId === source.id
               return (
-                <tr key={source.id} className={source.isActive ? '' : 'opacity-60'}>
+                <Fragment key={source.id}>
+                <tr className={source.isActive ? '' : 'opacity-60'}>
                   <td>
                     <div className="flex items-start gap-2">
                       {source.rssUrl ? (
@@ -373,6 +415,17 @@ export function SourcesManager({ sources, isAdmin }: Props) {
                         <>
                           <button
                             type="button"
+                            onClick={() => (editing ? setEditingId(null) : beginEdit(source))}
+                            disabled={busy}
+                            title="Edit name and links"
+                            aria-label={`Edit ${source.name}`}
+                            aria-expanded={editing}
+                            className="flex h-7 w-7 items-center justify-center rounded-sm text-[var(--ink-3)] hover:bg-[var(--paper-3)] hover:text-[var(--ink)] disabled:opacity-40"
+                          >
+                            <Pencil size={14} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => toggleActive(source)}
                             disabled={busy}
                             title={source.isActive ? 'Stop collecting' : 'Resume collecting'}
@@ -400,6 +453,73 @@ export function SourcesManager({ sources, isAdmin }: Props) {
                     </div>
                   </td>
                 </tr>
+
+                {editing ? (
+                  <tr>
+                    <td colSpan={5} className="bg-[var(--paper-2)]">
+                      <div className="grid gap-3 p-4 sm:grid-cols-3">
+                        <label className="block">
+                          <span className="figure-label">Name</span>
+                          <input
+                            value={edit.name}
+                            onChange={(e) => setEdit((f) => ({ ...f, name: e.target.value }))}
+                            className="mt-1 w-full border border-[var(--rule-2)] bg-[var(--paper)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--ink)] outline-none focus:border-[var(--navy-3)]"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="figure-label">Website URL</span>
+                          <input
+                            value={edit.url}
+                            onChange={(e) => setEdit((f) => ({ ...f, url: e.target.value }))}
+                            className="mt-1 w-full border border-[var(--rule-2)] bg-[var(--paper)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--ink)] outline-none focus:border-[var(--navy-3)]"
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="figure-label">Feed URL</span>
+                          <input
+                            value={edit.rssUrl}
+                            onChange={(e) => setEdit((f) => ({ ...f, rssUrl: e.target.value }))}
+                            placeholder="none"
+                            className="mt-1 w-full border border-[var(--rule-2)] bg-[var(--paper)] px-2.5 py-1.5 text-[0.8125rem] text-[var(--ink)] outline-none focus:border-[var(--navy-3)]"
+                          />
+                        </label>
+
+                        {editError ? (
+                          <p className="border-l-2 border-[var(--severity)] bg-[var(--severity-tint)] px-3 py-2 text-[0.8125rem] leading-relaxed text-[var(--severity)] sm:col-span-3">
+                            {editError}
+                          </p>
+                        ) : (
+                          <p className="text-[0.75rem] leading-relaxed text-[var(--ink-3)] sm:col-span-3">
+                            A changed feed URL is fetched before it is saved. If it cannot be read,
+                            nothing changes and the reason appears here.
+                          </p>
+                        )}
+
+                        <div className="flex gap-2 sm:col-span-3">
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(source)}
+                            disabled={busy || !edit.name.trim() || !edit.url.trim()}
+                            className="btn btn-primary disabled:opacity-50"
+                          >
+                            {busy ? (
+                              <Loader2 size={13} className="animate-spin" aria-hidden />
+                            ) : null}
+                            {busy ? 'Checking…' : 'Save changes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            className="btn btn-secondary"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                </Fragment>
               )
             })}
           </tbody>

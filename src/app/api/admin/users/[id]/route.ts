@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireRole } from '@/lib/auth/guard'
 import type { UserRole } from '@/lib/generated/prisma'
 import bcrypt from 'bcryptjs'
+import { notifyAdmins, notifyUser } from '@/lib/notifications'
 
 const ROLES: UserRole[] = ['PUBLIC', 'OBSERVER', 'ANALYST', 'REVIEWER', 'EDITOR', 'ADMIN']
 
@@ -105,6 +106,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     select: { id: true, name: true, email: true, role: true, isActive: true },
     data,
   })
+
+  // Who may do what is shared configuration, so the other administrators are
+  // told. A password reset is deliberately not announced to anyone but the
+  // person it belongs to.
+  if (data.role !== undefined || data.isActive !== undefined) {
+    const change =
+      data.role !== undefined
+        ? `is now ${data.role}`
+        : data.isActive
+          ? 'was re-enabled'
+          : 'was disabled'
+    await notifyAdmins({
+      type: 'account_changed',
+      title: 'Account changed',
+      message: `${user.name ?? user.email} ${change}.`,
+      link: '/admin/users',
+      exceptUserId: guard.actor.userId,
+    })
+  }
+
+  if (data.password && !isSelf) {
+    await notifyUser({
+      userId: user.id,
+      type: 'account_changed',
+      title: 'Your password was changed',
+      message: 'An administrator issued you a new password. Your previous one no longer works.',
+    })
+  }
 
   return NextResponse.json({ success: true, data: user })
 }
