@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/db'
+import { CorpusChapter } from './_chapters/corpus'
 import { ScreeningChapter } from './_chapters/screening'
 import { RecordsChapter } from './_chapters/records'
 import { publicIncidentFilter } from '@/lib/incidents/visibility'
@@ -222,6 +223,14 @@ export default async function AnalyticsPage() {
 
         {/* Streamed: the chapter reads the whole article corpus, and the
             figures above should not wait on it. */}
+        {/* The corpus comes first: the funnel makes no sense until you know
+            what is going into it. */}
+        <Suspense fallback={<ChapterSkeleton />}>
+          <CorpusChapter />
+        </Suspense>
+
+        <div className="rule-t" />
+
         <Suspense fallback={<ChapterSkeleton />}>
           <ScreeningChapter />
         </Suspense>

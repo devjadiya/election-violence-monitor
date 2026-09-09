@@ -1,6 +1,14 @@
 import { getScreeningChapter } from '@/lib/analytics'
 import { FiguresTable } from '@/components/analytics/figures-table'
 import { ScreeningSankey } from '@/components/analytics/charts/screening-sankey'
+import { GapWaffleFigure } from '@/components/analytics/static-figures'
+import {
+  BacklogChart,
+  CohortsChart,
+  ScoreSwarmChart,
+  ScreeningLatencyChart,
+  SignalRateChart,
+} from '@/components/analytics/charts/corpus-charts'
 
 /**
  * Chapter 2 — the screening decision.
@@ -52,6 +60,36 @@ export async function ScreeningChapter() {
         <ScreeningSankey viz={chapter.funnelTail}>
           <FiguresTable table={chapter.funnelTail.figures} />
         </ScreeningSankey>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <ScoreSwarmChart viz={chapter.scoreSwarm}>
+          <FiguresTable table={chapter.scoreSwarm.figures} />
+        </ScoreSwarmChart>
+
+        <SignalRateChart viz={chapter.signalRate}>
+          <FiguresTable table={chapter.signalRate.figures} />
+        </SignalRateChart>
+      </div>
+
+      <div className="mt-4">
+        <GapWaffleFigure viz={chapter.gap} />
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <BacklogChart viz={chapter.backlog}>
+          <FiguresTable table={chapter.backlog.figures} />
+        </BacklogChart>
+
+        <CohortsChart viz={chapter.cohorts}>
+          <FiguresTable table={chapter.cohorts.figures} />
+        </CohortsChart>
+      </div>
+
+      <div className="mt-4">
+        <ScreeningLatencyChart viz={chapter.latency}>
+          <FiguresTable table={chapter.latency.figures} />
+        </ScreeningLatencyChart>
       </div>
     </section>
   )

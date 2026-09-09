@@ -834,6 +834,70 @@ rather than re-storing; a rejected retarget leaving the original intact; notific
 a reviewed tip naming its reviewer; 8 of 12 published records geocoded for the map; and every
 role present to test its own surface.
 
+### D23 — the demo-facing pass: mobile, map, branding, dashboard, analytics — 2026-09-09
+
+**The map was never an API key.** `maplibre-gl` ships its own stylesheet and it was never
+imported anywhere in the repository. Without it the canvas gets no positioning, controls render
+unstyled and absolutely-positioned markers detach from their coordinates. CARTO's tiles need no
+key and return 200. One import per map component.
+
+**Cluster counts.** Clusters were anonymous grey blobs — two records and forty differed by a few
+pixels of radius, and the caption apologised for it. They print `point_count_abbreviated` now,
+which needed a `glyphs` source: a symbol layer cannot render a character without one and a raster
+basemap supplies none, so it would have failed silently. `layout.tsx` had carried a preconnect to
+OpenFreeMap since before anything used it.
+
+**The public site had no mobile menu.** Every destination sat in a horizontally scrolling rail,
+so three of seven sections were off-screen with nothing indicating they existed — and the rail
+was itself a sideways-scroll surface. Replaced with a disclosure menu
+([mobile-nav.tsx](../src/components/public/mobile-nav.tsx)): Escape and outside-tap dismiss,
+focus returns to the trigger, body scroll locks while open.
+
+**The skip link used `:focus`**, which a touch device satisfies, so tapping near the top of the
+page made a black "Skip to content" button appear over the header and then vanish. Now
+`:focus-visible`.
+
+**Link previews were broken.** Metadata has pointed at `/og-image.png` since the project began
+and that file never existed. Generated with `next/og` at
+[opengraph-image.tsx](../src/app/opengraph-image.tsx) instead — one file, cannot drift from the
+wordmark, no binary in the repo. The favicon was also still an "EV" monogram in `#1a1a2e`, a
+colour retired from the design system.
+
+**Six dashboard pages joined the design system**, and two had real bugs behind the styling:
+
+- `manage/elections` decided what was "Currently Monitoring" from a ±30-day window around polling
+  day, ignoring `monitoringStatus` entirely — the field that exists precisely because the two are
+  orthogonal. It showed elections as monitored, with a pulsing green dot, that had nothing
+  collecting for them. Its counts also skipped the demo filter.
+- `export` never checked `res.ok`, so a 401, a 429 or a 500 was downloaded as
+  `evm-incidents-2026-09-09.csv`. It also used a detached anchor, which works in Chromium and
+  silently does nothing in Firefox.
+- `manage/incidents/[id]` did not show the evidence quotes at all — they sit in
+  `Incident.evidence` and were only ever rendered on the public page, so a reviewer checking a
+  claim had to open the source and read the whole article. They are the first thing on the page
+  now, with the extraction model and prompt version beside them.
+
+**Analytics chapters 1 and 2 are built** — sixteen further visualisations on top of the records
+chapter, so `/analytics` now carries **26**. Corpus: publisher volume with the silent sources
+drawn in red rather than omitted, a collection calendar, stacked volume over time, feed staleness
+dumbbells, trust against volume with the unassessed default drawn hollow, a log-binned length
+histogram, publication hour, an extraction-method matrix, extraction coverage, and a dedup
+waterfall. Screening: the score beeswarm, publisher signal rate, the retired-model gap as a CSS
+waffle, the backlog burn-up, screening latency with "never screened" at full height, and cohort
+ageing.
+
+Two are markup rather than ECharts ([static-figures.tsx](../src/components/analytics/static-figures.tsx)):
+a waffle is literally a grid of cells and a share bar is a `<dl>`, so both cost nothing in the
+bundle and work without JavaScript by construction.
+
+**Verified against production**, all sixteen rendering: 14,207 articles across 39 sources over
+159 collection days; 4,899 screened, 3,919 of those by the retired model; 29 relevant, 26
+structured, 12 published.
+
+**The backlog is now 9,308 unscreened, up from 1,444 in August.** Discovery runs daily on Vercel
+and classification cannot keep pace at six articles a run. This is the `APP_URL` secret, still
+unset — see D22.
+
 ---
 
 ## 5. Commands
