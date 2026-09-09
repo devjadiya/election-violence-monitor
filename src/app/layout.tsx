@@ -34,14 +34,12 @@ export const metadata: Metadata = {
     title: 'Election Violence Monitor',
     description:
       'Transparent, ethical documentation of election-related violence incidents worldwide.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Election Violence Monitor' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Election Violence Monitor',
     description:
       'Transparent, ethical documentation of election-related violence incidents worldwide.',
-    images: ['/og-image.png'],
     creator: '@devjadiya',
   },
   /**

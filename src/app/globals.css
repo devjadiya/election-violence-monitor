@@ -692,6 +692,12 @@ body {
 }
 
 /* Skip link — keyboard users should not tab through the whole nav. */
+/* Shown to keyboard users only.
+   This was `:focus`, which a touch device also satisfies — tapping near the
+   top of the page focused the link and a black "Skip to content" button
+   appeared over the header, then vanished. `:focus-visible` is the browser's
+   own judgement about whether focus was reached by keyboard, which is exactly
+   the distinction this control needs. */
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -702,4 +708,8 @@ body {
   z-index: 100;
   border-radius: 0 0 4px 0;
 }
-.skip-link:focus { left: 0; }
+.skip-link:focus-visible {
+  left: 0;
+  outline: 2px solid var(--navy-4);
+  outline-offset: 2px;
+}

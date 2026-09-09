@@ -1,12 +1,12 @@
 {
   "name": "Election Violence Monitor",
   "short_name": "EVM",
-  "description": "Transparent documentation of election-related violence worldwide",
+  "description": "Open, source-linked records of election-related violence",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1a1a2e",
+  "theme_color": "#10263f",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

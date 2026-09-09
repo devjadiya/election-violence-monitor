@@ -62,6 +62,12 @@ export interface InternalMapIncident {
 
 const MAP_STYLE = {
   version: 8 as const,
+  // A symbol layer cannot render a character without a glyph source, and a
+  // raster basemap supplies none — so the cluster counts would have failed
+  // silently without this. OpenFreeMap serves Noto Sans free and unauthenticated,
+  // and `layout.tsx` has carried a preconnect to it since before anything used
+  // it. Now something does.
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   sources: {
     carto: {
       type: 'raster' as const,

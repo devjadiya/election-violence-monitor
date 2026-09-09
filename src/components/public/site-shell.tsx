@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MobileNav } from './mobile-nav'
 
 /**
  * The public shell.
@@ -63,7 +64,10 @@ export function SiteHeader({ current }: { current?: string }) {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      <header className="rule-b sticky top-0 z-40 bg-[var(--paper)]/95 backdrop-blur-[2px]">
+      {/* `relative` anchors the mobile panel, which is positioned against this
+          header rather than the viewport so it stays put while the header is
+          stuck to the top. */}
+      <header className="rule-b sticky top-0 z-40 relative bg-[var(--paper)]/95 backdrop-blur-[2px]">
         <div className="shell flex items-center gap-8 py-3.5">
           <Wordmark />
 
@@ -79,28 +83,11 @@ export function SiteHeader({ current }: { current?: string }) {
               </Link>
             ))}
           </nav>
-        </div>
 
-        {/* Mobile: a scrolling rail rather than a hidden menu, so every section
-            stays one tap away and nothing is buried behind a hamburger. */}
-        <nav aria-label="Primary" className="scroll-x rule-t md:hidden">
-          <div className="flex gap-4 px-5 py-2">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={current === item.href ? 'page' : undefined}
-                className={`whitespace-nowrap py-1 text-[0.8125rem] ${
-                  current === item.href
-                    ? 'border-b-2 border-[var(--navy)] font-medium text-[var(--ink)]'
-                    : 'border-b-2 border-transparent text-[var(--ink-2)]'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <div className="ml-auto md:ml-0">
+            <MobileNav items={NAV} current={current} />
           </div>
-        </nav>
+        </div>
       </header>
     </>
   )

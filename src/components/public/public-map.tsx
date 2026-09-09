@@ -15,7 +15,12 @@ import Link from 'next/link'
 import MapGL, {
   Source, Layer, NavigationControl, ScaleControl, AttributionControl,
 } from 'react-map-gl/maplibre'
-import type { MapRef, MapLayerMouseEvent, CircleLayerSpecification } from 'react-map-gl/maplibre'
+import type {
+  MapRef,
+  MapLayerMouseEvent,
+  CircleLayerSpecification,
+  SymbolLayerSpecification,
+} from 'react-map-gl/maplibre'
 import type { IncidentCategory, VerificationPathway } from '@/lib/generated/prisma'
 import { CATEGORY_FAMILIES, familyOf, type CategoryFamilyId } from '@/lib/incidents/category-family'
 import { CATEGORY_LABEL, casualtySummary, confidenceBand, formatDate } from '@/lib/incidents/format'
@@ -57,6 +62,12 @@ export interface MapIncident {
 
 const MAP_STYLE = {
   version: 8 as const,
+  // A symbol layer cannot render a character without a glyph source, and a
+  // raster basemap supplies none — so the cluster counts would have failed
+  // silently without this. OpenFreeMap serves Noto Sans free and unauthenticated,
+  // and `layout.tsx` has carried a preconnect to it since before anything used
+  // it. Now something does.
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   sources: {
     carto: {
       type: 'raster' as const,
@@ -101,6 +112,38 @@ const clusterLayer: CircleLayerSpecification = {
     'circle-stroke-width': 2,
     'circle-stroke-color': '#ffffff',
     'circle-opacity': 0.85,
+  },
+}
+
+/**
+ * The number inside each cluster.
+ *
+ * A clustered map without this is a field of anonymous grey blobs: a circle
+ * holding two records and one holding forty differ only by a few pixels of
+ * radius, so the map shows where records exist and refuses to say how many.
+ * The caption underneath used to apologise for it, telling readers to click a
+ * cluster to find out what was in it.
+ *
+ * `point_count_abbreviated` is supplied by the clustering source and renders
+ * 1,200 as "1.2k", which matters once a bubble is only 25px across.
+ */
+const clusterCountLayer: SymbolLayerSpecification = {
+  id: 'cluster-count',
+  type: 'symbol',
+  source: 'incidents',
+  filter: ['has', 'point_count'],
+  layout: {
+    'text-field': ['get', 'point_count_abbreviated'],
+    'text-size': ['step', ['get', 'point_count'], 11, 10, 12, 30, 13],
+    'text-font': ['Noto Sans Regular'],
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  },
+  paint: {
+    'text-color': '#ffffff',
+    // A halo keeps the figure readable where a cluster overlaps a light tile.
+    'text-halo-color': 'rgba(61,67,77,0.9)',
+    'text-halo-width': 1,
   },
 }
 
@@ -331,6 +374,7 @@ export default function PublicMap({ incidents }: { incidents: MapIncident[] }) {
         >
           <Layer {...pointLayer} />
           <Layer {...clusterLayer} />
+          <Layer {...clusterCountLayer} />
         </Source>
       </MapGL>
 
@@ -443,8 +487,8 @@ export default function PublicMap({ incidents }: { incidents: MapIncident[] }) {
         </p>
 
         <p className="mt-2 text-[0.6875rem] leading-relaxed text-[var(--ink-4)]">
-          Larger marks report more deaths. Grey circles are clusters — select one to
-          expand it.
+          Larger marks report more deaths. A grey circle groups nearby records and
+          prints how many; select it to open them.
         </p>
       </section>
 
